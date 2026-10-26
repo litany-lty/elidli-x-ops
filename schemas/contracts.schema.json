@@ -1,0 +1,5945 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://local.invalid/x-ops/contracts.schema.json",
+  "definitions": {
+    "NonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "StringArray": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "UniqueStrings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "NullableInstant": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "instant"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "Instant": {
+      "type": "string",
+      "format": "instant"
+    },
+    "Account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "handle",
+        "profile_url",
+        "user_id",
+        "identity_basis"
+      ],
+      "properties": {
+        "handle": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^@\\s]+$"
+        },
+        "profile_url": {
+          "type": "string",
+          "format": "url"
+        },
+        "user_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "identity_basis": {
+          "enum": [
+            "user_provided",
+            "public_verified",
+            "oauth_verified"
+          ]
+        }
+      }
+    },
+    "SourceRule": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "value",
+            "include_subdomains"
+          ],
+          "properties": {
+            "kind": {
+              "const": "domain"
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1
+            },
+            "include_subdomains": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "value"
+          ],
+          "properties": {
+            "kind": {
+              "const": "url_prefix"
+            },
+            "value": {
+              "type": "string",
+              "format": "url"
+            }
+          }
+        }
+      ]
+    },
+    "Window": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "hours"
+          ],
+          "properties": {
+            "mode": {
+              "const": "rolling"
+            },
+            "hours": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "date"
+          ],
+          "properties": {
+            "mode": {
+              "const": "calendar_day"
+            },
+            "date": {
+              "type": "string",
+              "format": "calendar-date"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "start",
+            "end"
+          ],
+          "properties": {
+            "mode": {
+              "const": "interval"
+            },
+            "start": {
+              "$ref": "#/definitions/Instant"
+            },
+            "end": {
+              "$ref": "#/definitions/Instant"
+            }
+          }
+        }
+      ]
+    },
+    "VoiceSample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "text",
+        "source_ref",
+        "confirmed_by_user"
+      ],
+      "properties": {
+        "sample_id": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "text": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "source_ref": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "confirmed_by_user": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_id",
+        "name",
+        "aliases",
+        "official_urls",
+        "priority"
+      ],
+      "properties": {
+        "entity_id": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "name": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "aliases": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "official_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "url"
+          },
+          "uniqueItems": true
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        }
+      }
+    },
+    "ConfigV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "account",
+        "timezone",
+        "output_language",
+        "content",
+        "news",
+        "history"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "timezone": {
+          "type": "string",
+          "format": "iana-timezone"
+        },
+        "output_language": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "content": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "audience",
+            "audience_regions",
+            "primary_goal",
+            "goal_notes",
+            "topics",
+            "voice_samples",
+            "style_notes",
+            "allowed_formats"
+          ],
+          "properties": {
+            "audience": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "audience_regions": {
+              "$ref": "#/definitions/StringArray"
+            },
+            "primary_goal": {
+              "enum": [
+                "relevant_reach",
+                "discussion",
+                "followers",
+                "clicks",
+                "custom"
+              ]
+            },
+            "goal_notes": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "topics": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "voice_samples": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/VoiceSample"
+              }
+            },
+            "style_notes": {
+              "$ref": "#/definitions/StringArray"
+            },
+            "allowed_formats": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "short_post",
+                  "thread",
+                  "reply"
+                ]
+              }
+            }
+          }
+        },
+        "news": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "core_topics",
+            "exploration_topics",
+            "excluded_topics",
+            "entities",
+            "source_languages",
+            "event_regions",
+            "preferred_sources",
+            "restricted_sources",
+            "excluded_sources",
+            "content_types",
+            "window",
+            "allow_out_of_window",
+            "rumor_policy",
+            "max_queries",
+            "verification_queries_reserved",
+            "max_source_reads",
+            "verification_reads_reserved",
+            "max_candidate_urls",
+            "max_events_to_verify",
+            "max_discovery_rounds",
+            "soft_budget_seconds",
+            "max_topic_cards",
+            "max_draft_variants",
+            "new_paid_api_budget_usd"
+          ],
+          "properties": {
+            "core_topics": {
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "exploration_topics": {
+              "$ref": "#/definitions/UniqueStrings"
+            },
+            "excluded_topics": {
+              "$ref": "#/definitions/UniqueStrings"
+            },
+            "entities": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Entity"
+              }
+            },
+            "source_languages": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "event_regions": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "preferred_sources": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SourceRule"
+              }
+            },
+            "restricted_sources": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SourceRule"
+              }
+            },
+            "excluded_sources": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SourceRule"
+              }
+            },
+            "content_types": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "announcement",
+                  "release",
+                  "update",
+                  "research",
+                  "case",
+                  "industry_change",
+                  "discussion",
+                  "correction"
+                ]
+              }
+            },
+            "window": {
+              "$ref": "#/definitions/Window"
+            },
+            "allow_out_of_window": {
+              "type": "boolean"
+            },
+            "rumor_policy": {
+              "const": "watch_only"
+            },
+            "max_queries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "verification_queries_reserved": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_source_reads": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "verification_reads_reserved": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_candidate_urls": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_events_to_verify": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_discovery_rounds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "soft_budget_seconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_topic_cards": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_draft_variants": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2
+            },
+            "new_paid_api_budget_usd": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "history": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "dedupe_scope",
+            "previously_recommended"
+          ],
+          "properties": {
+            "dedupe_scope": {
+              "enum": [
+                "account",
+                "run"
+              ]
+            },
+            "previously_recommended": {
+              "enum": [
+                "require_new_angle_or_update",
+                "allow"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "PatchOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "path"
+      ],
+      "properties": {
+        "op": {
+          "enum": [
+            "set",
+            "append",
+            "remove",
+            "clear",
+            "inherit"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "value": {}
+      }
+    },
+    "ConfigPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "scope",
+        "operations"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "scope": {
+          "enum": [
+            "run",
+            "persistent"
+          ]
+        },
+        "expected_revision": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/PatchOperation"
+          }
+        }
+      }
+    },
+    "EffectiveConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "config",
+        "patch",
+        "window",
+        "as_of",
+        "config_hash",
+        "assumptions"
+      ],
+      "properties": {
+        "config": {
+          "$ref": "#/definitions/ConfigV1"
+        },
+        "patch": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ConfigPatch"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "window": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "start",
+            "end"
+          ],
+          "properties": {
+            "start": {
+              "$ref": "#/definitions/Instant"
+            },
+            "end": {
+              "$ref": "#/definitions/Instant"
+            }
+          }
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        },
+        "config_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "assumptions": {
+          "$ref": "#/definitions/StringArray"
+        }
+      }
+    },
+    "SourceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "kind",
+        "locator",
+        "retrieved_at",
+        "description",
+        "metric_mapping",
+        "raw_material"
+      ],
+      "properties": {
+        "source_id": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "kind": {
+          "enum": [
+            "user_json",
+            "user_csv",
+            "screenshot",
+            "public_page",
+            "official_api",
+            "fixture"
+          ]
+        },
+        "locator": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "retrieved_at": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "description": {
+          "type": "string"
+        },
+        "metric_mapping": {
+          "type": "object"
+        },
+        "raw_material": {}
+      }
+    },
+    "MetricValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "availability",
+        "precision",
+        "raw_value"
+      ],
+      "properties": {
+        "value": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "availability": {
+          "enum": [
+            "observed",
+            "not_requested",
+            "unavailable",
+            "expired",
+            "not_provided",
+            "not_applicable",
+            "missing",
+            "fetch_failed"
+          ]
+        },
+        "precision": {
+          "enum": [
+            "exact",
+            "approximate",
+            "unknown"
+          ]
+        },
+        "raw_value": {}
+      }
+    },
+    "PostRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "post_key",
+        "post_id",
+        "account_id",
+        "author_handle",
+        "url",
+        "created_at",
+        "text",
+        "post_type",
+        "edit_history_ids",
+        "thread_root_id",
+        "primary_topic",
+        "topic_tags",
+        "source_ref"
+      ],
+      "properties": {
+        "post_key": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "post_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "account_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9]+$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "author_handle": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "url": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "url"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "text": {
+          "type": "string"
+        },
+        "post_type": {
+          "enum": [
+            "original",
+            "reply",
+            "quote",
+            "repost",
+            "unknown"
+          ]
+        },
+        "edit_history_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9]+$"
+          }
+        },
+        "thread_root_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "primary_topic": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "topic_tags": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "source_ref": {
+          "$ref": "#/definitions/NonEmptyString"
+        }
+      }
+    },
+    "AggregationWindow": {
+      "oneOf": [
+        {
+          "const": "cumulative"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "start",
+            "end"
+          ],
+          "properties": {
+            "start": {
+              "$ref": "#/definitions/Instant"
+            },
+            "end": {
+              "$ref": "#/definitions/Instant"
+            }
+          }
+        }
+      ]
+    },
+    "Snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_id",
+        "entity_type",
+        "entity_id",
+        "account_id",
+        "captured_at",
+        "source_ref",
+        "metric_scope",
+        "aggregation_level",
+        "aggregation_window",
+        "metrics"
+      ],
+      "properties": {
+        "snapshot_id": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "entity_type": {
+          "enum": [
+            "post",
+            "account",
+            "media"
+          ]
+        },
+        "entity_id": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "account_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "captured_at": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "source_ref": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "metric_scope": {
+          "enum": [
+            "public_total",
+            "organic",
+            "promoted",
+            "other"
+          ]
+        },
+        "aggregation_level": {
+          "enum": [
+            "post",
+            "account",
+            "media"
+          ]
+        },
+        "aggregation_window": {
+          "$ref": "#/definitions/AggregationWindow"
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/MetricValue"
+          }
+        }
+      }
+    },
+    "Coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested_start",
+        "requested_end",
+        "observed_oldest",
+        "observed_newest",
+        "source_mode",
+        "status",
+        "pages_read",
+        "has_more",
+        "stop_reason",
+        "raw_item_count",
+        "deduplicated_count",
+        "metric_available_counts"
+      ],
+      "properties": {
+        "requested_start": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "requested_end": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "observed_oldest": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "observed_newest": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "source_mode": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "source_window_complete",
+            "user_declared_complete",
+            "truncated",
+            "sample",
+            "unknown"
+          ]
+        },
+        "pages_read": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "has_more": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stop_reason": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "raw_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deduplicated_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "metric_available_counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "comparability": {
+          "enum": [
+            "comparable",
+            "descriptive_only",
+            "no_baseline",
+            "age_window_missing"
+          ]
+        }
+      }
+    },
+    "AgeWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_hours",
+        "tolerance_hours"
+      ],
+      "properties": {
+        "target_hours": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "tolerance_hours": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "SelectionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cutoff",
+        "windows_days",
+        "age_windows",
+        "group_by",
+        "requested_metrics",
+        "metric_scope",
+        "source_selection"
+      ],
+      "properties": {
+        "cutoff": {
+          "$ref": "#/definitions/Instant"
+        },
+        "windows_days": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "age_windows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AgeWindow"
+          }
+        },
+        "group_by": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "post_type",
+              "primary_topic"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "requested_metrics": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "metric_scope": {
+          "enum": [
+            "public_total",
+            "organic",
+            "promoted",
+            "other"
+          ]
+        },
+        "source_selection": {
+          "$ref": "#/definitions/UniqueStrings"
+        }
+      }
+    },
+    "RequestedScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "selection_policy",
+        "requested_outputs"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "full",
+            "sample"
+          ]
+        },
+        "selection_policy": {
+          "$ref": "#/definitions/SelectionPolicy"
+        },
+        "requested_outputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "content",
+              "latest",
+              "age_matched",
+              "comparison"
+            ]
+          }
+        }
+      }
+    },
+    "AccountInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "account",
+        "analysis_cutoff",
+        "requested_scope",
+        "coverage",
+        "posts",
+        "snapshots",
+        "source_refs",
+        "data_mode"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "analysis_cutoff": {
+          "$ref": "#/definitions/Instant"
+        },
+        "requested_scope": {
+          "$ref": "#/definitions/RequestedScope"
+        },
+        "coverage": {
+          "$ref": "#/definitions/Coverage"
+        },
+        "posts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PostRecord"
+          }
+        },
+        "snapshots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Snapshot"
+          }
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SourceRecord"
+          }
+        },
+        "data_mode": {
+          "enum": [
+            "live",
+            "fixture"
+          ]
+        }
+      }
+    },
+    "ColumnMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "mapping_id",
+        "columns",
+        "constants",
+        "time_formats",
+        "missing_tokens",
+        "source_record"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "mapping_id": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "columns": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "constants": {
+          "type": "object"
+        },
+        "time_formats": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "format",
+              "timezone"
+            ],
+            "properties": {
+              "format": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "missing_tokens": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "source_record": {
+          "$ref": "#/definitions/SourceRecord"
+        }
+      }
+    },
+    "TimeEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw",
+        "instant",
+        "timezone",
+        "precision",
+        "source_ref"
+      ],
+      "properties": {
+        "raw": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "instant": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "timezone": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "precision": {
+          "enum": [
+            "instant",
+            "day",
+            "unknown"
+          ]
+        },
+        "source_ref": {
+          "$ref": "#/definitions/NonEmptyString"
+        }
+      }
+    },
+    "AssessmentRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewer",
+        "assessed_at",
+        "reason"
+      ],
+      "properties": {
+        "reviewer": {
+          "type": "string"
+        },
+        "assessed_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "RelevanceAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relevant",
+        "reason",
+        "reviewer",
+        "assessed_at"
+      ],
+      "properties": {
+        "relevant": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "reviewer": {
+          "type": "string"
+        },
+        "assessed_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "new_angle_or_update": {
+          "type": "boolean"
+        }
+      }
+    },
+    "SourceVersion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "source_version_id",
+        "original_url",
+        "final_url",
+        "ticket_id",
+        "raw_receipt_ref",
+        "captured_text",
+        "captured_text_hash",
+        "material_kind",
+        "read_status",
+        "published_at",
+        "updated_at",
+        "event_at",
+        "observed_at"
+      ],
+      "properties": {
+        "source_id": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "source_version_id": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "original_url": {
+          "type": "string",
+          "format": "url"
+        },
+        "final_url": {
+          "type": "string",
+          "format": "url"
+        },
+        "ticket_id": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "raw_receipt_ref": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "captured_text": {
+          "type": "string"
+        },
+        "captured_text_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "material_kind": {
+          "enum": [
+            "search_snippet",
+            "article_excerpt",
+            "article_body",
+            "official_document",
+            "user_material"
+          ]
+        },
+        "read_status": {
+          "enum": [
+            "read",
+            "partial",
+            "failed",
+            "unavailable"
+          ]
+        },
+        "published_at": {
+          "$ref": "#/definitions/TimeEvidence"
+        },
+        "updated_at": {
+          "$ref": "#/definitions/TimeEvidence"
+        },
+        "event_at": {
+          "$ref": "#/definitions/TimeEvidence"
+        },
+        "observed_at": {
+          "$ref": "#/definitions/TimeEvidence"
+        }
+      }
+    },
+    "Locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_version_id",
+        "start",
+        "end",
+        "text"
+      ],
+      "properties": {
+        "source_version_id": {
+          "type": "string"
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "text": {
+          "type": "string"
+        }
+      }
+    },
+    "NewsEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "entity_name",
+        "action",
+        "object_name",
+        "version",
+        "event_key",
+        "source_version_ids",
+        "event_kind",
+        "event_time",
+        "in_window",
+        "origin_groups",
+        "relevance_assessment",
+        "previous_event_id"
+      ],
+      "properties": {
+        "event_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entity_name": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "object_name": {
+          "type": "string"
+        },
+        "version": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event_key": {
+          "type": "string"
+        },
+        "source_version_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "event_kind": {
+          "enum": [
+            "new_event",
+            "new_development",
+            "correction",
+            "old_resurfaced",
+            "announcement",
+            "unknown_time"
+          ]
+        },
+        "event_time": {
+          "$ref": "#/definitions/TimeEvidence"
+        },
+        "in_window": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "origin_groups": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "relevance_assessment": {
+          "$ref": "#/definitions/RelevanceAssessment"
+        },
+        "previous_event_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "event_id",
+        "statement",
+        "kind",
+        "support_status",
+        "source_version_ids",
+        "user_fact_ids",
+        "locators",
+        "limitations",
+        "conflicts",
+        "assessment"
+      ],
+      "properties": {
+        "claim_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "statement": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "fact",
+            "party_claim",
+            "inference",
+            "user_fact"
+          ]
+        },
+        "support_status": {
+          "enum": [
+            "supported",
+            "attributed",
+            "inferred",
+            "unverified",
+            "needs_recheck",
+            "invalidated"
+          ]
+        },
+        "source_version_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "user_fact_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "locators": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Locator"
+          }
+        },
+        "limitations": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "conflicts": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "assessment": {
+          "$ref": "#/definitions/AssessmentRecord"
+        },
+        "status_history": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StatusHistoryItem"
+          }
+        }
+      }
+    },
+    "TopicCard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "card_id",
+        "event_id",
+        "claim_ids",
+        "reader_value",
+        "new_information",
+        "angle",
+        "heat_evidence_ids",
+        "selection_reason",
+        "window_status"
+      ],
+      "properties": {
+        "card_id": {
+          "type": "string"
+        },
+        "event_id": {
+          "type": "string"
+        },
+        "claim_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "reader_value": {
+          "type": "string"
+        },
+        "new_information": {
+          "type": "string"
+        },
+        "angle": {
+          "type": "string"
+        },
+        "heat_evidence_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "selection_reason": {
+          "type": "string"
+        },
+        "window_status": {
+          "enum": [
+            "in_window",
+            "out_of_window"
+          ]
+        }
+      }
+    },
+    "FactMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text_index",
+        "start",
+        "end",
+        "claim_ids",
+        "user_fact_ids"
+      ],
+      "properties": {
+        "text_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "claim_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "user_fact_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        }
+      }
+    },
+    "DraftSemanticReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text_hashes",
+        "kept_user_fact_ids",
+        "claim_ids",
+        "new_claims_check",
+        "stance_voice_notes",
+        "reviewer",
+        "reviewed_at",
+        "decision"
+      ],
+      "properties": {
+        "text_hashes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "kept_user_fact_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "claim_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "new_claims_check": {
+          "type": "string"
+        },
+        "stance_voice_notes": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "reviewer": {
+          "type": "string"
+        },
+        "reviewed_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "decision": {
+          "enum": [
+            "approve",
+            "revise",
+            "insufficient_evidence"
+          ]
+        }
+      }
+    },
+    "DraftInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "draft_id",
+        "revision",
+        "parent_revision",
+        "card_id",
+        "original_text",
+        "original_ref",
+        "format",
+        "texts",
+        "fact_mapping",
+        "semantic_review"
+      ],
+      "properties": {
+        "draft_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "parent_revision": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "card_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "original_text": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "original_ref": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "format": {
+          "enum": [
+            "short_post",
+            "thread",
+            "reply"
+          ]
+        },
+        "texts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "fact_mapping": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactMapping"
+          }
+        },
+        "semantic_review": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/DraftSemanticReview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "LengthCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text_hash",
+        "weighted_length",
+        "valid",
+        "parser_version",
+        "config_version",
+        "checked_at"
+      ],
+      "properties": {
+        "text_hash": {
+          "type": "string"
+        },
+        "weighted_length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid": {
+          "type": "boolean"
+        },
+        "parser_version": {
+          "type": "string"
+        },
+        "config_version": {
+          "type": "string"
+        },
+        "checked_at": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "DraftRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "draft_id",
+        "revision",
+        "parent_revision",
+        "card_id",
+        "original_text",
+        "original_ref",
+        "format",
+        "texts",
+        "fact_mapping",
+        "semantic_review",
+        "length_checks",
+        "text_hashes",
+        "validity"
+      ],
+      "properties": {
+        "draft_id": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "parent_revision": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "card_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "original_text": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "original_ref": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "format": {
+          "enum": [
+            "short_post",
+            "thread",
+            "reply"
+          ]
+        },
+        "texts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "fact_mapping": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FactMapping"
+          }
+        },
+        "semantic_review": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/DraftSemanticReview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "length_checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LengthCheck"
+          }
+        },
+        "text_hashes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "validity": {
+          "enum": [
+            "ready",
+            "needs_revision",
+            "unverified"
+          ]
+        },
+        "status_history": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StatusHistoryItem"
+          }
+        }
+      }
+    },
+    "UserFactRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_fact_id",
+        "text",
+        "source_ref",
+        "material_locator",
+        "recorded_at"
+      ],
+      "properties": {
+        "user_fact_id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "source_ref": {
+          "type": "string"
+        },
+        "material_locator": {
+          "type": "string"
+        },
+        "recorded_at": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "StageResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "required",
+        "status",
+        "evidence_refs",
+        "reason"
+      ],
+      "properties": {
+        "stage": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "blocked",
+            "not_run"
+          ]
+        },
+        "evidence_refs": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ContentRunScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "suggestions_only",
+            "draft_required"
+          ]
+        }
+      }
+    },
+    "NewsRunScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested_outputs",
+        "required_coverage"
+      ],
+      "properties": {
+        "requested_outputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "cards",
+              "drafts"
+            ]
+          }
+        },
+        "required_coverage": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "coverage_id",
+              "description",
+              "priority"
+            ],
+            "properties": {
+              "coverage_id": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "priority": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "NewsDeliveredScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cards",
+        "drafts"
+      ],
+      "properties": {
+        "cards": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "drafts": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ReviewRunScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publication_ids",
+        "post_ids",
+        "observation_window"
+      ],
+      "properties": {
+        "publication_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "post_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "observation_window": {
+          "$ref": "#/definitions/Window"
+        }
+      }
+    },
+    "RunScope": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/RequestedScope"
+        },
+        {
+          "$ref": "#/definitions/ContentRunScope"
+        },
+        {
+          "$ref": "#/definitions/NewsRunScope"
+        },
+        {
+          "$ref": "#/definitions/ReviewRunScope"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "suggestions_only",
+            "draft_required"
+          ]
+        }
+      ]
+    },
+    "DeliveredScope": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/RequestedScope"
+        },
+        {
+          "$ref": "#/definitions/ContentRunScope"
+        },
+        {
+          "$ref": "#/definitions/NewsRunScope"
+        },
+        {
+          "$ref": "#/definitions/ReviewRunScope"
+        },
+        {
+          "$ref": "#/definitions/NewsDeliveredScope"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "suggestions_only",
+            "draft_required"
+          ]
+        }
+      ]
+    },
+    "RunResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "intent",
+        "requested_scope",
+        "delivered_scope",
+        "effective_config_hash",
+        "as_of",
+        "stage_results",
+        "execution_status",
+        "result_kind",
+        "deliverable_refs",
+        "limitations",
+        "stop_reason",
+        "persistence_status"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string"
+        },
+        "intent": {
+          "enum": [
+            "account_analysis",
+            "content_optimization",
+            "news",
+            "review"
+          ]
+        },
+        "requested_scope": {
+          "$ref": "#/definitions/RunScope"
+        },
+        "delivered_scope": {
+          "$ref": "#/definitions/DeliveredScope"
+        },
+        "effective_config_hash": {
+          "type": "string"
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        },
+        "stage_results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StageResult"
+          }
+        },
+        "execution_status": {
+          "enum": [
+            "complete",
+            "partial",
+            "blocked"
+          ]
+        },
+        "result_kind": {
+          "enum": [
+            "findings",
+            "no_findings",
+            "undetermined"
+          ]
+        },
+        "deliverable_refs": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "limitations": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "stop_reason": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "persistence_status": {
+          "enum": [
+            "saved",
+            "stale",
+            "unverified"
+          ]
+        }
+      }
+    },
+    "CapabilityReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_version",
+        "dependency_versions",
+        "schema_valid",
+        "state_access",
+        "binding_id",
+        "capabilities",
+        "evidence_refs",
+        "limitations"
+      ],
+      "properties": {
+        "runtime_version": {
+          "type": "string"
+        },
+        "dependency_versions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "schema_valid": {
+          "type": "boolean"
+        },
+        "state_access": {
+          "enum": [
+            "read_write",
+            "read_only",
+            "unavailable"
+          ]
+        },
+        "binding_id": {
+          "type": "string"
+        },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": [
+              "verified",
+              "unverified",
+              "unavailable"
+            ]
+          }
+        },
+        "evidence_refs": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "limitations": {
+          "$ref": "#/definitions/StringArray"
+        }
+      }
+    },
+    "MetricStats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "scope",
+        "window",
+        "source_id",
+        "eligible_count",
+        "valid_count",
+        "missing_count",
+        "sum",
+        "median",
+        "selected_snapshot_ids",
+        "excluded_records",
+        "aggregation_level",
+        "aggregation_window",
+        "group_by",
+        "group_value"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "window": {
+          "type": "string"
+        },
+        "source_id": {
+          "type": "string"
+        },
+        "eligible_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sum": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "median": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selected_snapshot_ids": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "excluded_records": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "record_id",
+              "reason"
+            ],
+            "properties": {
+              "record_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "aggregation_level": {
+          "type": "string"
+        },
+        "aggregation_window": {
+          "$ref": "#/definitions/AggregationWindow"
+        },
+        "group_by": {
+          "enum": [
+            "all",
+            "post_type",
+            "primary_topic"
+          ]
+        },
+        "group_value": {
+          "type": "string"
+        }
+      }
+    },
+    "AccountCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested_start",
+        "requested_end",
+        "observed_oldest",
+        "observed_newest",
+        "source_mode",
+        "status",
+        "pages_read",
+        "has_more",
+        "stop_reason",
+        "raw_item_count",
+        "deduplicated_count",
+        "metric_available_counts",
+        "comparability"
+      ],
+      "properties": {
+        "requested_start": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "requested_end": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "observed_oldest": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "observed_newest": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "source_mode": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "source_window_complete",
+            "user_declared_complete",
+            "truncated",
+            "sample",
+            "unknown"
+          ]
+        },
+        "pages_read": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "has_more": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stop_reason": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "raw_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deduplicated_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "metric_available_counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "comparability": {
+          "enum": [
+            "comparable",
+            "descriptive_only",
+            "no_baseline",
+            "age_window_missing"
+          ]
+        }
+      }
+    },
+    "PostCountGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total",
+        "by_post_type",
+        "by_primary_topic",
+        "post_keys"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "by_post_type": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "by_primary_topic": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "post_keys": {
+          "$ref": "#/definitions/StringArray"
+        }
+      }
+    },
+    "PostCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current_7",
+        "previous_7",
+        "current_28",
+        "previous_28"
+      ],
+      "properties": {
+        "current_7": {
+          "$ref": "#/definitions/PostCountGroup"
+        },
+        "previous_7": {
+          "$ref": "#/definitions/PostCountGroup"
+        },
+        "current_28": {
+          "$ref": "#/definitions/PostCountGroup"
+        },
+        "previous_28": {
+          "$ref": "#/definitions/PostCountGroup"
+        }
+      }
+    },
+    "PairedRatio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "period",
+        "post_type",
+        "source_id",
+        "numerator",
+        "denominator",
+        "value",
+        "metric_scope",
+        "window",
+        "selected_snapshot_ids",
+        "limitation",
+        "aggregation_level",
+        "aggregation_window",
+        "group_by",
+        "group_value"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "period": {
+          "type": "string"
+        },
+        "post_type": {
+          "type": "string"
+        },
+        "source_id": {
+          "type": "string"
+        },
+        "numerator": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "denominator": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "value": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metric_scope": {
+          "type": "string"
+        },
+        "window": {
+          "type": "string"
+        },
+        "selected_snapshot_ids": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "limitation": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "aggregation_level": {
+          "type": "string"
+        },
+        "aggregation_window": {
+          "$ref": "#/definitions/AggregationWindow"
+        },
+        "group_by": {
+          "enum": [
+            "all",
+            "post_type",
+            "primary_topic"
+          ]
+        },
+        "group_value": {
+          "type": "string"
+        }
+      }
+    },
+    "Comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric",
+        "view",
+        "post_type",
+        "current_period",
+        "previous_period",
+        "current_value",
+        "previous_value",
+        "difference",
+        "aggregation_level",
+        "aggregation_window",
+        "group_by",
+        "group_value"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string"
+        },
+        "view": {
+          "type": "string"
+        },
+        "post_type": {
+          "type": "string"
+        },
+        "current_period": {
+          "type": "string"
+        },
+        "previous_period": {
+          "type": "string"
+        },
+        "current_value": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "previous_value": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "difference": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_id": {
+          "type": "string"
+        },
+        "aggregation_level": {
+          "type": "string"
+        },
+        "aggregation_window": {
+          "$ref": "#/definitions/AggregationWindow"
+        },
+        "group_by": {
+          "enum": [
+            "all",
+            "post_type",
+            "primary_topic"
+          ]
+        },
+        "group_value": {
+          "type": "string"
+        }
+      }
+    },
+    "FollowerChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "window_days",
+        "period",
+        "start_snapshot_id",
+        "end_snapshot_id",
+        "source_id",
+        "start_at",
+        "end_at",
+        "start_value",
+        "end_value",
+        "net_change",
+        "exact"
+      ],
+      "properties": {
+        "window_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "period": {
+          "type": "string"
+        },
+        "start_snapshot_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "end_snapshot_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "start_at": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "end_at": {
+          "$ref": "#/definitions/NullableInstant"
+        },
+        "start_value": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "end_value": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "net_change": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exact": {
+          "type": "boolean"
+        }
+      }
+    },
+    "SelectionLog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "post_key",
+        "view",
+        "status",
+        "selected_snapshot_id",
+        "age_hours",
+        "reason"
+      ],
+      "properties": {
+        "post_key": {
+          "type": "string"
+        },
+        "view": {
+          "type": "string"
+        },
+        "target_hours": {
+          "type": "number"
+        },
+        "status": {
+          "enum": [
+            "selected",
+            "pending",
+            "missing"
+          ]
+        },
+        "selected_snapshot_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "age_hours": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "aggregation_level": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "aggregation_window": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/AggregationWindow"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "AccountResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "account",
+        "cutoff",
+        "coverage",
+        "post_counts",
+        "metric_groups",
+        "paired_ratios",
+        "comparisons",
+        "follower_changes",
+        "selection_log",
+        "limitations"
+      ],
+      "properties": {
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "cutoff": {
+          "$ref": "#/definitions/Instant"
+        },
+        "coverage": {
+          "$ref": "#/definitions/AccountCoverage"
+        },
+        "post_counts": {
+          "$ref": "#/definitions/PostCounts"
+        },
+        "metric_groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MetricStats"
+          }
+        },
+        "paired_ratios": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PairedRatio"
+          }
+        },
+        "comparisons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Comparison"
+          }
+        },
+        "follower_changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FollowerChange"
+          }
+        },
+        "selection_log": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SelectionLog"
+          }
+        },
+        "limitations": {
+          "$ref": "#/definitions/StringArray"
+        }
+      }
+    },
+    "ReviewFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statement",
+        "evidence_refs",
+        "interpretation",
+        "alternative_explanations"
+      ],
+      "properties": {
+        "statement": {
+          "type": "string"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "interpretation": {
+          "type": "string"
+        },
+        "alternative_explanations": {
+          "$ref": "#/definitions/StringArray"
+        }
+      }
+    },
+    "ReviewExperiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "change",
+        "basis_refs",
+        "next_check"
+      ],
+      "properties": {
+        "change": {
+          "type": "string"
+        },
+        "basis_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "next_check": {
+          "type": "string"
+        }
+      }
+    },
+    "ReviewResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "account",
+        "cutoff",
+        "publication_links",
+        "selected_observations",
+        "descriptive_statistics",
+        "source_angle_links",
+        "limitations",
+        "finding_proposals",
+        "next_experiment",
+        "semantic_review_required"
+      ],
+      "properties": {
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "cutoff": {
+          "$ref": "#/definitions/Instant"
+        },
+        "publication_links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PublicationLink"
+          }
+        },
+        "selected_observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SelectionLog"
+          }
+        },
+        "descriptive_statistics": {
+          "$ref": "#/definitions/AccountResult"
+        },
+        "source_angle_links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SourceAngleLink"
+          }
+        },
+        "limitations": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "finding_proposals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReviewFinding"
+          }
+        },
+        "next_experiment": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ReviewExperiment"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "semantic_review_required": {
+          "const": true
+        }
+      }
+    },
+    "PublicationLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publication_id",
+        "post_id",
+        "adoption_id",
+        "draft_id",
+        "revision"
+      ],
+      "properties": {
+        "publication_id": {
+          "type": "string"
+        },
+        "post_id": {
+          "type": "string"
+        },
+        "adoption_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "draft_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "revision": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "SourceAngleLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publication_id",
+        "draft_id",
+        "revision",
+        "card_id",
+        "event_id",
+        "claim_ids",
+        "source_version_ids",
+        "angle"
+      ],
+      "properties": {
+        "publication_id": {
+          "type": "string"
+        },
+        "draft_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "revision": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "card_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "claim_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "source_version_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "angle": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "AnalysisReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "account_result",
+        "findings",
+        "representative_posts",
+        "actions",
+        "limitations"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string"
+        },
+        "account_result": {
+          "$ref": "#/definitions/AccountResult"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "statement",
+              "evidence_refs",
+              "interpretation",
+              "alternative_explanations"
+            ],
+            "properties": {
+              "statement": {
+                "type": "string"
+              },
+              "evidence_refs": {
+                "$ref": "#/definitions/StringArray"
+              },
+              "interpretation": {
+                "type": "string"
+              },
+              "alternative_explanations": {
+                "$ref": "#/definitions/StringArray"
+              }
+            }
+          }
+        },
+        "representative_posts": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "change",
+              "basis_refs",
+              "next_check"
+            ],
+            "properties": {
+              "change": {
+                "type": "string"
+              },
+              "basis_refs": {
+                "$ref": "#/definitions/StringArray"
+              },
+              "next_check": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "limitations": {
+          "$ref": "#/definitions/StringArray"
+        }
+      }
+    },
+    "NewsRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_text",
+        "requested_at",
+        "scope_patch",
+        "requested_outputs",
+        "data_mode"
+      ],
+      "properties": {
+        "task_text": {
+          "type": "string"
+        },
+        "requested_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "scope_patch": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ConfigPatch"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requested_outputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "cards",
+              "drafts"
+            ]
+          }
+        },
+        "data_mode": {
+          "enum": [
+            "live",
+            "fixture"
+          ]
+        }
+      }
+    },
+    "SearchTask": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "logical_task_id",
+        "operation",
+        "purpose",
+        "request",
+        "scope_refs",
+        "coverage_ids"
+      ],
+      "properties": {
+        "logical_task_id": {
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "search",
+            "read"
+          ]
+        },
+        "purpose": {
+          "enum": [
+            "discover",
+            "verify",
+            "refresh"
+          ]
+        },
+        "request": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "query",
+                "recency_days"
+              ],
+              "properties": {
+                "query": {
+                  "type": "string"
+                },
+                "recency_days": {
+                  "oneOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "ref_id"
+              ],
+              "properties": {
+                "ref_id": {
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        },
+        "scope_refs": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "coverage_ids": {
+          "$ref": "#/definitions/StringArray"
+        }
+      }
+    },
+    "SearchPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_id",
+        "run_id",
+        "required_coverage",
+        "tasks",
+        "backup_sources",
+        "assumptions"
+      ],
+      "properties": {
+        "plan_id": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "required_coverage": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "coverage_id",
+              "description",
+              "priority"
+            ],
+            "properties": {
+              "coverage_id": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "priority": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SearchTask"
+          }
+        },
+        "backup_sources": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "assumptions": {
+          "$ref": "#/definitions/StringArray"
+        }
+      }
+    },
+    "HeatEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "kind",
+        "platform",
+        "query_or_scope",
+        "window",
+        "captured_at",
+        "value",
+        "unit",
+        "comparable",
+        "limitations",
+        "source_refs"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "unknown",
+            "observable_discussion",
+            "counts",
+            "trends",
+            "news_cluster"
+          ]
+        },
+        "platform": {
+          "type": "string"
+        },
+        "query_or_scope": {
+          "type": "string"
+        },
+        "window": {
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "captured_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "value": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "comparable": {
+          "type": "boolean"
+        },
+        "limitations": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "source_refs": {
+          "$ref": "#/definitions/StringArray"
+        }
+      }
+    },
+    "ObjectRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "existing",
+            "proposal"
+          ]
+        },
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "SourceTimes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_version_id",
+        "published_at",
+        "updated_at",
+        "event_at"
+      ],
+      "properties": {
+        "source_version_id": {
+          "type": "string"
+        },
+        "published_at": {
+          "$ref": "#/definitions/TimeEvidence"
+        },
+        "updated_at": {
+          "$ref": "#/definitions/TimeEvidence"
+        },
+        "event_at": {
+          "$ref": "#/definitions/TimeEvidence"
+        }
+      }
+    },
+    "EventAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_ref",
+        "assessment",
+        "relevant",
+        "new_angle_or_update"
+      ],
+      "properties": {
+        "event_ref": {
+          "$ref": "#/definitions/ObjectRef"
+        },
+        "assessment": {
+          "$ref": "#/definitions/AssessmentRecord"
+        },
+        "relevant": {
+          "type": "boolean"
+        },
+        "new_angle_or_update": {
+          "type": "boolean"
+        },
+        "source_times": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SourceTimes"
+          }
+        },
+        "region_assessment": {
+          "$ref": "#/definitions/RegionAssessment"
+        }
+      }
+    },
+    "ClaimAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_ref",
+        "support_status",
+        "assessment",
+        "source_version_ref"
+      ],
+      "properties": {
+        "claim_ref": {
+          "$ref": "#/definitions/ObjectRef"
+        },
+        "support_status": {
+          "enum": [
+            "supported",
+            "attributed",
+            "inferred",
+            "unverified",
+            "needs_recheck",
+            "invalidated"
+          ]
+        },
+        "assessment": {
+          "$ref": "#/definitions/AssessmentRecord"
+        },
+        "source_version_ref": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "EventProposalData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_name",
+        "action",
+        "object_name",
+        "version",
+        "event_key",
+        "source_version_ids",
+        "event_kind",
+        "event_time",
+        "in_window",
+        "origin_groups",
+        "relevance_assessment",
+        "previous_event_id"
+      ],
+      "properties": {
+        "entity_name": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "object_name": {
+          "type": "string"
+        },
+        "version": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event_key": {
+          "type": "string"
+        },
+        "source_version_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "event_kind": {
+          "enum": [
+            "new_event",
+            "new_development",
+            "correction",
+            "old_resurfaced",
+            "announcement",
+            "unknown_time"
+          ]
+        },
+        "event_time": {
+          "$ref": "#/definitions/TimeEvidence"
+        },
+        "in_window": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "origin_groups": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "relevance_assessment": {
+          "$ref": "#/definitions/RelevanceAssessment"
+        },
+        "previous_event_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ClaimProposalData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statement",
+        "kind",
+        "support_status",
+        "source_version_ids",
+        "user_fact_ids",
+        "locators",
+        "limitations",
+        "conflicts",
+        "assessment"
+      ],
+      "properties": {
+        "statement": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "fact",
+            "party_claim",
+            "inference",
+            "user_fact"
+          ]
+        },
+        "support_status": {
+          "enum": [
+            "supported",
+            "attributed",
+            "inferred",
+            "unverified",
+            "needs_recheck",
+            "invalidated"
+          ]
+        },
+        "source_version_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "user_fact_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "locators": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Locator"
+          }
+        },
+        "limitations": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "conflicts": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "assessment": {
+          "$ref": "#/definitions/AssessmentRecord"
+        }
+      }
+    },
+    "NewsAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "new_events",
+        "new_claims",
+        "event_assessments",
+        "claim_assessments",
+        "heat_evidence",
+        "ranking",
+        "rejected_candidates",
+        "unresolved_candidates"
+      ],
+      "properties": {
+        "new_events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "proposal_id",
+              "data"
+            ],
+            "properties": {
+              "proposal_id": {
+                "type": "string"
+              },
+              "data": {
+                "$ref": "#/definitions/EventProposalData"
+              }
+            }
+          }
+        },
+        "new_claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "proposal_id",
+              "event_ref",
+              "data"
+            ],
+            "properties": {
+              "proposal_id": {
+                "type": "string"
+              },
+              "event_ref": {
+                "$ref": "#/definitions/ObjectRef"
+              },
+              "data": {
+                "$ref": "#/definitions/ClaimProposalData"
+              }
+            }
+          }
+        },
+        "event_assessments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EventAssessment"
+          }
+        },
+        "claim_assessments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ClaimAssessment"
+          }
+        },
+        "heat_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HeatEvidence"
+          }
+        },
+        "ranking": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_ref",
+              "reason"
+            ],
+            "properties": {
+              "event_ref": {
+                "$ref": "#/definitions/ObjectRef"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "rejected_candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "candidate_id",
+              "reason"
+            ],
+            "properties": {
+              "candidate_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "unresolved_candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "candidate_id",
+              "reason",
+              "critical"
+            ],
+            "properties": {
+              "candidate_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "critical": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "DraftCheckResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "draft",
+        "text_checks",
+        "semantic_status",
+        "evidence_status",
+        "validity",
+        "errors"
+      ],
+      "properties": {
+        "draft": {
+          "$ref": "#/definitions/DraftRecord"
+        },
+        "text_checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LengthCheck"
+          }
+        },
+        "semantic_status": {
+          "enum": [
+            "approved",
+            "revise",
+            "insufficient_evidence",
+            "missing"
+          ]
+        },
+        "evidence_status": {
+          "enum": [
+            "supported",
+            "unverified",
+            "invalidated"
+          ]
+        },
+        "validity": {
+          "enum": [
+            "ready",
+            "needs_revision",
+            "unverified"
+          ]
+        },
+        "errors": {
+          "type": "array"
+        }
+      }
+    },
+    "PersistenceReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "artifact_id",
+        "version_id",
+        "state_revision",
+        "state_hash",
+        "saved_at",
+        "host_call_ref",
+        "actual_result_ref"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "artifact_id": {
+          "type": "string"
+        },
+        "version_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state_hash": {
+          "type": "string"
+        },
+        "saved_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "host_call_ref": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actual_result_ref": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "RunContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intent",
+        "requested_scope",
+        "effective_config",
+        "started_at",
+        "data_mode"
+      ],
+      "properties": {
+        "intent": {
+          "enum": [
+            "account_analysis",
+            "content_optimization",
+            "review"
+          ]
+        },
+        "requested_scope": {},
+        "effective_config": {
+          "$ref": "#/definitions/EffectiveConfig"
+        },
+        "started_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "data_mode": {
+          "enum": [
+            "live",
+            "fixture"
+          ]
+        }
+      }
+    },
+    "HostTool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_name",
+        "request_template",
+        "supported_filters"
+      ],
+      "properties": {
+        "tool_name": {
+          "type": "string"
+        },
+        "request_template": {
+          "type": "object"
+        },
+        "supported_filters": {
+          "$ref": "#/definitions/StringArray"
+        }
+      }
+    },
+    "HostPersistence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "save_method",
+        "restore_method",
+        "persistent"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "save_method": {
+          "type": "string"
+        },
+        "restore_method": {
+          "type": "string"
+        },
+        "persistent": {
+          "type": "boolean"
+        }
+      }
+    },
+    "HostBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "binding_id",
+        "binding_version",
+        "host_name",
+        "data_mode",
+        "search",
+        "read",
+        "raw_formats",
+        "node_execution",
+        "working_directory",
+        "persistence"
+      ],
+      "properties": {
+        "binding_id": {
+          "type": "string"
+        },
+        "binding_version": {
+          "type": "string"
+        },
+        "host_name": {
+          "type": "string"
+        },
+        "data_mode": {
+          "enum": [
+            "live",
+            "fixture"
+          ]
+        },
+        "search": {
+          "$ref": "#/definitions/HostTool"
+        },
+        "read": {
+          "$ref": "#/definitions/HostTool"
+        },
+        "raw_formats": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "text_string",
+              "call_tool_result"
+            ]
+          }
+        },
+        "node_execution": {
+          "type": "string"
+        },
+        "working_directory": {
+          "type": "string"
+        },
+        "persistence": {
+          "$ref": "#/definitions/HostPersistence"
+        }
+      }
+    },
+    "TaskTicket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ticket_id",
+        "run_id",
+        "logical_task_id",
+        "operation",
+        "purpose",
+        "binding_id",
+        "request",
+        "scope_refs",
+        "attempt",
+        "issued_at",
+        "execution_state"
+      ],
+      "properties": {
+        "ticket_id": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "logical_task_id": {
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "search",
+            "read"
+          ]
+        },
+        "purpose": {
+          "enum": [
+            "discover",
+            "verify",
+            "refresh"
+          ]
+        },
+        "binding_id": {
+          "type": "string"
+        },
+        "request": {
+          "type": "object"
+        },
+        "scope_refs": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "issued_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "execution_state": {
+          "enum": [
+            "reserved",
+            "succeeded",
+            "failed",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "ErrorItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "path",
+        "message",
+        "retryable"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "RawReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "ticket_id",
+        "tool_name",
+        "executed_at",
+        "returned_at",
+        "raw_result_ref",
+        "raw_result",
+        "raw_hash",
+        "host_call_ref",
+        "status",
+        "error"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string"
+        },
+        "ticket_id": {
+          "type": "string"
+        },
+        "tool_name": {
+          "type": "string"
+        },
+        "executed_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "returned_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "raw_result_ref": {
+          "type": "string"
+        },
+        "raw_result": {},
+        "raw_hash": {
+          "type": "string"
+        },
+        "host_call_ref": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "unknown"
+          ]
+        },
+        "error": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ErrorItem"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ExtractionProposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "block_index",
+        "start",
+        "end",
+        "url",
+        "title",
+        "source_ref",
+        "material_kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "candidate",
+            "source"
+          ]
+        },
+        "block_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "url": {
+          "type": "string",
+          "format": "url"
+        },
+        "title": {
+          "type": "string"
+        },
+        "source_ref": {
+          "type": "string"
+        },
+        "material_kind": {
+          "enum": [
+            "search_snippet",
+            "article_excerpt",
+            "article_body",
+            "official_document",
+            "user_material"
+          ]
+        },
+        "captured_text": {
+          "type": "string"
+        }
+      }
+    },
+    "NewsCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coverage_id",
+        "status",
+        "searched_ticket_ids",
+        "read_ticket_ids",
+        "limitations"
+      ],
+      "properties": {
+        "coverage_id": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "partial",
+            "not_started"
+          ]
+        },
+        "searched_ticket_ids": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "read_ticket_ids": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "limitations": {
+          "$ref": "#/definitions/StringArray"
+        }
+      }
+    },
+    "NewsBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "search_used",
+        "read_used",
+        "discover_search_used",
+        "discover_read_used",
+        "discovery_rounds"
+      ],
+      "properties": {
+        "search_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "read_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discover_search_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discover_read_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discovery_rounds": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "Candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "url",
+        "title",
+        "source_ref",
+        "receipt_id",
+        "material_kind",
+        "locator",
+        "status"
+      ],
+      "properties": {
+        "candidate_id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "url"
+        },
+        "title": {
+          "type": "string"
+        },
+        "source_ref": {
+          "type": "string"
+        },
+        "receipt_id": {
+          "type": "string"
+        },
+        "material_kind": {
+          "enum": [
+            "search_snippet",
+            "article_excerpt",
+            "article_body",
+            "official_document",
+            "user_material"
+          ]
+        },
+        "locator": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "receipt_id",
+            "block_index",
+            "start",
+            "end"
+          ],
+          "properties": {
+            "receipt_id": {
+              "type": "string"
+            },
+            "block_index": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "start": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "end": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "status": {
+          "enum": [
+            "discovered",
+            "read",
+            "rejected",
+            "unresolved"
+          ]
+        }
+      }
+    },
+    "DraftRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "draft_id",
+        "revision"
+      ],
+      "properties": {
+        "draft_id": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "NewsRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "schema_version",
+        "binding_id",
+        "binding_version",
+        "binding",
+        "request",
+        "effective_config",
+        "config_hash",
+        "started_at",
+        "cutoff_at",
+        "deadline_at",
+        "phase",
+        "budget",
+        "plan",
+        "tickets",
+        "candidates",
+        "source_version_ids",
+        "event_ids",
+        "claim_ids",
+        "card_ids",
+        "draft_refs",
+        "coverage",
+        "assessments",
+        "heat_evidence",
+        "errors",
+        "stage_results",
+        "execution_status",
+        "result_kind",
+        "stop_reason",
+        "final_result"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "binding_id": {
+          "type": "string"
+        },
+        "binding_version": {
+          "type": "string"
+        },
+        "binding": {
+          "$ref": "#/definitions/HostBinding"
+        },
+        "request": {
+          "$ref": "#/definitions/NewsRequest"
+        },
+        "effective_config": {
+          "$ref": "#/definitions/EffectiveConfig"
+        },
+        "config_hash": {
+          "type": "string"
+        },
+        "started_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "cutoff_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "deadline_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "phase": {
+          "enum": [
+            "plan",
+            "discover",
+            "verify",
+            "assess",
+            "finalize"
+          ]
+        },
+        "budget": {
+          "$ref": "#/definitions/NewsBudget"
+        },
+        "plan": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/SearchPlan"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tickets": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/TaskTicket"
+          }
+        },
+        "candidates": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Candidate"
+          }
+        },
+        "source_version_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "event_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "claim_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "card_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "cards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TopicCard"
+          }
+        },
+        "draft_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DraftRef"
+          }
+        },
+        "coverage": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/NewsCoverage"
+          }
+        },
+        "assessments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/NewsAssessment"
+          }
+        },
+        "heat_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HeatEvidence"
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ErrorItem"
+          }
+        },
+        "stage_results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/StageResult"
+          }
+        },
+        "execution_status": {
+          "enum": [
+            "complete",
+            "partial",
+            "blocked"
+          ]
+        },
+        "result_kind": {
+          "enum": [
+            "findings",
+            "no_findings",
+            "undetermined"
+          ]
+        },
+        "stop_reason": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "final_result": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/RunResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rule_version_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "event_region_assessments": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/RegionAssessment"
+          }
+        }
+      }
+    },
+    "CommandEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "run_id",
+        "expected_revision",
+        "payload"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "run_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_revision": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payload": {
+          "type": "object"
+        }
+      }
+    },
+    "ResultEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "command",
+        "run_id",
+        "status",
+        "data",
+        "errors",
+        "evidence_refs",
+        "state_revision"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "command": {
+          "enum": [
+            "doctor",
+            "config",
+            "account-analyze",
+            "draft-check",
+            "news-step",
+            "record",
+            "review"
+          ]
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "partial",
+            "blocked",
+            "error"
+          ]
+        },
+        "data": {},
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "path",
+              "message",
+              "retryable"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "retryable": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "evidence_refs": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "state_revision": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "as_of",
+        "patch"
+      ],
+      "properties": {
+        "operation": {
+          "enum": [
+            "resolve",
+            "update"
+          ]
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        },
+        "patch": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ConfigPatch"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "NewsInitPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "request",
+        "effective_config",
+        "binding"
+      ],
+      "properties": {
+        "operation": {
+          "const": "init"
+        },
+        "request": {
+          "$ref": "#/definitions/NewsRequest"
+        },
+        "effective_config": {
+          "$ref": "#/definitions/EffectiveConfig"
+        },
+        "binding": {
+          "$ref": "#/definitions/HostBinding"
+        }
+      }
+    },
+    "NewsPlanPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "plan"
+      ],
+      "properties": {
+        "operation": {
+          "const": "plan"
+        },
+        "plan": {
+          "$ref": "#/definitions/SearchPlan"
+        }
+      }
+    },
+    "NewsReservePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "logical_task_ids"
+      ],
+      "properties": {
+        "operation": {
+          "const": "reserve"
+        },
+        "logical_task_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "NewsIngestPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "ticket_id",
+        "raw_result_path",
+        "actual_call",
+        "extractions"
+      ],
+      "properties": {
+        "operation": {
+          "const": "ingest"
+        },
+        "ticket_id": {
+          "type": "string"
+        },
+        "raw_result_path": {
+          "type": "string"
+        },
+        "actual_call": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tool_name",
+            "request",
+            "executed_at",
+            "returned_at",
+            "host_call_ref"
+          ],
+          "properties": {
+            "tool_name": {
+              "type": "string"
+            },
+            "request": {
+              "type": "object"
+            },
+            "executed_at": {
+              "$ref": "#/definitions/Instant"
+            },
+            "returned_at": {
+              "$ref": "#/definitions/Instant"
+            },
+            "host_call_ref": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "extractions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ExtractionProposal"
+          }
+        }
+      }
+    },
+    "NewsAssessPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "assessment"
+      ],
+      "properties": {
+        "operation": {
+          "const": "assess"
+        },
+        "assessment": {
+          "$ref": "#/definitions/NewsAssessment"
+        }
+      }
+    },
+    "NewsFinalizePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "cards",
+        "draft_inputs",
+        "coverage",
+        "stop_reason"
+      ],
+      "properties": {
+        "operation": {
+          "const": "finalize"
+        },
+        "cards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TopicCard"
+          }
+        },
+        "draft_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DraftInput"
+          }
+        },
+        "coverage": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/NewsCoverage"
+          }
+        },
+        "stop_reason": {
+          "type": "string"
+        }
+      }
+    },
+    "NewsStepPayload": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/NewsInitPayload"
+        },
+        {
+          "$ref": "#/definitions/NewsPlanPayload"
+        },
+        {
+          "$ref": "#/definitions/NewsReservePayload"
+        },
+        {
+          "$ref": "#/definitions/NewsIngestPayload"
+        },
+        {
+          "$ref": "#/definitions/NewsAssessPayload"
+        },
+        {
+          "$ref": "#/definitions/NewsFinalizePayload"
+        }
+      ]
+    },
+    "AdoptionRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "adoption_id",
+        "draft_id",
+        "revision",
+        "basis",
+        "recorded_at"
+      ],
+      "properties": {
+        "adoption_id": {
+          "type": "string"
+        },
+        "draft_id": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recorded_at": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "PublicationRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publication_id",
+        "adoption_id",
+        "post_id",
+        "url",
+        "confirmed_by",
+        "basis",
+        "data_mode",
+        "recorded_at"
+      ],
+      "properties": {
+        "publication_id": {
+          "type": "string"
+        },
+        "adoption_id": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "post_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "url": {
+          "type": "string",
+          "format": "url"
+        },
+        "confirmed_by": {
+          "enum": [
+            "user",
+            "read_source",
+            "fixture"
+          ]
+        },
+        "basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "data_mode": {
+          "enum": [
+            "live",
+            "fixture"
+          ]
+        },
+        "recorded_at": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "RuleVersion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_version_id",
+        "source_commit",
+        "path_symbol",
+        "read_source",
+        "execution_conditions",
+        "inference_boundary",
+        "checked_at",
+        "supersedes"
+      ],
+      "properties": {
+        "rule_version_id": {
+          "type": "string"
+        },
+        "source_commit": {
+          "type": "string"
+        },
+        "path_symbol": {
+          "type": "string"
+        },
+        "read_source": {
+          "type": "string"
+        },
+        "execution_conditions": {
+          "type": "string"
+        },
+        "inference_boundary": {
+          "type": "string"
+        },
+        "checked_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "supersedes": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ReviewInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "account",
+        "analysis_cutoff",
+        "publication_ids",
+        "post_ids",
+        "snapshot_ids",
+        "requested_scope",
+        "data_mode"
+      ],
+      "properties": {
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "analysis_cutoff": {
+          "$ref": "#/definitions/Instant"
+        },
+        "publication_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "post_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "snapshot_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "requested_scope": {
+          "$ref": "#/definitions/RequestedScope"
+        },
+        "coverage": {
+          "$ref": "#/definitions/Coverage"
+        },
+        "data_mode": {
+          "enum": [
+            "live",
+            "fixture"
+          ]
+        }
+      }
+    },
+    "RequestEnvelope": {
+      "$ref": "#/definitions/CommandEnvelope"
+    },
+    "doctorPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "binding",
+        "as_of",
+        "probe_receipt_ids"
+      ],
+      "properties": {
+        "binding": {
+          "$ref": "#/definitions/HostBinding"
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        },
+        "probe_receipt_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        }
+      }
+    },
+    "configPayload": {
+      "$ref": "#/definitions/ConfigPayload"
+    },
+    "account-analyzePayload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format",
+            "account_input"
+          ],
+          "properties": {
+            "format": {
+              "const": "json"
+            },
+            "account_input": {
+              "$ref": "#/definitions/AccountInput"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format",
+            "csv_path",
+            "mapping",
+            "account_context"
+          ],
+          "properties": {
+            "format": {
+              "const": "csv"
+            },
+            "csv_path": {
+              "type": "string"
+            },
+            "mapping": {
+              "$ref": "#/definitions/ColumnMapping"
+            },
+            "account_context": {
+              "type": "object"
+            }
+          }
+        }
+      ]
+    },
+    "draft-checkPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "draft_input",
+        "as_of"
+      ],
+      "properties": {
+        "draft_input": {
+          "$ref": "#/definitions/DraftInput"
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "news-stepPayload": {
+      "$ref": "#/definitions/NewsStepPayload"
+    },
+    "reviewPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_input",
+        "as_of"
+      ],
+      "properties": {
+        "review_input": {
+          "$ref": "#/definitions/ReviewInput"
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "RecordInitializePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "data",
+        "as_of"
+      ],
+      "properties": {
+        "operation": {
+          "const": "initialize"
+        },
+        "data": {
+          "$ref": "#/definitions/ConfigV1"
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "RecordUserMaterialPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "data",
+        "as_of"
+      ],
+      "properties": {
+        "operation": {
+          "const": "user_material"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_records",
+            "user_facts"
+          ],
+          "properties": {
+            "source_records": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SourceRecord"
+              }
+            },
+            "user_facts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/UserFactRecord"
+              }
+            }
+          }
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "RecordAnalysisPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "data",
+        "as_of",
+        "run_context"
+      ],
+      "properties": {
+        "operation": {
+          "const": "analysis"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "account_input",
+            "report"
+          ],
+          "properties": {
+            "account_input": {
+              "$ref": "#/definitions/AccountInput"
+            },
+            "report": {
+              "$ref": "#/definitions/AnalysisReport"
+            }
+          }
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        },
+        "run_context": {
+          "$ref": "#/definitions/RunContext"
+        }
+      }
+    },
+    "Suggestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "issue",
+        "suggested_change",
+        "reason"
+      ],
+      "properties": {
+        "issue": {
+          "type": "string"
+        },
+        "suggested_change": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "RecordDraftPayload": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation",
+            "data",
+            "as_of",
+            "run_context"
+          ],
+          "properties": {
+            "operation": {
+              "const": "draft"
+            },
+            "data": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "draft_input"
+              ],
+              "properties": {
+                "draft_input": {
+                  "$ref": "#/definitions/DraftInput"
+                }
+              }
+            },
+            "as_of": {
+              "$ref": "#/definitions/Instant"
+            },
+            "run_context": {
+              "$ref": "#/definitions/RunContext"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation",
+            "data",
+            "as_of",
+            "run_context"
+          ],
+          "properties": {
+            "operation": {
+              "const": "draft"
+            },
+            "data": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "original_ref",
+                "user_fact_ids",
+                "suggestions"
+              ],
+              "properties": {
+                "original_ref": {
+                  "type": "string"
+                },
+                "user_fact_ids": {
+                  "$ref": "#/definitions/UniqueStrings"
+                },
+                "suggestions": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "$ref": "#/definitions/Suggestion"
+                  }
+                }
+              }
+            },
+            "as_of": {
+              "$ref": "#/definitions/Instant"
+            },
+            "run_context": {
+              "$ref": "#/definitions/RunContext"
+            }
+          }
+        }
+      ]
+    },
+    "RecordAdoptionPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "data",
+        "as_of"
+      ],
+      "properties": {
+        "operation": {
+          "const": "adoption"
+        },
+        "data": {
+          "$ref": "#/definitions/AdoptionRecord"
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "RecordPublicationPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "data",
+        "as_of"
+      ],
+      "properties": {
+        "operation": {
+          "const": "publication"
+        },
+        "data": {
+          "$ref": "#/definitions/PublicationRecord"
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "RecordObservationsPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "data",
+        "as_of"
+      ],
+      "properties": {
+        "operation": {
+          "const": "observations"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "posts",
+            "snapshots",
+            "source_refs"
+          ],
+          "properties": {
+            "posts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/PostRecord"
+              }
+            },
+            "snapshots": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Snapshot"
+              }
+            },
+            "source_refs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/SourceRecord"
+              }
+            }
+          }
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "RecordReviewPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "data",
+        "as_of",
+        "run_context"
+      ],
+      "properties": {
+        "operation": {
+          "const": "review"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "review_input",
+            "report"
+          ],
+          "properties": {
+            "review_input": {
+              "$ref": "#/definitions/ReviewInput"
+            },
+            "report": {
+              "$ref": "#/definitions/ReviewResult"
+            }
+          }
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        },
+        "run_context": {
+          "$ref": "#/definitions/RunContext"
+        }
+      }
+    },
+    "RecordRulePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "data",
+        "as_of"
+      ],
+      "properties": {
+        "operation": {
+          "const": "rule_version"
+        },
+        "data": {
+          "$ref": "#/definitions/RuleVersion"
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "RecordPersistencePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation",
+        "data",
+        "as_of"
+      ],
+      "properties": {
+        "operation": {
+          "const": "persistence_receipt"
+        },
+        "data": {
+          "$ref": "#/definitions/PersistenceReceipt"
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "recordPayload": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/RecordInitializePayload"
+        },
+        {
+          "$ref": "#/definitions/RecordUserMaterialPayload"
+        },
+        {
+          "$ref": "#/definitions/RecordAnalysisPayload"
+        },
+        {
+          "$ref": "#/definitions/RecordDraftPayload"
+        },
+        {
+          "$ref": "#/definitions/RecordAdoptionPayload"
+        },
+        {
+          "$ref": "#/definitions/RecordPublicationPayload"
+        },
+        {
+          "$ref": "#/definitions/RecordObservationsPayload"
+        },
+        {
+          "$ref": "#/definitions/RecordReviewPayload"
+        },
+        {
+          "$ref": "#/definitions/RecordRulePayload"
+        },
+        {
+          "$ref": "#/definitions/RecordPersistencePayload"
+        }
+      ]
+    },
+    "StatusHistoryItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "from",
+        "to",
+        "reason",
+        "source_version_ref"
+      ],
+      "properties": {
+        "at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "source_version_ref": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "RegionAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "matched_regions",
+        "locators",
+        "reason",
+        "reviewer",
+        "assessed_at"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "matched",
+            "unmatched",
+            "unknown"
+          ]
+        },
+        "matched_regions": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "locators": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Locator"
+          }
+        },
+        "reason": {
+          "type": "string"
+        },
+        "reviewer": {
+          "type": "string"
+        },
+        "assessed_at": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    }
+  }
+}

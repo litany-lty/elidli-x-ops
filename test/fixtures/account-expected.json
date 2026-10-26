@@ -1,0 +1,14 @@
+{
+  "ACC-POS":{
+    "post_counts":{"current_7":3,"previous_7":2,"current_28":6,"previous_28":2},
+    "current_7_post_types":{"original":2,"reply":1},
+    "current_7_original_24h_impressions":{"sum":3000,"median":1500},
+    "previous_7_original_24h_impressions":{"sum":2000,"median":1000},
+    "visible_interactions":{"current_7":65,"previous_7":40},
+    "interaction_impression_ratios":{"current_7":0.021666666666666667,"previous_7":0.02,"tolerance":1e-9},
+    "current_7_all_latest_impressions_sum":11500,
+    "follower_changes":{"7:current":10,"7:previous":20,"28:current":110,"28:previous":100},
+    "large_post_id":"9007199254740993"
+  },
+  "ACC-PART":{"current_sample_posts":3,"mature_24h_posts":2,"pending_posts":1,"impressions_sum":null,"impressions_median":null,"impression_ratio":null}
+}

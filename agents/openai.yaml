@@ -1,0 +1,4 @@
+interface:
+  display_name: "X 运营助手"
+  short_description: "分析 X 账号近期表现、优化推文、发现核验新闻并生成选题与可追溯草稿"
+  default_prompt: "使用 $x-ops 完成本次 X 账号分析、推文优化或新闻选题任务。"

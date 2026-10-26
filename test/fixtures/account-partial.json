@@ -1,0 +1,70 @@
+{
+  "fixture_id": "ACC-PART",
+  "cutoff": "2026-10-25T00:00:00Z",
+  "posts": [
+    {
+      "post_id": "9007199254740993",
+      "created_at": "2026-10-18T12:00:00Z",
+      "captured_at": "2026-10-19T12:00:00Z",
+      "post_type": "original",
+      "primary_topic": "workflow",
+      "text": "我把反复整理表格的任务拆成了收集、校验、归档三步，再考虑哪些能交给工具。",
+      "metrics": {
+        "likes": 20,
+        "replies": 3,
+        "reposts": 2,
+        "quotes": 0
+      }
+    },
+    {
+      "post_id": "102",
+      "created_at": "2026-10-20T12:00:00Z",
+      "captured_at": "2026-10-21T12:00:00Z",
+      "post_type": "original",
+      "primary_topic": "workflow",
+      "text": "今天又调了几个工具参数。先记下来，之后再看有没有实际变化。",
+      "metrics": {
+        "likes": 0,
+        "replies": 0,
+        "reposts": 0,
+        "quotes": 0
+      }
+    },
+    {
+      "post_id": "103",
+      "created_at": "2026-10-24T12:00:00Z",
+      "captured_at": "2026-10-24T20:00:00Z",
+      "post_type": "original",
+      "primary_topic": "workflow",
+      "text": "整理了一个流程清单，刚发出来，先等完整观察窗口再评估。",
+      "metrics": {
+        "likes": 4,
+        "replies": 1,
+        "reposts": 0,
+        "quotes": 0
+      }
+    }
+  ],
+  "known_limitations": [
+    "impressions_not_provided",
+    "no_baseline",
+    "no_follower_snapshots"
+  ],
+  "account": {
+    "handle": "fixture_partial",
+    "profile_url": "https://x.example/fixture_partial",
+    "user_id": null,
+    "identity_basis": "user_provided"
+  },
+  "source": {
+    "source_id": "src-fixture-partial",
+    "kind": "fixture",
+    "locator": "fixture://account-partial",
+    "retrieved_at": "2026-10-25T00:00:00Z",
+    "description": "完全虚构，用户给定3条原创样本；指标空缺保持未知",
+    "metric_mapping": {},
+    "raw_material": {
+      "fixture": "ACC-PART"
+    }
+  }
+}

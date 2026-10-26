@@ -1,0 +1,28 @@
+{
+  "name": "x-ops",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "dependencies": {
+    "@js-temporal/polyfill": "0.5.1",
+    "ajv": "8.20.0",
+    "csv-parse": "7.0.3",
+    "twitter-text": "3.1.0"
+  },
+  "description": "X operations skill: account analysis, evidence-based news discovery, draft checks and persistent review",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/litany-lty/x-ops.git"
+  },
+  "homepage": "https://github.com/litany-lty/x-ops#readme",
+  "bugs": {
+    "url": "https://github.com/litany-lty/x-ops/issues"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}

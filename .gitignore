@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+
+# Persistent account state and raw host receipts
+/accounts/
+/state/
+/states/
+/.x-ops/
+**/account-state.json
+**/persistence-receipt.json
+**/raw_receipts/*
+
+# Local evidence and temporary test output
+/.serena/
+/.test-artifacts/
+/.local-evidence/
+/evidence/local/
+/coverage/
+/.nyc_output/
+/test-results/
+/tmp/
+/.tmp/
+*.tmp
+
+# Keep public synthetic fixtures trackable even when filenames resemble state
+!test/fixtures/**
+!tests/fixtures/**
+
+# macOS
+.DS_Store

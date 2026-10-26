@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "account": {
+    "handle": "your_handle",
+    "profile_url": "https://x.com/your_handle",
+    "user_id": null,
+    "identity_basis": "user_provided"
+  },
+  "timezone": "Asia/Shanghai",
+  "output_language": "zh-CN",
+  "content": {
+    "audience": null,
+    "audience_regions": [],
+    "primary_goal": "relevant_reach",
+    "goal_notes": null,
+    "topics": null,
+    "voice_samples": [],
+    "style_notes": [],
+    "allowed_formats": ["short_post", "thread", "reply"]
+  },
+  "news": {
+    "core_topics": null,
+    "exploration_topics": [],
+    "excluded_topics": [],
+    "entities": [],
+    "source_languages": ["zh", "en"],
+    "event_regions": ["global"],
+    "preferred_sources": [],
+    "restricted_sources": [],
+    "excluded_sources": [],
+    "content_types": ["announcement", "release", "update", "research", "case", "industry_change", "discussion", "correction"],
+    "window": {"mode": "rolling", "hours": 24},
+    "allow_out_of_window": false,
+    "rumor_policy": "watch_only",
+    "max_queries": 8,
+    "verification_queries_reserved": 3,
+    "max_source_reads": 12,
+    "verification_reads_reserved": 4,
+    "max_candidate_urls": 24,
+    "max_events_to_verify": 6,
+    "max_discovery_rounds": 2,
+    "soft_budget_seconds": 300,
+    "max_topic_cards": 3,
+    "max_draft_variants": 2,
+    "new_paid_api_budget_usd": 0
+  },
+  "history": {
+    "dedupe_scope": "account",
+    "previously_recommended": "require_new_angle_or_update"
+  }
+}
