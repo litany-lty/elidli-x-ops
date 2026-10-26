@@ -1,0 +1,10 @@
+        for mut candidate in candidates {
+            if let Some(&idx) = kept_index.get(&candidate.tweet_id) {
+                kept[idx]
+                    .retrieval_sources
+                    .append(&mut candidate.retrieval_sources);
+                removed.push(candidate);
+            } else {
+                kept_index.insert(candidate.tweet_id, kept.len());
+                kept.push(candidate);
+            }

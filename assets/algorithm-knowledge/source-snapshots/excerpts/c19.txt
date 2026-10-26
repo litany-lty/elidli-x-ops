@@ -1,0 +1,30 @@
+
+pub(crate) fn new_user_soft_nsfw_filter_enabled(query: &ScoredPostsQuery) -> bool {
+    let for_you_without_topics =
+        query.request_type == RequestType::ForYou && !query.is_topic_request();
+    if !for_you_without_topics || !query.params.get(EnableNewUserSoftNsfwFilter) {
+        return false;
+    }
+    let max_age = Duration::from_secs(query.params.get(NewUserSoftNsfwFilterMaxAccountAgeSecs));
+    duration_since_creation_opt(query.user_id).is_some_and(|age| age < max_age)
+}
+
+fn is_labeled_soft_nsfw_out_of_network(candidate: &PostCandidate) -> bool {
+    candidate.in_network == Some(false) && candidate.soft_nsfw == Some(true)
+}
+
+impl Filter<ScoredPostsQuery, PostCandidate> for NewUserSoftNsfwFilter {
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        new_user_soft_nsfw_filter_enabled(query)
+    }
+
+    fn filter(
+        &self,
+        _query: &ScoredPostsQuery,
+        candidates: Vec<PostCandidate>,
+    ) -> FilterResult<PostCandidate> {
+        let (removed, kept): (Vec<_>, Vec<_>) = candidates
+            .into_iter()
+            .partition(is_labeled_soft_nsfw_out_of_network);
+        FilterResult { kept, removed }
+    }

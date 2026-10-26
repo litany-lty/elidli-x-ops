@@ -1,0 +1,38 @@
+fn cold_start_base_eligible(c: &PostCandidate, follower_cap: i64) -> bool {
+    c.in_reply_to_tweet_id.is_none()
+        && c.retweeted_tweet_id.is_none()
+        && c.author_followers_count
+            .is_some_and(|followers| (followers as i64) <= follower_cap)
+}
+
+fn author_corpus(
+    author_rules: &AuthorRulesEvaluator,
+    candidates: &[PostCandidate],
+) -> Vec<AuthorCorpus> {
+    let mut by_author = HashMap::<u64, AuthorCorpus>::new();
+    candidates
+        .iter()
+        .map(|c| {
+            *by_author.entry(c.author_id).or_insert_with(|| {
+                let is_treatment = author_rules.get(c.author_id, AuthorIsTreatment);
+                let is_control = author_rules.get(c.author_id, AuthorIsControl);
+                match (is_treatment, is_control) {
+                    (true, _) => AuthorCorpus::Treatment,
+                    (false, true) => AuthorCorpus::Control,
+                    (false, false) => AuthorCorpus::NotBucketed,
+                }
+            })
+        })
+        .collect()
+}
+
+fn cold_start_target(params: &ColdStartParams, scores: &[f64]) -> Option<(usize, f64)> {
+    let mut ranked = scores.to_vec();
+    ranked.sort_by(|a, b| b.total_cmp(a));
+    let hi = params.slot_max.min(ranked.len());
+    let lo = params.slot_min.min(hi);
+    if lo >= hi {
+        return None;
+    }
+    let rank = rand::rng().random_range(lo..hi);
+    Some((rank, ranked[rank]))

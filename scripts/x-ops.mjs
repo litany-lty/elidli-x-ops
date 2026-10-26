@@ -9,14 +9,18 @@ import { checkDraft } from './lib/draft.mjs';
 import { buildReview } from './lib/review.mjs';
 import { initializeNews, advanceNews, finalizeRun } from './lib/news.mjs';
 import { loadState, commitState, initializeState, registerSources, putImmutable, saveDraft, savePersistenceReceipt, persistenceStatus, findSourceVersion } from './lib/state.mjs';
+import { guardDeliveryV4 } from './lib/delivery-v4.mjs';
+import { dispatchV4 } from './lib/v4-dispatch.mjs';
+import { seedKnowledgeState } from './lib/knowledge-state.mjs';
+import { isReliableState } from './lib/state-version.mjs';
 import { dispatchV3, verifyHostMediaReceipt } from './lib/v3-dispatch.mjs';
 import { evaluateDraftReadiness } from './lib/draft.mjs';
 import { dispatchV2, coachingRunResult } from './lib/v2-dispatch.mjs';
-import { verifyCollectionReceipt } from './lib/collection.mjs';
+import { verifyCollectionReceipt,normalizeHostBinding,verifyCollectionMaterialV4 } from './lib/collection.mjs';
 import { buildConsumerContext, goalSnapshotFromState } from './lib/consumer-context.mjs';
 
 const runtimeDir=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const commands=['doctor','config','account-analyze','draft-check','news-step','record','review','data-import','coach-step','state-migrate','content-step'];
+const commands=['doctor','config','account-analyze','draft-check','news-step','record','review','data-import','coach-step','state-migrate','content-step','knowledge-step','collection-step'];
 const fail=(code,path,message)=>{throw new ContractError(code,path,message,false);};
 const stage=(name,passed,refs=[],reason=null)=>({stage:name,required:true,status:passed?'passed':'failed',evidence_refs:refs,reason});
 const same=(left,right)=>canonicalHash(left)===canonicalHash(right);
@@ -27,6 +31,8 @@ function assertAccount(state,account) {
 function requireState(state) { if(!state)fail('MISSING_EVIDENCE','/state','Initialize this account state first'); }
 
 async function doctor(payload,stateDir,state) {
+  const browserBinding=payload.binding.contract_version===4?payload.binding:null;
+  if(browserBinding)payload={...payload,binding:normalizeHostBinding(browserBinding).legacy};
   validate('HostBinding',payload.binding);
   let stateAccess=false;
   const probe=join(stateDir,`.doctor-${crypto.randomUUID()}.tmp`);
@@ -55,7 +61,9 @@ async function doctor(payload,stateDir,state) {
   for(const [name,entry] of Object.entries(mediaCapabilities))for(const receipt of Object.values(state?.host_media_receipts??{}))if(receipt.binding_id===payload.binding.binding_id&&receipt.data_mode==='live'&&receipt.status==='succeeded'&&mediaOperation[name].includes(receipt.operation)){
     try{await verifyHostMediaReceipt(receipt);entry.actual='verified';refs.push(receipt.receipt_id);}catch{entry.actual='unverified';}
   }
-  return {runtime_version:process.version,dependency_versions:versions,schema_valid:true,state_access:stateAccess,binding_id:payload.binding.binding_id,capabilities,media_capabilities:mediaCapabilities,account_collection:accountCollection,current_account_identity:state?.account??null,evidence_refs:refs,limitations:[...Object.entries(capabilities).filter(([,value])=>value!=='verified').map(([name])=>`${name} has no current successful probe receipt`),...Object.entries(accountCollection).filter(([,value])=>value.actual!=='verified').map(([name,value])=>`${name}: ${value.actual}`)]};
+  const browserCapabilities=(browserBinding?.capabilities??[]).map(capability=>({...capability,actual:'unverified'}));
+  for(const receipt of Object.values(state?.collection_receipts_v4??{}))if(receipt.binding_id===payload.binding.binding_id&&receipt.data_mode==='live')try{await verifyCollectionMaterialV4({contract_version:4,operation:'ingest',result_kind:'material',run_id:receipt.run_id,receipt},state);for(const capability of browserCapabilities)if(({'analytics_export':['normal_export','download_completion','file_read'],analytics_visible:['browser_connection','tab_read','accessibility_tree'],public_posts:['tab_read','accessibility_tree'],public_profile:['browser_connection','tab_read'],screenshot:['screenshot']}[receipt.capability]??[]).includes(capability.capability))capability.actual=receipt.status==='succeeded'?'verified':receipt.status;}catch{}
+  return {browser_capabilities:browserCapabilities,runtime_version:process.version,dependency_versions:versions,schema_valid:true,state_access:stateAccess,binding_id:payload.binding.binding_id,capabilities,media_capabilities:mediaCapabilities,account_collection:accountCollection,current_account_identity:state?.account??null,evidence_refs:refs,limitations:[...Object.entries(capabilities).filter(([,value])=>value!=='verified').map(([name])=>`${name} has no current successful probe receipt`),...Object.entries(accountCollection).filter(([,value])=>value.actual!=='verified').map(([name,value])=>`${name}: ${value.actual}`)]};
 }
 
 function makeRun(context,runId,stageResults,refs,hasFindings,extra={}) {
@@ -106,7 +114,7 @@ async function record(payload,request,stateDir,existing) {
     if(operation==='initialize') {
       if(state)fail('STATE_CONFLICT','/operation','initialize cannot overwrite an existing account');
       validate('ConfigV1',data);resolveConfig(data,null,asOf);
-      response={record_refs:[data.account.profile_url],run_result:null};return initializeState(data);
+      response={record_refs:[data.account.profile_url],run_result:null};return seedKnowledgeState(initializeState(data));
     }
     requireState(state);
     if(operation==='user_material') {
@@ -123,13 +131,13 @@ async function record(payload,request,stateDir,existing) {
     if(operation==='adoption') {
       validate('AdoptionRecord',data);
       const draft=state.drafts[data.draft_id]?.revisions[data.revision];
-      if(!draft||(state.schema_version===3?evaluateDraftReadiness({draft_id:data.draft_id,revision:data.revision},null,state).readiness!=='ready':draft.validity!=='ready'))fail('STALE_DRAFT','/revision','Only a currently valid exact draft revision can be adopted');
+      if(!draft||(isReliableState(state)?evaluateDraftReadiness({draft_id:data.draft_id,revision:data.revision},null,state).readiness!=='ready':draft.validity!=='ready'))fail('STALE_DRAFT','/revision','Only a currently valid exact draft revision can be adopted');
       if(!data.basis)fail('MISSING_EVIDENCE','/basis','Adoption requires the user selection evidence');
-      if(state.schema_version===3)fail('INVALID_INPUT','/contract_version','Use state 3 adoption payload with exact review and pack attribution');
+      if(isReliableState(state))fail('INVALID_INPUT','/contract_version','Use state 3 adoption payload with exact review and pack attribution');
       putImmutable(state.adoptions,data.adoption_id,data);response={record_refs:[data.adoption_id],run_result:null};return state;
     }
     if(operation==='publication') {
-      if(state.schema_version===3)fail('INVALID_INPUT','/contract_version','Use state 3 publication attribution');
+      if(isReliableState(state))fail('INVALID_INPUT','/contract_version','Use state 3 publication attribution');
       validate('PublicationRecord',data);
       if(data.confirmed_by==='fixture'&&(data.data_mode!=='fixture'||!state.account.handle.startsWith('fixture_')))fail('INVALID_INPUT','/data_mode','Fixture publication is permitted only in an isolated fixture account');
       if(data.data_mode==='live'&&data.confirmed_by==='fixture')fail('INVALID_INPUT','/confirmed_by','Fixture is not live publication evidence');
@@ -176,7 +184,7 @@ async function record(payload,request,stateDir,existing) {
       state.runs[runId]={run_id:runId,intent:context.intent,run_context:context,report:structuredClone(data.report),run_result:runResult};response={record_refs:[runId],run_result:runResult};return state;
     }
     if(operation==='draft') {
-      if(state.schema_version===3)fail('INVALID_INPUT','/contract_version','Use record draft_review to save exact text and audit separately');
+      if(isReliableState(state))fail('INVALID_INPUT','/contract_version','Use record draft_review to save exact text and audit separately');
       if(context.intent!=='content_optimization')fail('INVALID_INPUT','/run_context/intent','Incorrect draft intent');
       const mode=typeof context.requested_scope==='string'?context.requested_scope:context.requested_scope.mode;
       const stages=[],refs=[];
@@ -227,6 +235,8 @@ function currentRunView(state,runId,persistence) {
 
 async function dispatch(command,request,stateDir) {
   const payload=request.payload;let state=await loadState(stateDir);
+  if(command==='doctor')return {data:await doctor(payload,stateDir,state),state};
+  if(payload.contract_version===4)return dispatchV4(command,request,stateDir,state);
   if(payload.contract_version===3)return dispatchV3(command,request,stateDir,state);
   if(payload.contract_version===2)return dispatchV2(command,request,stateDir,state);
   if(command==='doctor')return {data:await doctor(payload,stateDir,state),state};
@@ -289,16 +299,17 @@ export async function main(argv=process.argv.slice(2)) {
   try {
     ({command,options}=parseArguments(argv));
     request=JSON.parse(await readFile(options['--input'],'utf8'));validate('RequestEnvelope',request);validate(`${command}Payload`,request.payload);
-    const result=await dispatch(command,request,options['--state-dir']);
+    let result=await dispatch(command,request,options['--state-dir']);
+    result=await guardDeliveryV4(command,request,options['--state-dir'],result);
     const runResult=result.data?.run_result;
     const status=(runResult?.execution_status??result.data?.run?.execution_status)==='blocked'?'blocked':(runResult?.execution_status??result.data?.run?.execution_status)==='partial'?'partial':'ok';
     exitCode=status==='partial'?3:status==='blocked'?4:0;
     envelope={schema_version:1,command,run_id:request.run_id??runResult?.run_id??result.data?.run?.run_id??null,status,data:result.data,errors:result.data?.errors??[],evidence_refs:result.data?.record_refs??[],state_revision:result.state?.revision??0};
   } catch(error) {
     const code=error instanceof ContractError?error.code:error instanceof SyntaxError?'INVALID_INPUT':'IO_ERROR';
-    exitCode=['STATE_CONFLICT','BUDGET_EXHAUSTED','CAPABILITY_UNAVAILABLE','MISSING_EVIDENCE','PERSIST_FAILED','MIGRATION_REQUIRED','AUTH_REQUIRED','ADAPTER_UNVERIFIED'].includes(code)?4:code==='IO_ERROR'?5:2;
-    const recovery={STALE_BUNDLE:['recheck','prepare'],STALE_DRAFT:['recheck','draft-check'],STATE_CONFLICT:['resume','resume'],CAPABILITY_UNAVAILABLE:['collect','resume'],AUTH_REQUIRED:['collect','resume'],MISSING_EVIDENCE:['provide_material','resume'],PERSIST_FAILED:['retry','resume'],MIGRATION_REQUIRED:['migrate','state-migrate'],BUDGET_EXHAUSTED:['provide_material','resume']}[code];
-    const recoveryData=request?.payload?.contract_version===3&&recovery?{user_summary:error.message,next_actions:[{kind:recovery[0],target_ref:request.payload.run_id??request.run_id??'account',required_inputs:[error.path??'/'],can_resume:true,requires_user_input:['AUTH_REQUIRED','MISSING_EVIDENCE','BUDGET_EXHAUSTED'].includes(code),reason:error.message,operation:recovery[1]}]}:null;
+    exitCode=['STATE_CONFLICT','BUDGET_EXHAUSTED','CAPABILITY_UNAVAILABLE','MISSING_EVIDENCE','PERSIST_FAILED','MIGRATION_REQUIRED','AUTH_REQUIRED','ADAPTER_UNVERIFIED','ENTITLEMENT_REQUIRED','EXPORT_UNAVAILABLE','TRANSFER_REQUIRED','SCOPE_UNVERIFIED','COVERAGE_PARTIAL','WINDOW_PENDING','WINDOW_MISSING','FUTURE_EVIDENCE'].includes(code)?4:code==='IO_ERROR'?5:2;
+    const recovery={STALE_BUNDLE:['recheck','prepare'],STALE_DRAFT:['recheck','draft-check'],STATE_CONFLICT:['resume','resume'],CAPABILITY_UNAVAILABLE:['collect','resume'],AUTH_REQUIRED:['collect','resume'],MISSING_EVIDENCE:['provide_material','resume'],PERSIST_FAILED:['retry','resume'],MIGRATION_REQUIRED:['migrate','state-migrate'],BUDGET_EXHAUSTED:['provide_material','resume'],ENTITLEMENT_REQUIRED:['collect','resume'],EXPORT_UNAVAILABLE:['collect','resume'],TRANSFER_REQUIRED:['provide_material','resume'],SCOPE_UNVERIFIED:['recheck','prepare'],COVERAGE_PARTIAL:['collect','resume'],WINDOW_PENDING:['collect','review'],WINDOW_MISSING:['provide_material','review'],FUTURE_EVIDENCE:['recheck','knowledge-step']}[code];
+    const recoveryData=[3,4].includes(request?.payload?.contract_version)&&recovery?{user_summary:error.message,next_actions:[{kind:recovery[0],target_ref:request.payload.run_id??request.run_id??'account',required_inputs:[error.path??'/'],can_resume:true,requires_user_input:['AUTH_REQUIRED','MISSING_EVIDENCE','BUDGET_EXHAUSTED'].includes(code),reason:error.message,operation:recovery[1]}]}:null;
     envelope={schema_version:1,command,run_id:request?.run_id??null,status:exitCode===4?'blocked':'error',data:recoveryData,errors:[{code,path:error.path??'/',message:error.message,retryable:error.retryable??false}],evidence_refs:[],state_revision:null};
   }
   if(options['--output'])try {await mkdir(dirname(options['--output']),{recursive:true});await writeFile(options['--output'],JSON.stringify(envelope,null,2)+'\n',{mode:0o600});}catch(error){

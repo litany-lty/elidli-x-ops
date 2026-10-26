@@ -1,0 +1,1139 @@
+{
+  "$id": "https://x-ops.local/schemas/knowledge-v4.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "V4Hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "V4Strings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "KnowledgeSignalDefinitionV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "unit"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "number",
+            "boolean",
+            "string"
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "KnowledgePredicateComparisonV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signal",
+        "value"
+      ],
+      "properties": {
+        "signal": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {},
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "KnowledgePredicateV4": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "all"
+          ],
+          "properties": {
+            "all": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/definitions/KnowledgePredicateV4"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "any"
+          ],
+          "properties": {
+            "any": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/definitions/KnowledgePredicateV4"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "not"
+          ],
+          "properties": {
+            "not": {
+              "$ref": "#/definitions/KnowledgePredicateV4"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "exists"
+          ],
+          "properties": {
+            "exists": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "eq"
+          ],
+          "properties": {
+            "eq": {
+              "$ref": "#/definitions/KnowledgePredicateComparisonV4"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "in"
+          ],
+          "properties": {
+            "in": {
+              "$ref": "#/definitions/KnowledgePredicateComparisonV4"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lt"
+          ],
+          "properties": {
+            "lt": {
+              "$ref": "#/definitions/KnowledgePredicateComparisonV4"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lte"
+          ],
+          "properties": {
+            "lte": {
+              "$ref": "#/definitions/KnowledgePredicateComparisonV4"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "gt"
+          ],
+          "properties": {
+            "gt": {
+              "$ref": "#/definitions/KnowledgePredicateComparisonV4"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "gte"
+          ],
+          "properties": {
+            "gte": {
+              "$ref": "#/definitions/KnowledgePredicateComparisonV4"
+            }
+          }
+        }
+      ]
+    },
+    "KnowledgeArtifactV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "artifact_id",
+        "origin",
+        "repo",
+        "commit",
+        "source_path",
+        "line_range",
+        "material_path",
+        "artifact_content_hash",
+        "upstream_file_hash",
+        "license",
+        "acquisition",
+        "checked_at"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 4
+        },
+        "artifact_id": {
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "bundled_verified_snapshot",
+            "live_fetch",
+            "fixture"
+          ]
+        },
+        "repo": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        },
+        "source_path": {
+          "type": "string"
+        },
+        "line_range": {
+          "type": "string"
+        },
+        "material_path": {
+          "type": "string"
+        },
+        "artifact_content_hash": {
+          "$ref": "#/definitions/V4Hash"
+        },
+        "upstream_file_hash": {
+          "$ref": "#/definitions/V4Hash"
+        },
+        "license": {
+          "type": "string"
+        },
+        "acquisition": {
+          "type": "string"
+        },
+        "checked_at": {
+          "$ref": "#/definitions/Instant"
+        }
+      }
+    },
+    "KnowledgeDependencyV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dependency_id",
+        "kind",
+        "path",
+        "symbol",
+        "material_hash",
+        "wiring_status",
+        "config_visibility",
+        "source_visibility",
+        "documentation_status",
+        "review_depth",
+        "disposition",
+        "caller_refs",
+        "consumer_refs",
+        "missing_dependencies",
+        "review_note",
+        "evidence_material_path",
+        "evidence_content_hash"
+      ],
+      "properties": {
+        "dependency_id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "query_hydrator",
+            "source",
+            "candidate_hydrator",
+            "filter",
+            "scorer",
+            "selector",
+            "post_selection_hydrator",
+            "post_selection_filter",
+            "side_effect",
+            "visibility_level",
+            "action_consumer",
+            "training_label"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "material_hash": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/V4Hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wiring_status": {
+          "enum": [
+            "unreviewed",
+            "definition_only",
+            "wired_reviewed"
+          ]
+        },
+        "config_visibility": {
+          "enum": [
+            "known_default",
+            "partial",
+            "unavailable"
+          ]
+        },
+        "source_visibility": {
+          "enum": [
+            "public",
+            "partially_public",
+            "external_unpublished"
+          ]
+        },
+        "documentation_status": {
+          "enum": [
+            "unreviewed",
+            "aligned",
+            "stale",
+            "not_applicable"
+          ]
+        },
+        "review_depth": {
+          "enum": [
+            "entry_only",
+            "conditions_verified",
+            "effects_verified",
+            "end_to_end_traced"
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "fact_card",
+            "dependency_only",
+            "no_operational_action",
+            "blocked_by_gap"
+          ]
+        },
+        "caller_refs": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "consumer_refs": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "missing_dependencies": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "review_note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_material_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence_content_hash": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/V4Hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "RuleCatalogSnapshotV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "catalog_id",
+        "catalog_version",
+        "catalog_content_hash",
+        "upstream",
+        "files",
+        "artifact_manifest_path",
+        "dependency_manifest_path",
+        "dependency_manifest_hash",
+        "activation_event_path",
+        "artifact_refs",
+        "fact_version_refs",
+        "rule_version_refs",
+        "signal_registry",
+        "coverage",
+        "created_at"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 4
+        },
+        "catalog_id": {
+          "type": "string"
+        },
+        "catalog_version": {
+          "type": "string"
+        },
+        "content_hash_policy": {
+          "enum": [
+            "exclude-lifecycle-v1"
+          ]
+        },
+        "catalog_content_hash": {
+          "$ref": "#/definitions/V4Hash"
+        },
+        "upstream": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repo",
+            "commit"
+          ],
+          "properties": {
+            "repo": {
+              "type": "string"
+            },
+            "commit": {
+              "type": "string"
+            }
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256",
+              "kind"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "sha256": {
+                "$ref": "#/definitions/V4Hash"
+              },
+              "kind": {
+                "enum": [
+                  "artifact_manifest",
+                  "dependency_manifest",
+                  "fact",
+                  "operational_rule",
+                "knowledge_event",
+                "historical_catalog"
+                ]
+              }
+            }
+          }
+        },
+        "artifact_manifest_path": {
+          "type": "string"
+        },
+        "dependency_manifest_path": {
+          "type": "string"
+        },
+        "dependency_manifest_hash": {
+          "$ref": "#/definitions/V4Hash"
+        },
+        "activation_event_path": {
+          "type": "string"
+        },
+        "artifact_refs": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "fact_version_refs": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "rule_version_refs": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "signal_registry": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/KnowledgeSignalDefinitionV4"
+          }
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "public_scope_status",
+            "reviewed_dependency_count",
+            "unreviewed_public_dependency_ids",
+            "external_unpublished_dependency_ids",
+            "limitations"
+          ],
+          "properties": {
+            "public_scope_status": {
+              "enum": [
+                "verified_subset",
+                "public_scope_complete"
+              ]
+            },
+            "reviewed_dependency_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unreviewed_public_dependency_ids": {
+              "$ref": "#/definitions/V4Strings"
+            },
+            "external_unpublished_dependency_ids": {
+              "$ref": "#/definitions/V4Strings"
+            },
+            "limitations": {
+              "$ref": "#/definitions/V4Strings"
+            }
+          }
+        },
+        "created_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/KnowledgeDependencyV4"
+          }
+        }
+      }
+    },
+    "OperationalRuleV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "rule_id",
+        "rule_version_id",
+        "review_status",
+        "origin",
+        "fact_version_refs",
+        "dependency_ids",
+        "support_material_refs",
+        "derivation",
+        "boundaries",
+        "applicability",
+        "mechanism_predicate",
+        "editorial_predicate",
+        "required_signals",
+        "optional_signals",
+        "missing_policy",
+        "deterministic_checks",
+        "semantic_checks",
+        "action_template",
+        "counterexamples",
+        "measurement_plan_template",
+        "replay_cases",
+        "review_refs"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 4
+        },
+        "rule_id": {
+          "type": "string"
+        },
+        "rule_version_id": {
+          "type": "string"
+        },
+        "review_status": {
+          "enum": [
+            "approved",
+            "pending",
+            "rejected"
+          ]
+        },
+        "origin": {
+          "enum": [
+            "algorithm_inference",
+            "platform_documentation",
+            "editorial_practice"
+          ]
+        },
+        "fact_version_refs": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "dependency_ids": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "support_material_refs": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "derivation": {
+          "type": "string"
+        },
+        "boundaries": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "applicability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "intents",
+            "goals",
+            "uses",
+            "surfaces",
+            "post_types"
+          ],
+          "properties": {
+            "intents": {
+              "$ref": "#/definitions/V4Strings"
+            },
+            "goals": {
+              "$ref": "#/definitions/V4Strings"
+            },
+            "uses": {
+              "$ref": "#/definitions/V4Strings"
+            },
+            "surfaces": {
+              "$ref": "#/definitions/V4Strings"
+            },
+            "post_types": {
+              "$ref": "#/definitions/V4Strings"
+            }
+          }
+        },
+        "mechanism_predicate": {
+          "$ref": "#/definitions/KnowledgePredicateV4"
+        },
+        "editorial_predicate": {
+          "$ref": "#/definitions/KnowledgePredicateV4"
+        },
+        "required_signals": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "optional_signals": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "missing_policy": {
+          "enum": [
+            "unknown_and_collect_evidence",
+            "editorial_only",
+            "not_applicable"
+          ]
+        },
+        "deterministic_checks": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "semantic_checks": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "action_template": {
+          "type": "string"
+        },
+        "counterexamples": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "measurement_plan_template": {
+          "type": "string"
+        },
+        "replay_cases": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "expected",
+              "signals"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "expected": {
+                "enum": [
+                  "applicable",
+                  "not_applicable",
+                  "unknown"
+                ]
+              },
+              "signals": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "review_refs": {
+          "$ref": "#/definitions/V4Strings"
+        }
+      }
+    },
+    "RuleSelectionV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_version_ref",
+        "fact_version_refs",
+        "dependency_ids",
+        "mechanism_applicability",
+        "editorial_applicability"
+      ],
+      "properties": {
+        "rule_version_ref": {
+          "type": "string"
+        },
+        "fact_version_refs": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "dependency_ids": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "mechanism_applicability": {
+          "$ref": "#/definitions/RuleApplicabilityV4"
+        },
+        "editorial_applicability": {
+          "$ref": "#/definitions/RuleApplicabilityV4"
+        }
+      }
+    },
+    "RuleApplicabilityV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "missing_signals"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "applicable",
+            "not_applicable",
+            "unknown"
+          ]
+        },
+        "missing_signals": {
+          "$ref": "#/definitions/V4Strings"
+        }
+      }
+    },
+    "RuleContextV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "context_id",
+        "run_id",
+        "intent",
+        "goal",
+        "use",
+        "surface",
+        "post_type",
+        "subject_ref",
+        "cutoff",
+        "catalog_ref",
+        "catalog_content_hash",
+        "personal_context_selection_ref",
+        "personal_context_selection_hash",
+        "personal_context_absence_reason",
+        "evidence_bundle_ref",
+        "evidence_bundle_hash",
+        "explicit_rule_version_refs",
+        "selections",
+        "not_selected",
+        "missing_signals",
+        "selected_rule_context_hash"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 4
+        },
+        "context_id": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "intent": {
+          "type": "string"
+        },
+        "goal": {},
+        "use": {
+          "type": "string"
+        },
+        "surface": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "post_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "subject_ref": {
+          "type": "string"
+        },
+        "cutoff": {
+          "$ref": "#/definitions/Instant"
+        },
+        "catalog_ref": {
+          "type": "string"
+        },
+        "catalog_content_hash": {
+          "$ref": "#/definitions/V4Hash"
+        },
+        "personal_context_selection_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "personal_context_selection_hash": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/V4Hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "personal_context_absence_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence_bundle_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence_bundle_hash": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/V4Hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "explicit_rule_version_refs": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "selections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RuleSelectionV4"
+          }
+        },
+        "not_selected": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rule_version_ref",
+              "reason"
+            ],
+            "properties": {
+              "rule_version_ref": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "missing_signals": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "selected_rule_context_hash": {
+          "$ref": "#/definitions/V4Hash"
+        },
+        "signals": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "signal_dependencies": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "selected_dependency_hashes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/V4Hash"
+          }
+        },
+        "selected_fact_hashes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/V4Hash"
+          }
+        },
+        "selected_rule_hashes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/V4Hash"
+          }
+        },
+        "personal_context_selection": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/PersonalContextSelectionV3"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "RuleApplicationV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "application_id",
+        "context_ref",
+        "selected_rule_context_hash",
+        "subject_ref",
+        "actual_input_hash",
+        "rule_version_refs",
+        "checks",
+        "findings",
+        "actions",
+        "keep_unchanged_reason",
+        "validation_plan",
+        "deliverable_refs",
+        "application_proposal_hash"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 4
+        },
+        "application_id": {
+          "type": "string"
+        },
+        "context_ref": {
+          "type": "string"
+        },
+        "selected_rule_context_hash": {
+          "$ref": "#/definitions/V4Hash"
+        },
+        "subject_ref": {
+          "type": "string"
+        },
+        "actual_input_hash": {
+          "$ref": "#/definitions/V4Hash"
+        },
+        "rule_version_refs": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "check_id",
+              "check_type",
+              "status",
+              "reviewed_input_hash",
+              "inspected_refs",
+              "finding"
+            ],
+            "properties": {
+              "check_id": {
+                "type": "string"
+              },
+              "check_type": {
+                "enum": [
+                  "deterministic",
+                  "semantic"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "applicable",
+                  "not_applicable",
+                  "unknown"
+                ]
+              },
+              "reviewed_input_hash": {
+                "oneOf": [
+                  {
+                    "$ref": "#/definitions/V4Hash"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "inspected_refs": {
+                "$ref": "#/definitions/V4Strings"
+              },
+              "finding": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "findings": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "action_id",
+              "rule_version_ref",
+              "disposition",
+              "text",
+              "deliverable_refs"
+            ],
+            "properties": {
+              "action_id": {
+                "type": "string"
+              },
+              "rule_version_ref": {
+                "type": "string"
+              },
+              "disposition": {
+                "enum": [
+                  "modify",
+                  "keep",
+                  "collect_evidence"
+                ]
+              },
+              "text": {
+                "type": "string"
+              },
+              "deliverable_refs": {
+                "$ref": "#/definitions/V4Strings"
+              }
+            }
+          }
+        },
+        "keep_unchanged_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "validation_plan": {
+          "type": "string"
+        },
+        "deliverable_refs": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "application_proposal_hash": {
+          "$ref": "#/definitions/V4Hash"
+        }
+      }
+    },
+    "KnowledgeEventV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "event_id",
+        "event_type",
+        "catalog_ref",
+        "prior_catalog_ref",
+        "checked_at",
+        "observed_head_commit",
+        "affected_rule_version_refs",
+        "gaps"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 4
+        },
+        "event_id": {
+          "type": "string"
+        },
+        "event_type": {
+          "enum": [
+            "checked",
+            "candidate_update",
+            "activated",
+            "retired",
+            "currentness_warning"
+          ]
+        },
+        "catalog_ref": {
+          "type": "string"
+        },
+        "prior_catalog_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checked_at": {
+          "$ref": "#/definitions/Instant"
+        },
+        "observed_head_commit": {
+          "type": "string"
+        },
+        "affected_rule_version_refs": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "gaps": {
+          "$ref": "#/definitions/V4Strings"
+        },
+        "review_receipt_ref": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "contract_version": 2,
+  "rule_id": "C15",
+  "rule_version_id": "fact-c15-6258a1549ef8",
+  "repo": "xai-org/x-algorithm",
+  "commit": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+  "path": "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs",
+  "symbol": "should_drop_ancillary",
+  "source_material_ref": "artifact-c15",
+  "source_content_hash": "fb279f1ea8698fb6556a78c39f3efe9897c54e0b3905b8563544fd7be25a5c38",
+  "checked_at": "2026-10-26T00:00:00Z",
+  "publicly_available_from": null,
+  "applicable_surface": "home_for_you_public_path",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证"
+  ],
+  "observed_behavior": "父帖、引用帖与转帖原帖的可见性可能影响候选。",
+  "inference_boundary": "只陈述所列公开路径；不推算个人账号内部得分、曝光配额、隐藏标签或增长结果。",
+  "production_status": "unknown",
+  "supersedes": null
+}

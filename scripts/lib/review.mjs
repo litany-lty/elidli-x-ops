@@ -330,6 +330,11 @@ export function reviewV2RunResult(input, result, state, runId = null) {
   });
 }
 
+export function newObservationWindowPolicy(targetHours=24){
+  if(!Number.isFinite(targetHours)||targetHours<=0)fail('INVALID_INPUT','/target_hours','Observation target hours must be positive');
+  return{kind:'age_window',target_hours:targetHours,tolerance_hours:targetHours===168?12:2};
+}
+
 export function normalizeExperimentPlanV3(plan,state={}, {allowIncomplete=false}={}) {
   if(!plan?.experiment_id)fail('INVALID_INPUT','/experiment_id','Experiment ID is required');
   if(plan.contract_version===3)return structuredClone(plan);
@@ -337,7 +342,7 @@ export function normalizeExperimentPlanV3(plan,state={}, {allowIncomplete=false}
   let window=null,limitations=[];
   if(old?.kind==='age_window'){
     const match=/^(\d+(?:\.\d+)?)h$/.exec(String(old.value));
-    if(match)window={kind:'age_window',target_hours:Number(match[1]),tolerance_hours:old.tolerance_hours??2};
+    if(match){const policy=newObservationWindowPolicy(Number(match[1]));window={...policy,tolerance_hours:old.tolerance_hours??policy.tolerance_hours};}
   } else if(old?.kind==='period'&&old.start&&old.end_exclusive&&old.timezone&&old.aggregation_basis==='event_period') window={kind:'period',start:old.start,end_exclusive:old.end_exclusive,timezone:old.timezone,aggregation_basis:'event_period'};
   if(!window){window={kind:'age_window',target_hours:1,tolerance_hours:0};limitations.push('Original V2 window needs plan details before review');}
   const status=limitations.length?'needs_plan_details':plan.status;
@@ -384,6 +389,14 @@ function selectedMetric(selection,definitionId){
   return {value,unit:rows[0]?.unit??null,refs:rows.map(item=>item.observation_ref)};
 }
 
+function selectionWindow(window){
+  return window.kind==='period'?{kind:'period',...(window.start!==undefined?{start:window.start}:{}),...(window.end_exclusive!==undefined?{end_exclusive:window.end_exclusive}:{}),...(window.source_date_start!==undefined?{source_date_start:window.source_date_start}:{}),...(window.source_date_end_inclusive!==undefined?{source_date_end_inclusive:window.source_date_end_inclusive}:{})}:structuredClone(window);
+}
+
+function reviewScope(entityType,entityKeys){
+  return {entity_type:entityType,entity_keys:[...entityKeys],...(entityType==='account'?{aggregation_basis:'event_period'}:{})};
+}
+
 export function buildReviewComputation(state,planView,{as_of,baseline_entity_keys=planView.baseline_entity_keys,coverage_receipt_refs=[]}={}) {
   if(planView?.contract_version!==3||planView.status==='needs_plan_details')fail('INVALID_INPUT','/plan_view','A complete V3 plan view is required');
   validatePlanSource(state,planView);
@@ -394,19 +407,87 @@ export function buildReviewComputation(state,planView,{as_of,baseline_entity_key
   if(entityType==='account'&&planView.window.kind!=='period')fail('INVALID_INPUT','/window','Account metrics require an exact event period');
   const accountKeys=[state.account?.user_id,state.account?.handle?`handle:${state.account.handle}`:null,state.account?.handle].filter(Boolean),observedAccountKeys=new Set(Object.values(state.snapshots_v2??{}).filter(item=>item.entity_type==='account').map(item=>item.entity_id));
   const targetKeys=entityType==='account'?[accountKeys.find(key=>observedAccountKeys.has(key))??accountKeys[0]].filter(Boolean):planView.target_entity_keys;
-  const scope={entity_type:entityType,entity_keys:targetKeys,metric_definition_ids:requirements.map(item=>item.definition_id),aggregation_basis:entityType==='account'?'event_period':undefined};
-  const target=selectMetricObservations(state,{scope,window:planView.window,metric_requirements:requirements,as_of,role:'target',selection_policy_version:'review-computation-v3'});
-  const baseline=baseline_entity_keys?.length?selectMetricObservations(state,{scope:{...scope,entity_keys:baseline_entity_keys},window:planView.window,metric_requirements:requirements,as_of,role:'baseline',selection_policy_version:'review-computation-v3'}):null;
+  const scope=reviewScope(entityType,targetKeys),window=selectionWindow(planView.window);
+  const target=selectMetricObservations(state,{scope,window,metric_requirements:requirements,as_of,role:'target',selection_policy_version:'review-computation-v3'});
+  const baseline=baseline_entity_keys?.length?selectMetricObservations(state,{scope:{...scope,entity_keys:baseline_entity_keys},window,metric_requirements:requirements,as_of,role:'baseline',selection_policy_version:'review-computation-v3'}):null;
   const metric_results=planView.metric_requirements.map(requirement=>{const current=selectedMetric(target,requirement.definition_id),prior=baseline?selectedMetric(baseline,requirement.definition_id):{value:null,unit:null,refs:[]};return{definition_id:requirement.definition_id,role:requirement.role,target_value:current.value,baseline_value:prior.value,difference:current.value!==null&&prior.value!==null?current.value-prior.value:null,unit:current.unit??prior.unit,target_observation_refs:current.refs,baseline_observation_refs:prior.refs};});
   const comparison=baseline?computeComparison(target,baseline,{method:'descriptive'}):null;
   const publication_bindings=planView.linked_publication_ids.map(id=>{const publication=state.publications?.[id];return{publication_id:id,post_key:publication?canonicalPostKey(state,`x:${publication.post_id}`)??`x:${publication.post_id}`:'missing',content_match:publication?.attribution??publication?.content_match??'unverified'};});
   const limitations=[...planView.limitations,...target.limitations,...(baseline?.limitations??[]),...(coverage_receipt_refs.length?[]:['No actual coverage receipt was supplied']),...publication_bindings.filter(item=>item.content_match!=='exact').map(item=>`Publication ${item.publication_id} is ${item.content_match}; exact draft effect cannot be attributed`),...(comparison?.reasons??[])];
   const base={contract_version:3,computation_id:'',plan_view_ref:planView.plan_view_id,plan_hash:canonicalHash(planView),computed_at:as_of,target_selection:target,baseline_selection:baseline,method:{version:'review-computation-v3',kind:baseline?'descriptive_comparison':'target_only'},metric_results,comparability:comparison?.comparability??(target.completeness==='complete'?'partially_compatible':'insufficient'),publication_bindings,limitations};
-  const computation_hash=canonicalHash(base);return{...base,computation_id:`review-computation-${computation_hash.slice(0,24)}`,computation_hash};
+  const computation_hash=canonicalHash(base);return validate('ReviewComputationV3',{...base,computation_id:`review-computation-${computation_hash.slice(0,24)}`,computation_hash});
+}
+
+function expectedPlanMetricRequirements(experiment){
+  if(!experiment?.planned_primary_metric?.definition_id)fail('INVALID_INPUT','/source_experiment/planned_primary_metric','V4 review requires the source plan primary metric');
+  return [{definition_id:experiment.planned_primary_metric.definition_id,role:'primary'},...(experiment.guardrails??[]).map(item=>({definition_id:item.definition_id,role:'guardrail'}))];
+}
+
+function validatePlanProjectionV4(state,planView){
+  const experiment=validatePlanSource(state,planView),expectedMetrics=expectedPlanMetricRequirements(experiment);
+  if(canonicalHash(planView.metric_requirements)!==canonicalHash(expectedMetrics))fail('STALE_BUNDLE','/metric_requirements','Review metrics must be the source plan primary metric and guardrails');
+  const entityType=metricDefinition(expectedMetrics[0].definition_id)?.allowed_entity_types?.[0];
+  if(!entityType)fail('METRIC_DEFINITION_UNRESOLVED','/metric_requirements','Review metric entity type is unavailable');
+  if(entityType==='post'){
+    const expected=[...(experiment.linked_publication_ids??[])].map(id=>{const publication=state.publications?.[id];return publication?canonicalPostKey(state,`x:${publication.post_id}`)??`x:${publication.post_id}`:null;}).filter(Boolean).sort();
+    if(canonicalHash([...planView.target_entity_keys].sort())!==canonicalHash(expected))fail('STALE_BUNDLE','/target_entity_keys','Review targets must resolve from the source plan publications');
+  } else if(planView.target_entity_keys.length) fail('INVALID_INPUT','/target_entity_keys','Account review targets are resolved from the plan account');
+  return {experiment,entityType};
+}
+
+function coverageBindingV4(state,ref,targetScope,window){
+  const receipt=state.collection_receipts_v4?.[ref]??state.collection_receipts?.[ref]??state.raw_receipts?.[ref]??state.sources?.[ref];
+  if(!receipt)fail('MISSING_EVIDENCE','/coverage_receipt_refs',`Coverage receipt is missing: ${ref}`);
+  if(receipt.status&&!['succeeded','partial'].includes(receipt.status))fail('INVALID_EVIDENCE_REF','/coverage_receipt_refs',`Coverage receipt did not produce observations: ${ref}`);
+  const collectionScope=receipt.contract_version===4?state.collection_scopes?.[receipt.scope_ref]:null,collectionRun=receipt.contract_version===4?state.collection_runs?.[receipt.run_id]:null;
+  if(receipt.contract_version===4&&(!collectionScope||collectionScope.run_id!==receipt.run_id))fail('INVALID_EVIDENCE_REF','/coverage_receipt_refs',`Coverage receipt scope is missing or belongs to another run: ${ref}`);
+  const accountRefs=new Set([state.account?.user_id,state.account?.user_id?`x-user:${state.account.user_id}`:null,state.account?.handle,state.account?.handle?`handle:${state.account.handle}`:null].filter(Boolean));
+  const accountRef=receipt.account_identity_ref??receipt.account_id??receipt.actual_identity?.account_identity_ref??receipt.identity_evidence?.analytics_account?.account_ref??receipt.identity_evidence?.target_profile?.account_ref??collectionRun?.target_account_ref;
+  if(!accountRef||!accountRefs.has(accountRef))fail('ACCOUNT_MISMATCH','/coverage_receipt_refs',`Coverage receipt belongs to another or unknown account: ${ref}`);
+  const requestScopeHash=canonicalHash(targetScope),collectionScopeHash=collectionScope?.scope_hash??receipt.scope_hash??(receipt.actual_scope?canonicalHash(receipt.actual_scope):null),windowHash=canonicalHash(window);
+  if(!collectionScopeHash)fail('INVALID_EVIDENCE_REF','/coverage_receipt_refs',`Coverage receipt has no frozen scope: ${ref}`);
+  if(!collectionScope&&receipt.actual_scope&&canonicalHash(receipt.actual_scope)!==requestScopeHash)fail('INVALID_EVIDENCE_REF','/coverage_receipt_refs',`Coverage receipt does not bind the requested scope: ${ref}`);
+  if(collectionScope&&window.kind==='period'){
+    const actual=collectionScope.actual_period,timezone=collectionScope.source_timezone;
+    if(!actual||actual.start!==window.start||actual.end_exclusive!==window.end_exclusive||timezone?.status!=='known'||timezone.value!==window.timezone)fail('INVALID_EVIDENCE_REF','/coverage_receipt_refs',`Coverage scope does not bind the requested period and timezone: ${ref}`);
+  } else if(!collectionScope&&receipt.actual_window&&canonicalHash(receipt.actual_window)!==windowHash)fail('INVALID_EVIDENCE_REF','/coverage_receipt_refs',`Coverage receipt does not bind the requested window: ${ref}`);
+  const completeness=collectionScope?.coverage?.completeness??receipt.coverage?.completeness??receipt.completeness;
+  if(!['complete','partial','unknown'].includes(completeness))fail('INVALID_EVIDENCE_REF','/coverage_receipt_refs',`Coverage completeness is unresolved: ${ref}`);
+  const materialHash=receipt.material_byte_sha256??receipt.actual_result_sha256??receipt.material_hash??receipt.artifact_sha256;
+  if(!/^[a-f0-9]{64}$/.test(materialHash??''))fail('INVALID_EVIDENCE_REF','/coverage_receipt_refs',`Coverage receipt has no exact material hash: ${ref}`);
+  const sourceRef=receipt.source_ref;
+  if(!sourceRef)fail('INVALID_EVIDENCE_REF','/coverage_receipt_refs',`Coverage receipt has no material source reference: ${ref}`);
+  return {receipt_ref:ref,receipt_hash:canonicalHash(receipt),material_hash:materialHash,source_ref:sourceRef,account_identity_ref:accountRef,collection_scope_ref:collectionScope?.scope_id??null,collection_scope_hash:collectionScopeHash,request_scope_hash:requestScopeHash,window_hash:windowHash,completeness};
+}
+
+function selectedSourceRef(state,observationRef){
+  for(const snapshot of Object.values(state.snapshots_v2??{}))for(const key of Object.keys(snapshot.metrics??{}))if(`${snapshot.snapshot_id}:${key}`===observationRef)return snapshot.source_ref;
+  return null;
+}
+
+/** Build a persistable V4 computation with the exact request needed for replay. */
+export function buildReviewComputationV4(state,planView,{as_of,coverage_receipt_refs=[]}={}){
+  if(state?.schema_version!==4)fail('MIGRATION_REQUIRED','/state/schema_version','V4 review computation requires state 4');
+  validate('ExperimentPlanViewV3',planView);
+  if(planView.status==='needs_plan_details')fail('REQUESTED_OUTPUT_INCOMPLETE','/plan_view/status','Plan details must be repaired before V4 computation');
+  const {entityType}=validatePlanProjectionV4(state,planView),requirements=structuredClone(planView.metric_requirements);
+  const accountKeys=[state.account?.user_id,state.account?.handle?`handle:${state.account.handle}`:null,state.account?.handle].filter(Boolean),observedAccountKeys=new Set(Object.values(state.snapshots_v2??{}).filter(item=>item.entity_type==='account').map(item=>item.entity_id));
+  const targetKeys=entityType==='account'?[accountKeys.find(key=>observedAccountKeys.has(key))??accountKeys[0]].filter(Boolean):[...planView.target_entity_keys];
+  const targetScope=reviewScope(entityType,targetKeys),baselineScope=planView.baseline_entity_keys.length?reviewScope(entityType,planView.baseline_entity_keys):null;
+  const coverageBindings=[...new Set(coverage_receipt_refs)].sort().map(ref=>coverageBindingV4(state,ref,targetScope,planView.window));
+  if(!coverageBindings.length)fail('MISSING_EVIDENCE','/coverage_receipt_refs','V4 review computation requires actual coverage evidence');
+  const computationRequest=validate('ReviewComputationRequestV4',{contract_version:4,plan_view_ref:planView.plan_view_id,plan_hash:canonicalHash(planView),as_of,target_scope:targetScope,baseline_scope:baselineScope,window:structuredClone(planView.window),metric_requirements:requirements,coverage_bindings:coverageBindings});
+  const selectorWindow=selectionWindow(planView.window),target=selectMetricObservations(state,{scope:targetScope,window:selectorWindow,metric_requirements:requirements,as_of,role:'target',selection_policy_version:'review-computation-v4'}),baseline=baselineScope?selectMetricObservations(state,{scope:baselineScope,window:selectorWindow,metric_requirements:requirements,as_of,role:'baseline',selection_policy_version:'review-computation-v4'}):null;
+  for(const selected of target.selected){const sourceRef=selectedSourceRef(state,selected.observation_ref);if(!sourceRef||!coverageBindings.some(item=>item.source_ref===sourceRef))fail('INVALID_EVIDENCE_REF','/coverage_receipt_refs',`Selected observation is not covered by a frozen material receipt: ${selected.observation_ref}`);}
+  const metricResults=requirements.map(requirement=>{const current=selectedMetric(target,requirement.definition_id),prior=baseline?selectedMetric(baseline,requirement.definition_id):{value:null,unit:null,refs:[]};return{definition_id:requirement.definition_id,role:requirement.role,target_value:current.value,baseline_value:prior.value,difference:current.value!==null&&prior.value!==null?current.value-prior.value:null,unit:current.unit??prior.unit,target_observation_refs:current.refs,baseline_observation_refs:prior.refs};});
+  const comparison=baseline?computeComparison(target,baseline,{method:'descriptive'}):null,publicationBindings=planView.linked_publication_ids.map(id=>{const publication=state.publications?.[id];return{publication_id:id,post_key:publication?canonicalPostKey(state,`x:${publication.post_id}`)??`x:${publication.post_id}`:'missing',content_match:publication?.attribution??publication?.content_match??'unverified'};});
+  const limitations=[...planView.limitations,...target.limitations,...(baseline?.limitations??[]),...coverageBindings.filter(item=>item.completeness!=='complete').map(item=>`Coverage ${item.receipt_ref} is ${item.completeness}`),...publicationBindings.filter(item=>item.content_match!=='exact').map(item=>`Publication ${item.publication_id} is ${item.content_match}; exact draft effect cannot be attributed`),...(comparison?.reasons??[])];
+  const base={contract_version:4,computation_id:'',plan_view_ref:planView.plan_view_id,plan_hash:canonicalHash(planView),computed_at:as_of,computation_request:computationRequest,computation_request_hash:canonicalHash(computationRequest),target_selection:target,baseline_selection:baseline,method:{version:'review-computation-v4',kind:baseline?'descriptive_comparison':'target_only'},metric_results:metricResults,comparability:comparison?.comparability??(target.completeness==='complete'?'partially_compatible':'insufficient'),publication_bindings:publicationBindings,limitations};
+  const computationHash=canonicalHash(base);return validate('ReviewComputationV4',{...base,computation_id:`review-computation-v4-${computationHash.slice(0,24)}`,computation_hash:computationHash});
 }
 
 export function validateReviewInterpretation(computation,interpretation,receipt) {
-  if(computation?.contract_version!==3)fail('INVALID_INPUT','/computation','V3 review computation is required');
+  if(![3,4].includes(computation?.contract_version))fail('INVALID_INPUT','/computation','A V3 or V4 review computation is required');
   const proposalHash=canonicalHash(interpretation);
   if(!receipt||receipt.contract_version!==3||receipt.computation_ref!==computation.computation_id||receipt.computation_hash!==computation.computation_hash||receipt.interpretation_proposal_hash!==proposalHash||receipt.decision!=='approved')fail('MISSING_EVIDENCE','/interpretation_receipt','Review interpretation must bind the exact deterministic computation and proposal');
   for(const claimed of interpretation.metric_results??[]){const actual=computation.metric_results.find(item=>item.definition_id===claimed.definition_id&&item.role===claimed.role);if(!actual||canonicalHash(actual)!==canonicalHash(claimed))fail('INVALID_INPUT','/metric_results','Review cannot refill deterministic metric results');}

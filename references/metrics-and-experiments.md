@@ -19,6 +19,8 @@ MetricStats／PairedRatio／Comparison 明确保存聚合层级、原始聚合�
 
 在发布前声明目标指标和观察窗口。
 普通比较优先使用成熟的 24h 同龄观测；长期行为可另请求 168h，但不自动扩大。
+成熟按预先冻结窗口的上沿判断：新 24h 计划默认 `24h±2h`，须到发布后 26h；新 168h（7天）计划默认 `168h±12h`，须到 180h。既有计划明确保存的 target/tolerance 原样使用，不能因为已有 24h 或 72h 数值提前成熟。
+帖龄窗口必须能从真实 PublicationRecord 解析可靠发布时间；缺失或冲突返回 `WINDOW_MISSING`。冻结 cutoff 尚未达到上沿返回 `WINDOW_PENDING`。账号 period 只有在 cutoff 达到 `end_exclusive` 后成熟。
 SelectionPolicy.windows_days 固定为 [7,28]，表示发帖批次窗口；单帖24h观测由 age_windows 表达，不把 windows_days 写成 [1]。
 缺基期或同龄记录时，报告描述性结果和实际限制，不补历史快照。
 

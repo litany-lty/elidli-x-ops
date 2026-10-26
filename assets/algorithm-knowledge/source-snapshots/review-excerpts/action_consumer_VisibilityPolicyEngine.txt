@@ -1,0 +1,160 @@
+use crate::hydration::{Hydration, HydrationPlan, Hydrators, RequestRows};
+use crate::models::{
+    AuthorId, Decided, Evaluation, LimitedEngagement, MediaRestriction, Notice, Placement,
+    PostCandidate, TweetId, UserCandidate, Verdict, ViewerFeatures,
+};
+use crate::params::CountryLists;
+use crate::rules::levels::LevelRules;
+use crate::rules::rule_spec::engine::{Engine, Fold, PostEngine, UserEngine};
+use crate::rules::rule_spec::inputs::EvaluateInputs;
+use crate::rules::rule_spec::observed::{self, NoTrace, NodeObserver, NodeTrace, NodeTracer, Skip};
+use crate::rules::rule_spec::rule::{self, Rule, RuleCond};
+use crate::rules::rule_spec::{rule_name, ActionSpec, Contribution, RuleAction, RuleId, Truth};
+use crate::rules::{RuleContext, SafetyLevel};
+use std::borrow::Cow;
+use std::cmp::Reverse;
+use std::sync::Arc;
+use strum::VariantArray;
+
+pub(super) struct Policy<E: Engine = PostEngine> {
+    rules: Vec<(&'static str, Rule<E>)>,
+    hydrators: Hydrators,
+}
+
+impl<E: Fold> Policy<E> {
+    #[expect(
+        clippy::panic,
+        reason = "invalid authored rules fail startup, before the service takes traffic"
+    )]
+    pub(super) fn new(mut rules: Vec<(&'static str, Rule<E>)>) -> Self {
+        if let Err(error) = rule::validate(rules.iter().map(|(_, rule)| rule)) {
+            panic!("invalid rules: {error:?}");
+        }
+        rules.sort_by_key(|(_, rule)| Reverse(rule.action.spec().severity()));
+        let mut runs: Vec<&'static str> = Vec::new();
+        let mut run: Vec<&Rule<E>> = Vec::new();
+        for (name, rule) in &rules {
+            if runs.last() != Some(name) {
+                assert!(!runs.contains(name), "{name} is wired twice");
+                runs.push(name);
+                run.clear();
+            }
+            assert!(!run.contains(&rule), "{name} is wired twice");
+            run.push(rule);
+        }
+        let hydrators = rules
+            .iter()
+            .fold(Hydrators::empty(), |hydrators, (_, rule)| {
+                hydrators.union(rule.requirements())
+            });
+        Self { rules, hydrators }
+    }
+
+    #[cfg(test)]
+    fn rule_names(&self) -> Vec<&'static str> {
+        let mut names: Vec<&'static str> = self.rules.iter().map(|&(name, _)| name).collect();
+        names.dedup();
+        names
+    }
+
+    pub(super) fn evaluate(&self, context: &RuleContext<'_, E::Candidate>) -> Evaluation {
+        fold(&self.rules, context, &mut NoTrace)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Effect {
+    DidNotApply,
+    Decided,
+    AfterTerminal,
+    FilledMedia,
+    KeptEarlierMedia,
+    KeptEarlierMediaInsteadOfNotice,
+    FilledNotice,
+    KeptEarlierNotice,
+    FilledEngagement,
+    AddedEngagementReason,
+    DuplicateEngagementReason,
+}
+
+type Completed = (Option<Contribution>, Hydrators);
+
+#[derive(Clone, Copy)]
+pub(super) enum Bucket {
+    Withholding,
+    Media,
+    Engagement,
+}
+
+impl Bucket {
+    fn relied_on_by(self, verdict: &Verdict) -> bool {
+        let notice = match verdict {
+            Verdict::Withheld(_) => return matches!(self, Self::Withholding),
+            Verdict::Shown { notice, .. } => notice.as_ref().map(|notice| &notice.value),
+        };
+        match self {
+            Self::Withholding => true,
+            Self::Media => !matches!(notice, Some(Notice::Appealable { .. })),
+            Self::Engagement => !notice.is_some_and(Notice::is_whole_verdict),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Default)]
+pub(super) struct Defaults {
+    withholding: Hydrators,
+    media: Hydrators,
+    engagement: Hydrators,
+}
+
+impl Defaults {
+    fn get(self, bucket: Bucket) -> Hydrators {
+        match bucket {
+            Bucket::Withholding => self.withholding,
+            Bucket::Media => self.media,
+            Bucket::Engagement => self.engagement,
+        }
+    }
+
+    fn admit(&mut self, bucket: Bucket, reads: Hydrators) {
+        let admitted = match bucket {
+            Bucket::Withholding => &mut self.withholding,
+            Bucket::Media => &mut self.media,
+            Bucket::Engagement => &mut self.engagement,
+        };
+        *admitted = admitted.union(reads);
+    }
+
+    fn relied_on_by(self, verdict: &Verdict) -> Self {
+        let relied = |bucket: Bucket| {
+            if bucket.relied_on_by(verdict) {
+                self.get(bucket)
+            } else {
+                Hydrators::empty()
+            }
+        };
+        Self {
+            withholding: relied(Bucket::Withholding),
+            media: relied(Bucket::Media),
+            engagement: relied(Bucket::Engagement),
+        }
+    }
+
+    fn all(self) -> Hydrators {
+        self.withholding.union(self.media).union(self.engagement)
+    }
+}
+
+pub(super) trait PolicyObserver<E: Engine>: NodeObserver<E> {
+    fn row(
+        &mut self,
+        by: &'static str,
+        root: Self::Handle,
+        truth: Truth,
+        effect: Effect,
+        defaults_admitted: (Bucket, Hydrators),
+        completed: Option<Completed>,
+    );
+
+    fn retained(&mut self, defaults: Defaults);
+}

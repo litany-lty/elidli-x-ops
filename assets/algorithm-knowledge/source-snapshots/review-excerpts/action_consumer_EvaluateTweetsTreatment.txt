@@ -1,0 +1,20 @@
+        let policies = self.client_switches.limited_actions_policies(
+            twitter_context.as_ref(),
+            viewer_id,
+            country_code.as_deref(),
+            evaluations().flat_map(|evaluation| evaluation.verdict().limited_engagement_reasons()),
+            &self.limited_actions_copy,
+            xai_stats_receiver::global_stats_receiver().as_deref(),
+        );
+        let results = answers
+            .iter()
+            .map(|answer| {
+                let outcome = match answer {
+                    Answer::NotJudged => Outcome::NotEvaluated(vf_pb::NotEvaluated {}),
+                    Answer::Evaluated(evaluation) => {
+                        evaluated_outcome(Sends::new(evaluation, safety_level, &policies))
+                    }
+                    Answer::Unpaired => Outcome::Failed(vf_pb::Failed {}),
+                };
+                vf_pb::TweetEvaluation {
+                    outcome: Some(outcome),

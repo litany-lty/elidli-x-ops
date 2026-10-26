@@ -1,3 +1,4 @@
+import {currentGuidance} from './v4-dispatch.mjs';
 import {
   createHash
 }
@@ -222,13 +223,15 @@ export async function contentContext(state,dir,payload={
     await verifyHostMediaReceipt(receipt);
     if(receipt.operation!==`review_${payload.review_kind}`)fail('RECEIPT_CONFLICT','/operation','Review tool receipt operation differs');
     context.actual_review_receipt=receipt;
+    const actual=JSON.parse(await readFile(receipt.actual_result_ref,'utf8'));
+    context.actual_review_result={decision:['approve','approved'].includes(actual.decision)?'approved':'revision_required',checks:actual.checks,issues:actual.issues};
   }
   return context;
 }
 export async function dispatchV3(command,request,dir,state) {
   const p=request.payload;
   if(command==='state-migrate')return migrateStateV3(dir,p,request.expected_revision);
-  if(!state||state.schema_version!==3)fail('MIGRATION_REQUIRED','/schema_version','Preview and apply state 3 migration before new work');
+  if(!state||![3,4].includes(state.schema_version))fail('MIGRATION_REQUIRED','/schema_version','Preview and apply state 3 migration before new work');
   if(command==='coach-step'){
     let data;
     const next=await commitState(dir,request.expected_revision,working=>{
@@ -362,7 +365,7 @@ export async function dispatchV3(command,request,dir,state) {
         input.fact_mapping=receipt.fact_mapping;
         input.semantic_review=receipt.semantic_review;
         const checked=checkDraftV3({
-          contract_version:3,draft_input:input,personalization_mode:receipt.personalization_mode,personal_context_selection:receipt.personal_context_selection,supersedes_receipt_ref:receipt.supersedes_receipt_ref,actual_review_receipt_ref:receipt.actual_review_receipt_ref??null,as_of:receipt.reviewed_at
+          contract_version:3,delivery_intent:receipt.delivery_intent??'operational_optimize',draft_input:input,personalization_mode:receipt.personalization_mode,personal_context_selection:receipt.personal_context_selection,supersedes_receipt_ref:receipt.supersedes_receipt_ref,actual_review_receipt_ref:receipt.actual_review_receipt_ref??null,as_of:receipt.reviewed_at
         }
         ,{
           state:working,effective_config:resolveConfig(working.config,null,p.as_of)
@@ -386,6 +389,7 @@ export async function dispatchV3(command,request,dir,state) {
       else if(p.operation==='adoption'){
         const data=p.data;
         const draftReview=working.draft_review_receipts[data.draft_review_ref];
+        if(working.schema_version===4){const run=data.pack_ref?Object.values(working.content_runs).find(r=>r.active_pack_ref===data.pack_ref):null;const intent=run?.delivery_intent??draftReview?.delivery_intent??'operational_optimize';const gate=await currentGuidance(working,data.pack_ref??`${data.draft_ref.draft_id}:${data.draft_ref.revision}`,{intent,use:intent==='plain_edit'?'plain_edit':'operational_guidance',content_readiness:{readiness:'ready'}});if(gate.task_readiness!=='ready')fail('REQUESTED_OUTPUT_INCOMPLETE','/guidance','Adoption requires current approval of the complete operational guidance');}
         if(draftReview?.actual_review_receipt_ref)await verifyHostMediaReceipt(working.host_media_receipts[draftReview.actual_review_receipt_ref]);
         if(evaluateDraftReadiness(data.draft_ref,data.draft_review_ref,working).readiness!=='ready')fail('STALE_DRAFT','/draft_ref','Adoption needs the current exact draft review');
         if(data.pack_ref){

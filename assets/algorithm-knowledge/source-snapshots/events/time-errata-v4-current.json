@@ -1,0 +1,28 @@
+{
+  "contract_version": 4,
+  "event_id": "knowledge-event-155e6f1e2989fb2106f780fa",
+  "event_type": "activated",
+  "catalog_ref": "x-algorithm-public-v4",
+  "prior_catalog_ref": "x-algorithm-public-v3",
+  "checked_at": "2026-10-26T18:07:39.967Z",
+  "observed_head_commit": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+  "affected_rule_version_refs": [],
+  "gaps": [
+    "action_consumer:EvaluateTweetsTreatment",
+    "action_consumer:LimitedActionsPolicies",
+    "action_consumer:LimitedActionsPolicyResolver",
+    "external:botmaker_rules",
+    "external:deployment_configuration",
+    "external:grok_prompts",
+    "external:hidden_label_classifiers",
+    "external:limited_actions_policy_config",
+    "source:PhoenixMOESource",
+    "source:PhoenixSource",
+    "source:PhoenixTopicsSource",
+    "source:SidSource",
+    "source:SimclustersSource",
+    "source:ThunderSource",
+    "source:TweetMixerSource"
+  ],
+  "review_receipt_ref": "root-knowledge-v4-51cef794aba149f5"
+}

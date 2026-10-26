@@ -1,0 +1,160 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 X.AI Corp.
+from __future__ import annotations
+
+import enum
+import logging
+import time
+import typing
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Literal, NotRequired, TypedDict, TypeVar
+
+import jax
+import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
+from numpy import typing as npt
+
+from xrex.data.recsys import history_id_lists, id_list_features, reply_features
+from xrex.data.recsys.ads_head_masking import build_trained_candidate_mask
+from xrex.data.recsys.ads_pixel_head_masking import build_head_eligible_mask
+from xrex.data.recsys.array_allocator import ArrayAllocator
+from xrex.data.recsys.constants import (
+    CONVERSION_DELAY_COLUMNS,
+    CONVERSION_DELAY_NONE,
+    CONVERSION_KEEP_APP,
+    CONVERSION_KEEP_WEB,
+    action_type_map,
+    action_type_map_raw,
+)
+from xrex.data.recsys.feature_config import (
+    ADS_PRODUCT_KEY_HASH_BIAS,
+    ADS_PRODUCT_KEY_HASH_BIAS_2,
+    ADS_PRODUCT_KEY_HASH_MODULUS,
+    ADS_PRODUCT_KEY_HASH_SCALE,
+    ADS_PRODUCT_KEY_HASH_SCALE_2,
+    ADS_PRODUCT_KEY_TABLE_SIZE,
+    AUTHOR_NSFW_BIT,
+    BOOL_FEATURES,
+    CATEGORICAL_FEATURES,
+    FLOAT_FEATURES,
+    INT64_FEATURES,
+    STALE_POST_14D_TTL_SEC,
+    STALE_POST_30D_TTL_SEC,
+    BoolFeature,
+    CategoricalFeature,
+    FloatFeature,
+    Int64Feature,
+    UserBoolFeature,
+    UserCategoricalFeature,
+    UserFloatFeature,
+    UserInt64Feature,
+)
+from xrex.data.recsys.negative_word_match import clear_word_match, compute_word_match
+from xrex.models.recsys_embedding import HashKeys, HashTable
+
+if TYPE_CHECKING:
+    from xrex.data.recsys.sequence_packing import (
+        SequencePackedLayout,
+    )
+
+rank_logger = logging.getLogger("rank")
+rank_logger.setLevel(logging.INFO)
+
+DUMP_ALWAYS_KEEP_ACTION_INDICES: tuple[int, ...] = (
+    16,
+    17,
+    23,
+    25,
+    39,
+    89,
+)
+
+
+def dump_keep_sample_weights(
+    actions: npt.NDArray[np.bool_],
+    new_event_mask: npt.NDArray[np.bool_],
+    rate_per_10000: int,
+) -> npt.NDArray[np.float32]:
+    if rate_per_10000 <= 0:
+        raise ValueError(f"dump keep rate_per_10000 must be > 0, got {rate_per_10000}")
+    vocab = actions.shape[-1]
+    keep_idx = [i for i in DUMP_ALWAYS_KEEP_ACTION_INDICES if i < vocab]
+    cand = new_event_mask.astype(np.bool_, copy=False)
+    if keep_idx:
+        rare = (actions[:, :, keep_idx] & cand[:, :, None]).any(axis=(1, 2))
+    else:
+        rare = np.zeros(actions.shape[0], dtype=np.bool_)
+    no_cand = ~cand.any(axis=1)
+    inv_q = np.float32(10000.0 / rate_per_10000)
+    weights = np.where(rare | no_cand, np.float32(1.0), inv_q).astype(np.float32)
+    return weights.reshape(-1, 1)
+
+
+TWITTER_EPOCH_MS = 1288834974657
+
+EXPLORATION_REACH_TARGET_FRACTION = 0.03
+EXPLORATION_WINDOW_HOURS = 24.0
+EXPLORATION_HALF_LIFE_HOURS = 8.0
+
+
+def compute_post_unexplored_labels(
+    follower_counts: npt.NDArray[np.float64],
+    view_counts: npt.NDArray[np.float64],
+    post_creation_ts_sec: np.ndarray,
+    impression_ts_sec: np.ndarray,
+    in_reply_to_post_ids: npt.NDArray[np.int64],
+) -> npt.NDArray[np.bool_]:
+    is_original = in_reply_to_post_ids == 0
+    has_valid_ts = (impression_ts_sec > 0) & (post_creation_ts_sec > 0)
+    age_hours = (
+        impression_ts_sec.astype(np.float64) - post_creation_ts_sec.astype(np.float64)
+    ) / 3600.0
+    in_exploration_window = has_valid_ts & (age_hours <= EXPLORATION_WINDOW_HOURS)
+    decay = np.log(2.0) / EXPLORATION_HALF_LIFE_HOURS
+    saturation = 1.0 - np.exp(-decay * EXPLORATION_WINDOW_HOURS)
+    clamped_age = np.clip(age_hours, 0.0, EXPLORATION_WINDOW_HOURS)
+    exploration_view_target = (
+        EXPLORATION_REACH_TARGET_FRACTION
+        * follower_counts
+        * (1.0 - np.exp(-decay * clamped_age))
+        / saturation
+    )
+    under_explored = view_counts < exploration_view_target
+    return is_original & in_exploration_window & under_explored
+
+
+EMBEDDING_CONFIG = {
+    "v1": ("embeddingV1Seq", 1536),
+    "v3": ("embeddingV3Seq", 1024),
+    "v5": ("embeddingV5Seq", 1024),
+    "v6": ("embeddingV6Seq", 1024),
+    "v8": ("embeddingV8Seq", 1024),
+}
+
+EmbeddingType = Literal["v1", "v3", "v5", "v6", "v8"]
+
+HISTORY_URL_ID_COLUMN = "webConvUrlIdSeq"
+
+HistoryUrlEmbeddingFn = Callable[
+    [
+        npt.NDArray[np.int64],
+        npt.NDArray[np.bool_],
+        npt.NDArray[np.int64],
+        npt.NDArray[np.float16],
+    ],
+    None,
+]
+
+
+class CandidateNegativeFilter(enum.Enum):
+    NONE = "none"
+    VQV_DWELL_10S = "vqv_dwell_10s"
+
+
+class CandidateNegativeMode(enum.Enum):
+    FILTER = "filter"
+    PARTITION = "partition"
+
+
+def _apply_candidate_negative_filter(

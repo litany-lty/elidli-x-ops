@@ -1,0 +1,160 @@
+use crate::models::candidate::PostCandidate;
+use crate::models::query::ScoredPostsQuery;
+use crate::params::{
+    AuthorIsControl, AuthorIsTreatment, ColdStartBetaAlpha0, ColdStartBetaBeta0,
+    ColdStartFollowerCap, ColdStartImpressionScale, ColdStartImpressionThreshold,
+    ColdStartMaxPostAgeSecs, ColdStartSlotMax, ColdStartSlotMin, ColdStartTrackedIds,
+    ColdStartTsTopK, EnableColdStartThompsonSampling, EnableViewerColdStart,
+    LowImpressionsMaxPositionRatio, PhoenixMoeCodivertViewerIsControl,
+    PhoenixMoeCodivertViewerIsTreatment,
+};
+use rand::Rng;
+use rand_distr::{Beta, Distribution};
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
+use std::time::Duration;
+use xai_candidate_pipeline::component_library::utils::duration_since_creation_opt;
+use xai_feature_switches::AuthorRulesEvaluator;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ViewerArm {
+    Holdout,
+    Control,
+    Treatment,
+}
+
+impl ViewerArm {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Holdout => "holdout",
+            Self::Control => "control",
+            Self::Treatment => "treatment",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AuthorCorpus {
+    NotBucketed,
+    Control,
+    Treatment,
+}
+
+struct ColdStartParams {
+    enabled: bool,
+    tracked_ids: String,
+    arm: ViewerArm,
+    follower_cap: i64,
+    impression_threshold: u64,
+    max_post_age: Duration,
+    max_position_ratio: f64,
+    slot_min: usize,
+    slot_max: usize,
+    use_thompson_sampling: bool,
+    beta_alpha0: f64,
+    beta_beta0: f64,
+    impression_scale: f64,
+    ts_top_k: usize,
+}
+
+impl ColdStartParams {
+    fn read(query: &ScoredPostsQuery) -> Self {
+        Self {
+            enabled: query.params.get(EnableViewerColdStart),
+            tracked_ids: query.params.get(ColdStartTrackedIds),
+            arm: viewer_arm(query),
+            follower_cap: query.params.get(ColdStartFollowerCap),
+            impression_threshold: query.params.get(ColdStartImpressionThreshold) as u64,
+            max_post_age: Duration::from_secs(query.params.get(ColdStartMaxPostAgeSecs)),
+            max_position_ratio: query.params.get(LowImpressionsMaxPositionRatio),
+            slot_min: query.params.get(ColdStartSlotMin) as usize,
+            slot_max: query.params.get(ColdStartSlotMax) as usize,
+            use_thompson_sampling: query.params.get(EnableColdStartThompsonSampling),
+            beta_alpha0: query.params.get(ColdStartBetaAlpha0),
+            beta_beta0: query.params.get(ColdStartBetaBeta0),
+            impression_scale: query.params.get(ColdStartImpressionScale),
+            ts_top_k: query.params.get(ColdStartTsTopK) as usize,
+        }
+    }
+}
+
+fn viewer_arm(query: &ScoredPostsQuery) -> ViewerArm {
+    let is_treatment = query.params.get(PhoenixMoeCodivertViewerIsTreatment);
+    let is_control = query.params.get(PhoenixMoeCodivertViewerIsControl);
+    match (is_treatment, is_control) {
+        (true, _) => ViewerArm::Treatment,
+        (false, true) => ViewerArm::Control,
+        (false, false) => ViewerArm::Holdout,
+    }
+}
+
+fn positions_among_nonzero(scores: &[f64]) -> (Vec<usize>, usize) {
+    let mut order: Vec<usize> = scores
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| **s != 0.0)
+        .map(|(i, _)| i)
+        .collect();
+    order.sort_by(|&a, &b| scores[b].total_cmp(&scores[a]).then(a.cmp(&b)));
+    let nonzero = order.len();
+    let mut positions = vec![usize::MAX; scores.len()];
+    for (position, &i) in order.iter().enumerate() {
+        positions[i] = position;
+    }
+    (positions, nonzero)
+}
+
+fn record_cold_started_posts(viewer_arm: &str, count: u64) {
+    if count == 0 {
+        return;
+    }
+    if let Some(receiver) = xai_stats_receiver::global_stats_receiver() {
+        receiver.incr(
+            "home_mixer.cold_started_posts_total",
+            &[("viewer_arm", viewer_arm)],
+            count,
+        );
+    }
+}
+
+fn slot_labels(query: &ScoredPostsQuery) -> [(&'static str, &'static str); 2] {
+    let surface = if query.in_network_only {
+        "ranked_following"
+    } else {
+        "for_you"
+    };
+    let cache = if query.has_cached_posts {
+        "cached"
+    } else {
+        "non_cached"
+    };
+    [("surface", surface), ("cache", cache)]
+}
+
+fn record_cold_start_slot(query: &ScoredPostsQuery, filled: bool) {
+    let Some(receiver) = xai_stats_receiver::global_stats_receiver() else {
+        return;
+    };
+    let labels = slot_labels(query);
+    receiver.incr("home_mixer.cold_start_slot_requests_total", &labels, 1);
+    if !filled {
+        receiver.incr("home_mixer.cold_start_slot_empty_total", &labels, 1);
+    }
+}
+
+fn parse_tracked_ids(raw: &str) -> HashSet<u64> {
+    raw.split(',')
+        .filter_map(|s| s.trim().parse().ok())
+        .collect()
+}
+
+fn count_tracked_ids(
+    candidates: &[PostCandidate],
+    tracked: &HashSet<u64>,
+) -> HashMap<(u64, i32), u64> {
+    let mut counts = HashMap::new();
+    if tracked.is_empty() {
+        return counts;
+    }
+    for c in candidates {
+        if !tracked.contains(&c.tweet_id) && !tracked.contains(&c.author_id) {

@@ -1,0 +1,114 @@
+{
+  "contract_version": 4,
+  "rule_id": "OP05",
+  "rule_version_id": "operational-op05-v1",
+  "review_status": "approved",
+  "origin": "algorithm_inference",
+  "fact_version_refs": [
+    "fact-dv01-6258a1549ef8",
+    "fact-c06-6258a1549ef8",
+    "fact-c07-6258a1549ef8",
+    "fact-c08-6258a1549ef8"
+  ],
+  "dependency_ids": [
+    "scorer:compute_weighted_score",
+    "source:PhoenixSource"
+  ],
+  "support_material_refs": [
+    "artifact-dv01",
+    "artifact-c06",
+    "artifact-c07",
+    "artifact-c08"
+  ],
+  "derivation": "运营推断：结合公开机制边界与实际用户内容，只在当前语义证据支持时给动作。",
+  "boundaries": [
+    "不计算推荐积分",
+    "不把候选预算当曝光配额",
+    "不推断隐藏标签或线上实验条件",
+    "原稿已满足时允许保持不改"
+  ],
+  "applicability": {
+    "intents": [
+      "coach",
+      "draft",
+      "news",
+      "content",
+      "review",
+      "operational_optimize"
+    ],
+    "goals": [
+      "*"
+    ],
+    "uses": [
+      "*"
+    ],
+    "surfaces": [
+      "*"
+    ],
+    "post_types": [
+      "*"
+    ]
+  },
+  "mechanism_predicate": {
+    "eq": {
+      "signal": "internal_mechanism_observed",
+      "value": true,
+      "unit": "flag"
+    }
+  },
+  "editorial_predicate": {
+    "gte": {
+      "signal": "planned_topic_overlap",
+      "value": 0.75,
+      "unit": "ratio"
+    }
+  },
+  "required_signals": [
+    "planned_topic_overlap"
+  ],
+  "optional_signals": [
+    "internal_mechanism_observed"
+  ],
+  "missing_policy": "editorial_only",
+  "deterministic_checks": [
+    "输入ref与hash完整",
+    "单位与信号类型匹配"
+  ],
+  "semantic_checks": [],
+  "action_template": "合并冗余并分开不同贡献；不声称文本重复必触发平台过滤。",
+  "counterexamples": [
+    "实际正文已清楚时保持原稿",
+    "信息不足时只补证，不强行修改"
+  ],
+  "measurement_plan_template": "记录实际发布、同口径观察窗口与目标指标；不保证增长。",
+  "replay_cases": [
+    {
+      "case_id": "OP05-applicable",
+      "expected": "applicable",
+      "signals": {
+        "planned_topic_overlap": {
+          "value": 0.75,
+          "unit": "ratio"
+        }
+      }
+    },
+    {
+      "case_id": "OP05-not-applicable",
+      "expected": "not_applicable",
+      "signals": {
+        "planned_topic_overlap": {
+          "value": 0.74,
+          "unit": "ratio"
+        }
+      }
+    },
+    {
+      "case_id": "OP05-unknown",
+      "expected": "unknown",
+      "signals": {}
+    }
+  ],
+  "review_refs": [
+    "spec-next-2.2-section-8.4"
+  ]
+}

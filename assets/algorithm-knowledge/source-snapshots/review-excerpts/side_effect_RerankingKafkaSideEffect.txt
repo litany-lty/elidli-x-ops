@@ -1,0 +1,81 @@
+    fn enable(&self, _query: Arc<ScoredPostsQuery>) -> bool {
+        is_prod() && random::<f64>() < 0.05
+    }
+
+    async fn side_effect(
+        &self,
+        input: Arc<SideEffectInput<ScoredPostsQuery, PostCandidate>>,
+    ) -> Result<(), String> {
+        let mut candidates: Vec<&PostCandidate> = Vec::new();
+        for c in &input.selected_candidates {
+            candidates.push(c);
+        }
+        for c in &input.non_selected_candidates {
+            candidates.push(c);
+        }
+
+        let total_count = candidates.len() as i32;
+
+        candidates.sort_by(|a, b| {
+            let sa = a.score.unwrap_or(f64::MIN);
+            let sb = b.score.unwrap_or(f64::MIN);
+            sb.partial_cmp(&sa).unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        candidates.truncate(TOP_K);
+
+        if candidates.is_empty() {
+            return Ok(());
+        }
+
+        let scored_candidates: Vec<pb::ScoredCandidate> = candidates
+            .iter()
+            .enumerate()
+            .map(|(position, candidate)| build_scored_candidate(candidate, position as i32))
+            .collect();
+
+        let request_time_ms = input.query.request_time_ms;
+
+        let prediction_request_id = candidates
+            .iter()
+            .find_map(|c| c.prediction_request_id.map(|id| id as i64));
+
+        let product_surface = if input.query.in_network_only {
+            xai_recsys_proto::ProductSurface::HomeTimelineRankedFollowing
+        } else {
+            xai_recsys_proto::ProductSurface::HomeTimelineRanking
+        };
+
+        let batch = pb::ScoredCandidateBatch {
+            candidates: scored_candidates,
+            viewer_id: Some(input.query.user_id),
+            request_time_ms: Some(request_time_ms),
+            prediction_request_id,
+            served_request_id: prediction_request_id,
+            served_id: prediction_request_id,
+            total_candidates_count: Some(total_count),
+            request_join_id: Some(input.query.request_id),
+            product_surface: product_surface.into(),
+            applied_weights: value_model::applied_weights(&input.query),
+            value_model_mode: Some(WEIGHTED_VALUE_MODEL_MODE.to_string()),
+        };
+
+        let bytes = batch.encode_to_vec();
+        self.kafka_client
+            .send(&bytes)
+            .await
+            .map_err(|e| format!("Kafka publish failed: {e}"))
+    }
+}
+
+fn build_scored_candidate(candidate: &PostCandidate, position: i32) -> pb::ScoredCandidate {
+    let s = &candidate.phoenix_scores;
+
+    let mut prediction_scores: HashMap<String, f64> = HashMap::new();
+    insert_score(&mut prediction_scores, "favorite", s.favorite_score);
+    insert_score(&mut prediction_scores, "reply", s.reply_score);
+    insert_score(&mut prediction_scores, "retweet", s.retweet_score);
+    insert_score(&mut prediction_scores, "photo_expand", s.photo_expand_score);
+    insert_score(&mut prediction_scores, "video_open", s.video_open_score);
+    insert_score(&mut prediction_scores, "click", s.click_score);
+    insert_score(&mut prediction_scores, "open_link", s.open_link_score);

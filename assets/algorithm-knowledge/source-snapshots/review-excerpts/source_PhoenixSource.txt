@@ -1,0 +1,173 @@
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        query.params.get(EnablePhoenixSource)
+            && (!query.is_topic_request() || query.is_bulk_topic_request())
+            && !query.in_network_only
+            && !query.has_cached_posts
+    }
+
+    async fn source(&self, query: &ScoredPostsQuery) -> Result<Vec<PostCandidate>, String> {
+        let user_id = query.user_id;
+
+        let sequence = query
+            .retrieval_sequence
+            .as_ref()
+            .ok_or_else(|| "PhoenixSource: missing retrieval_sequence".to_string())?;
+
+        let cluster = Self::resolve_cluster(query);
+        let client_context = build_client_context(query);
+        let user_context = build_user_context(query);
+
+        let response = self
+            .phoenix_retrieval_client
+            .retrieve_excluding(
+                cluster,
+                user_id,
+                sequence.clone(),
+                query.columnar_retrieval_sequence.clone(),
+                quality_factor::apply(query.params.get(PhoenixMaxResults)),
+                query.params.get(PhoenixColdStartMaxResults),
+                vec![],
+                None,
+                client_context,
+                user_context,
+                query.params.get(PhoenixXdsRetrievalMaxRetries),
+                vec![],
+                Self::seen_post_exclusions(query),
+                retrieval_value_model_weights(&query.params.get(RetrievalValueModelWeights)),
+            )
+            .await
+            .map_err(|e| format!("PhoenixSource: {e}"))?;
+
+        let candidates =
+            candidates_from_retrieval_response(response, served_type_for_dataset, cluster);
+        record_zero_fav_retrieved(&candidates);
+        record_socialgraph_retrieved(query, &candidates);
+        Ok(candidates)
+    }
+}
+
+fn record_socialgraph_retrieved(query: &ScoredPostsQuery, candidates: &[PostCandidate]) {
+    let Some(receiver) = global_stats_receiver() else {
+        return;
+    };
+    let muted: FxHashSet<i64> = query.user_features.muted_user_ids.iter().copied().collect();
+    let blocked: FxHashSet<i64> = query
+        .user_features
+        .blocked_user_ids
+        .iter()
+        .copied()
+        .collect();
+    let (mut muted_count, mut blocked_count) = (0u64, 0u64);
+    for c in candidates {
+        let author_id = c.author_id as i64;
+        muted_count += muted.contains(&author_id) as u64;
+        blocked_count += blocked.contains(&author_id) as u64;
+    }
+    let m = SOCIALGRAPH_RETRIEVED_METRIC;
+    receiver.incr(m, &[("type", "requests")], 1);
+    receiver.incr(m, &[("type", "retrieved")], candidates.len() as u64);
+    if muted_count > 0 {
+        receiver.incr(m, &[("type", "muted")], muted_count);
+    }
+    if blocked_count > 0 {
+        receiver.incr(m, &[("type", "blocked")], blocked_count);
+    }
+    if muted_count + blocked_count > 0 {
+        receiver.incr(m, &[("type", "requests_with_hit")], 1);
+    }
+}
+
+fn record_zero_fav_retrieved(candidates: &[PostCandidate]) {
+    let count = candidates
+        .iter()
+        .filter(|c| c.served_type == Some(pb::ServedType::ForYouPhoenixRetrievalZeroFav))
+        .count() as u64;
+    if count == 0 {
+        return;
+    }
+    let Some(receiver) = global_stats_receiver() else {
+        return;
+    };
+    receiver.incr(ZERO_FAV_RETRIEVED_METRIC, &[("type", "sum")], count);
+    receiver.incr(ZERO_FAV_RETRIEVED_METRIC, &[("type", "requests")], 1);
+}
+
+fn served_type_for_dataset(dataset_type: u32) -> pb::ServedType {
+    match RetrievalDatasetType::try_from(dataset_type as i32) {
+        Ok(RetrievalDatasetType::HomeCold) => pb::ServedType::ForYouPhoenixRetrievalCold,
+        Ok(RetrievalDatasetType::ZeroFav) => pb::ServedType::ForYouPhoenixRetrievalZeroFav,
+        _ => pb::ServedType::ForYouPhoenixRetrieval,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+    use xai_candidate_pipeline::component_library::clients::phoenix_retrieval_client::MockRetrievalClient;
+
+    fn source() -> PhoenixSource {
+        PhoenixSource {
+            phoenix_retrieval_client: Arc::new(MockRetrievalClient),
+        }
+    }
+
+    #[test]
+    fn enable_returns_false_when_in_network_only() {
+        let query = ScoredPostsQuery {
+            in_network_only: true,
+            ..Default::default()
+        };
+        assert!(!source().enable(&query));
+    }
+
+    #[test]
+    fn enable_returns_false_when_has_cached_posts() {
+        let query = ScoredPostsQuery {
+            has_cached_posts: true,
+            ..Default::default()
+        };
+        assert!(!source().enable(&query));
+    }
+
+    #[test]
+    fn candidates_from_response_sets_served_type() {
+        use xai_recsys_proto::{
+            RetrieveTopKCandidatesResponse, ScoredCandidate, ScoredCandidates, TweetInfo,
+        };
+
+        let tweet = |id, author, dataset_type| ScoredCandidate {
+            candidate: Some(TweetInfo {
+                tweet_id: id,
+                author_id: author,
+                ..Default::default()
+            }),
+            dataset_type,
+            ..Default::default()
+        };
+        let response = RetrieveTopKCandidatesResponse {
+            top_k_candidates: vec![ScoredCandidates {
+                user_id: 1,
+                candidates: vec![
+                    tweet(10, 1, RetrievalDatasetType::Home as u32),
+                    tweet(11, 2, RetrievalDatasetType::HomeCold as u32),
+                ],
+            }],
+        };
+        let got: Vec<(u64, pb::ServedType)> = candidates_from_retrieval_response(
+            response,
+            served_type_for_dataset,
+            PhoenixRetrievalCluster::Experiment1Fou,
+        )
+        .into_iter()
+        .map(|c| (c.tweet_id, c.served_type.unwrap()))
+        .collect();
+        assert_eq!(
+            got,
+            vec![
+                (10, pb::ServedType::ForYouPhoenixRetrieval),
+                (11, pb::ServedType::ForYouPhoenixRetrievalCold),
+            ]
+        );
+    }
+}

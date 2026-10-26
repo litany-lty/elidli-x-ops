@@ -1,0 +1,2 @@
+# Keep upstream review excerpts byte-exact, including terminal blank lines.
+assets/algorithm-knowledge/source-snapshots/review-excerpts/*.txt whitespace=-blank-at-eof

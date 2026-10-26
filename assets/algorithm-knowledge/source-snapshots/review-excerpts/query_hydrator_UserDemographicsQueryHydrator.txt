@@ -1,0 +1,17 @@
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        query.params.get(EnableContextFeatures) || query.is_shadow_traffic
+    }
+
+    async fn hydrate(&self, query: &ScoredPostsQuery) -> Result<ScoredPostsQuery, String> {
+        let demographics = self.client.fetch(query.user_id).await?;
+
+        Ok(ScoredPostsQuery {
+            user_demographics: demographics,
+            ..Default::default()
+        })
+    }
+
+    fn update(&self, query: &mut ScoredPostsQuery, hydrated: ScoredPostsQuery) {
+        query.user_demographics = hydrated.user_demographics;
+    }
+}

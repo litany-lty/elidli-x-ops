@@ -1,0 +1,81 @@
+    fn enable(&self, query: Arc<ScoredPostsQuery>) -> bool {
+        query.is_shadow_traffic || query.has_cached_posts
+    }
+
+    async fn side_effect(
+        &self,
+        input: Arc<SideEffectInput<ScoredPostsQuery, PostCandidate>>,
+    ) -> Result<(), String> {
+        if input.query.has_cached_posts {
+            self.publish_stored_scores(&input).await;
+        } else if input.query.is_shadow_traffic && input.query.scoring_sequence.is_some() {
+            self.shadow_score_fresh_request(&input).await;
+        }
+        Ok(())
+    }
+}
+
+fn shadow_candidates(
+    selected: &[PostCandidate],
+    non_selected: &[PostCandidate],
+    max_posts_to_cache: usize,
+) -> Vec<PostCandidate> {
+    let mut seen = HashSet::new();
+    selected
+        .iter()
+        .chain(RedisPostCandidateCacheSideEffect::get_candidates_to_cache(
+            selected,
+            non_selected,
+            max_posts_to_cache,
+        ))
+        .filter(|c| seen.insert(c.tweet_id))
+        .cloned()
+        .collect()
+}
+
+fn record_sequence_override(outcome: &str) {
+    if let Some(receiver) = global_stats_receiver() {
+        receiver.incr(SEQUENCE_OVERRIDE_METRIC, &[("outcome", outcome)], 1);
+    }
+}
+
+fn record_stored_scores(outcome: &str) {
+    if let Some(receiver) = global_stats_receiver() {
+        receiver.incr(STORED_SCORES_METRIC, &[("outcome", outcome)], 1);
+    }
+}
+
+pub(crate) fn insert_cluster_scores(
+    prediction_scores: &mut HashMap<String, f64>,
+    cluster_name: &str,
+    s: &PhoenixScores,
+) {
+    let score_fields: &[(&str, Option<f64>)] = &[
+        ("favorite", s.favorite_score),
+        ("reply", s.reply_score),
+        ("retweet", s.retweet_score),
+        ("photo_expand", s.photo_expand_score),
+        ("video_open", s.video_open_score),
+        ("click", s.click_score),
+        ("open_link", s.open_link_score),
+        ("profile_click", s.profile_click_score),
+        ("vqv", s.vqv_score),
+        ("share", s.share_score),
+        ("share_via_dm", s.share_via_dm_score),
+        ("share_via_copy_link", s.share_via_copy_link_score),
+        ("bookmark", s.bookmark_score),
+        ("dwell", s.dwell_score),
+        ("quote", s.quote_score),
+        ("quoted_click", s.quoted_click_score),
+        ("quoted_vqv", s.quoted_vqv_score),
+        ("follow_author", s.follow_author_score),
+        ("not_interested", s.not_interested_score),
+        ("block_author", s.block_author_score),
+        ("mute_author", s.mute_author_score),
+        ("report", s.report_score),
+        ("not_dwelled", s.not_dwelled_score),
+        ("post_unexplored", s.post_unexplored_score),
+        ("pdwell", s.post_unexplored_score),
+        ("dwell_time", s.dwell_time),
+        ("click_dwell_time", s.click_dwell_time),
+    ];

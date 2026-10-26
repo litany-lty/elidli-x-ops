@@ -1,0 +1,464 @@
+{
+  "contract_version": 4,
+  "catalog_id": "x-algorithm-public-v1",
+  "catalog_version": "1.0.0",
+  "catalog_content_hash": "229bfee55793c7b9689f4303e3c61bd4dd89b4a7f90f7d686c01e36f06b666f4",
+  "upstream": {
+    "repo": "xai-org/x-algorithm",
+    "commit": "6258a1549ef808be88fba83d3b2d58364b587ee0"
+  },
+  "files": [
+    {
+      "path": "source-snapshots/materials.json",
+      "sha256": "a4550d5dca2b9f660b956c973dd4c9a8d7afd67b08f07ad2e905129a2342bf4e",
+      "kind": "artifact_manifest"
+    },
+    {
+      "path": "source-snapshots/dependencies.json",
+      "sha256": "776d9a3f9271dd64b5fd5aacb85739d5b1057b11f32788454acd28b91991cd4a",
+      "kind": "dependency_manifest"
+    },
+    {
+      "path": "source-snapshots/events/activation.json",
+      "sha256": "a9489fa6bcef37838a3f73b02c87ef5e4d89c13114245c5b1cf1837389019bd9",
+      "kind": "knowledge_event"
+    },
+    {
+      "path": "facts/sc01.json",
+      "sha256": "27a9533b43fc2e565c974513a6db1ce7fd89ffeb5b84a431b1e54576887a5717",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/sc02.json",
+      "sha256": "a0497832fda259dccd971257d585fa1ca8b12167a6db42787cdf224afcab19e3",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/sc03.json",
+      "sha256": "7537c2a54cd4f5365af563b8683fa62d2d05f18f8fe9f1e000f1f815a234d176",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/sc04.json",
+      "sha256": "3bf9cc2e90461638f23311af264aad2245984529c428095c4889c5df2f735e53",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/sc05.json",
+      "sha256": "7b2515cc908d07da2b9296cf6f27346af64d62b6c723fdfbab350bee64993162",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/dv01.json",
+      "sha256": "476ca463fba610d3d6825c20fd3fae5876b5c31775ea9454d34a7783f461f685",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/cs01.json",
+      "sha256": "3e696f5927163e9668f17de20dddac9b43bb7baff9d3772de64db2844e196c42",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/cs02.json",
+      "sha256": "4be8a46194c9b257451d87dffa0610c4fd37293ef5a1ce23b3bc8cb695c7610b",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/cs03.json",
+      "sha256": "711d8357b181a5d34e2a3e1a0d3142e7607998635725b8f3c82d0d00a50d207e",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/ex01.json",
+      "sha256": "ab1274da4254e105e290a85f196020108b2ca1a9e218611e649b50d7a36cebad",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/cf01.json",
+      "sha256": "722e94bd45f51c725e2986e99e23d99c754e32e163a58c35a3d37d3f68c6d9b7",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c01.json",
+      "sha256": "8c3fcca03def8ab8f0b7b66b22923eeadcd353e8095050364b4170e9db482f68",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c02.json",
+      "sha256": "f5a62b89b8069b6f5b168267864e4a2a89b5ecfdf3e2bd20ea3b1381c07c1a0d",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c03.json",
+      "sha256": "c6ab24c5ac0a7370ff0e010b513bee89de164e90a80894b025ea77dbd23750da",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c04.json",
+      "sha256": "83e84a0befdf3ce0e9e5f955e621da2103959a014702116ffaa1ccaea43bab24",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c05.json",
+      "sha256": "64884ce11c3c3edfdded24618c65aba8580f939b57a4e86e24b763368196117f",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c06.json",
+      "sha256": "1c565e7a9246ac97a64733e5f3937a048d4ec57668fe5464e3d4f53325a6dc11",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c07.json",
+      "sha256": "6851140ba42419a8d73041f0d0868a3151e01d8ecfdffce87976c4d3306b3840",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c08.json",
+      "sha256": "76811beee2d9aa4e3210f02fa145eaf0d4780c6ee25360930948dd1fbca7c671",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c09.json",
+      "sha256": "18486dcae62cdbaa941a3c529dd1d1e18ecba0c6ef9c1eead2323b491861a24f",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c10.json",
+      "sha256": "a9322e224818e07c643c95111171f74b01ac6e71960b1fb7a309d839cc66494f",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c11.json",
+      "sha256": "c706e53b7ec5cd9201197e1591e3cdf73b839612438e1568d29e958a60f1a533",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c12.json",
+      "sha256": "b6a89e4a72a67650e2d5e9fe9e9a8ad1450b2d16a35be1dfe2133f08ce9e1d62",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c13.json",
+      "sha256": "5168c6a00c23f3019122a923cb3c3b89499e85f93330760bf677383c686b9a1d",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c14.json",
+      "sha256": "7a97569e596d55dfadee18481721fe294de66de76e06dd7efb7c021f071d669f",
+      "kind": "fact"
+    },
+    {
+      "path": "facts/c15.json",
+      "sha256": "c77832971eb0623e546c8f08c08e14055cec02d436b5173d7a29f9c1d6da92ce",
+      "kind": "fact"
+    },
+    {
+      "path": "playbooks/op01.json",
+      "sha256": "8817225fcf611b999b88c09009ff715225345e39c8f18439d5c5556cb18f1743",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/op02.json",
+      "sha256": "5d5fd272ae710e9871580e9f0073d131c6aa62015e9b465a4ce1a130b78a5eb4",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/op03.json",
+      "sha256": "1dcaadb1a64fdeb985c97d88f31c9807c38d265a61b566ee50d4fc2833e09d85",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/op04.json",
+      "sha256": "d2067244e1d0cb974312eb32e999c7dd1ffb47dba5303f89fa1532c9933afd4d",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/op05.json",
+      "sha256": "71ded3b871105efc5dbd3c6018ff6bf5cb62147c981f5ff41bc36d884fa3045c",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/op06.json",
+      "sha256": "2e95fac2d76c93825b83ee2a67dc3a665d8b339e39402b0ccf0a16dbe328114b",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/op07.json",
+      "sha256": "d7811c1fd91177f29dd78acacded09e11d77b04262a3e0f6fe7f765cf9a8a6c3",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/op08.json",
+      "sha256": "87696d0a1fdb28b6ffef6662170184f879cf75483c86b601dcab852f2274590b",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/op09.json",
+      "sha256": "30f1d7a35cb83eb21b0d67e9dca1549667161aa94eed8a58b48b8b7e523e9ac7",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/op10.json",
+      "sha256": "abdc09422cec1b5193ad6f228d9b5ac35fe15b04eaf6452e1db4b79a47b1d3e4",
+      "kind": "operational_rule"
+    }
+  ],
+  "artifact_manifest_path": "source-snapshots/materials.json",
+  "dependency_manifest_path": "source-snapshots/dependencies.json",
+  "dependency_manifest_hash": "7a118c2549a751edfec316e78d2559a7d889be2a394fc404afae003f3890970c",
+  "activation_event_path": "source-snapshots/events/activation.json",
+  "artifact_refs": [
+    "artifact-sc01",
+    "artifact-sc02",
+    "artifact-sc03",
+    "artifact-sc04",
+    "artifact-sc05",
+    "artifact-dv01",
+    "artifact-cs01",
+    "artifact-cs02",
+    "artifact-cs03",
+    "artifact-ex01",
+    "artifact-cf01",
+    "artifact-c01",
+    "artifact-c02",
+    "artifact-c03",
+    "artifact-c04",
+    "artifact-c05",
+    "artifact-c06",
+    "artifact-c07",
+    "artifact-c08",
+    "artifact-c09",
+    "artifact-c10",
+    "artifact-c11",
+    "artifact-c12",
+    "artifact-c13",
+    "artifact-c14",
+    "artifact-c15"
+  ],
+  "fact_version_refs": [
+    "fact-sc01-6258a1549ef8",
+    "fact-sc02-6258a1549ef8",
+    "fact-sc03-6258a1549ef8",
+    "fact-sc04-6258a1549ef8",
+    "fact-sc05-6258a1549ef8",
+    "fact-dv01-6258a1549ef8",
+    "fact-cs01-6258a1549ef8",
+    "fact-cs02-6258a1549ef8",
+    "fact-cs03-6258a1549ef8",
+    "fact-ex01-6258a1549ef8",
+    "fact-cf01-6258a1549ef8",
+    "fact-c01-6258a1549ef8",
+    "fact-c02-6258a1549ef8",
+    "fact-c03-6258a1549ef8",
+    "fact-c04-6258a1549ef8",
+    "fact-c05-6258a1549ef8",
+    "fact-c06-6258a1549ef8",
+    "fact-c07-6258a1549ef8",
+    "fact-c08-6258a1549ef8",
+    "fact-c09-6258a1549ef8",
+    "fact-c10-6258a1549ef8",
+    "fact-c11-6258a1549ef8",
+    "fact-c12-6258a1549ef8",
+    "fact-c13-6258a1549ef8",
+    "fact-c14-6258a1549ef8",
+    "fact-c15-6258a1549ef8"
+  ],
+  "rule_version_refs": [
+    "operational-op01-v1",
+    "operational-op02-v1",
+    "operational-op03-v1",
+    "operational-op04-v1",
+    "operational-op05-v1",
+    "operational-op06-v1",
+    "operational-op07-v1",
+    "operational-op08-v1",
+    "operational-op09-v1",
+    "operational-op10-v1"
+  ],
+  "signal_registry": {
+    "has_body": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "reader_benefit_clear": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "opening_promise_present": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "promise_fulfilled": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "goal_reach_new_readers": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "depends_on_prior_context": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "reusable_information": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "information_scattered": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "planned_topic_overlap": {
+      "type": "number",
+      "unit": "ratio"
+    },
+    "critical_assets_ready": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "has_real_question": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "has_readable_discussion_context": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "factual_sensitivity": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "evidence_strength": {
+      "type": "string",
+      "unit": "category"
+    },
+    "actual_warning_present": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "wants_visuals": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "visual_fit": {
+      "type": "string",
+      "unit": "category"
+    },
+    "hot_topic_relevant": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "personal_contribution_available": {
+      "type": "boolean",
+      "unit": "flag"
+    },
+    "internal_mechanism_observed": {
+      "type": "boolean",
+      "unit": "flag"
+    }
+  },
+  "coverage": {
+    "public_scope_status": "verified_subset",
+    "reviewed_dependency_count": 17,
+    "unreviewed_public_dependency_ids": [
+      "query_hydrator:ScoringSequenceQueryHydrator",
+      "query_hydrator:ImmersiveScoringSequenceQueryHydrator",
+      "query_hydrator:RetrievalSequenceQueryHydrator",
+      "query_hydrator:BlockedUserIdsQueryHydrator",
+      "query_hydrator:MutedUserIdsQueryHydrator",
+      "query_hydrator:FollowedUserIdsQueryHydrator",
+      "query_hydrator:SubscribedUserIdsQueryHydrator",
+      "query_hydrator:CachedPostsQueryHydrator",
+      "query_hydrator:MutualFollowQueryHydrator",
+      "query_hydrator:UserDemographicsQueryHydrator",
+      "query_hydrator:FollowedGrokTopicsQueryHydrator",
+      "query_hydrator:FollowedStarterPacksQueryHydrator",
+      "query_hydrator:UserInstalledAppsQueryHydrator",
+      "query_hydrator:RecentSearchQueriesQueryHydrator",
+      "query_hydrator:ExplicitEngagementSignalsQueryHydrator",
+      "query_hydrator:ImplicitEngagementSignalsQueryHydrator",
+      "query_hydrator:ImpressionBloomFilterQueryHydrator",
+      "query_hydrator:IpQueryHydrator",
+      "query_hydrator:UserInferredGenderQueryHydrator",
+      "source:ThunderSource",
+      "source:PopularPostsSource",
+      "source:TweetMixerSource",
+      "source:SimclustersSource",
+      "source:PhoenixSource",
+      "source:PhoenixTopicsSource",
+      "source:PhoenixMOESource",
+      "source:SidSource",
+      "source:CachedPostsSource",
+      "candidate_hydrator:InNetworkCandidateHydrator",
+      "candidate_hydrator:BidirectionalFollowHydrator",
+      "candidate_hydrator:CoreDataCandidateHydrator",
+      "candidate_hydrator:PhoenixReplyAncestorsHydrator",
+      "candidate_hydrator:QuoteHydrator",
+      "candidate_hydrator:MediaInfoHydrator",
+      "candidate_hydrator:SubscriptionHydrator",
+      "candidate_hydrator:GizmoduckCandidateHydrator",
+      "candidate_hydrator:BlockedByHydrator",
+      "candidate_hydrator:FilteredTopicsHydrator",
+      "candidate_hydrator:LanguageCodeHydrator",
+      "candidate_hydrator:EngagementCountsHydrator",
+      "candidate_hydrator:PostEngagersHydrator",
+      "candidate_hydrator:SemanticIdHydrator",
+      "candidate_hydrator:NewUserSoftNsfwLabelHydrator",
+      "filter:ZeroFavCodivertFilter",
+      "filter:CoreDataHydrationFilter",
+      "filter:NewUserSoftNsfwFilter",
+      "filter:SelfTweetFilter",
+      "filter:OONNsfwSimclustersFilter",
+      "filter:RetweetDeduplicationFilter",
+      "filter:PreviouslySeenPostsBackupFilter",
+      "filter:PreviouslyServedPostsFilter",
+      "filter:Brazil2026ElectionFilter",
+      "filter:VideoFilter",
+      "filter:TopicIdsFilter",
+      "filter:NewUserMinEngagementFilter",
+      "filter:InventoryHoldoutFilter",
+      "filter:FavHoldoutFilter",
+      "scorer:PhoenixScorer",
+      "scorer:ImmersiveVideoScorer",
+      "scorer:VMRanker",
+      "selector:TopKScoreSelector",
+      "post_selection_hydrator:AdsBrandSafetyVfHydrator",
+      "post_selection_hydrator:TweetTypeMetricsHydrator",
+      "post_selection_hydrator:FollowingRepliedUsersHydrator",
+      "post_selection_hydrator:MutualFollowJaccardHydrator",
+      "post_selection_hydrator:TopicFeedbackContextHydrator",
+      "post_selection_hydrator:AiTrendFeedbackContextHydrator",
+      "post_selection_hydrator:VideoMediaHydrator",
+      "post_selection_hydrator:VideoEmbeddingHydrator",
+      "post_selection_hydrator:AncestorVideoHydrator",
+      "post_selection_filter:AncillaryVFFilter",
+      "post_selection_filter:AncestorVideoFilter",
+      "post_selection_filter:VideoCarouselFilter",
+      "side_effect:PhoenixExperimentsSideEffect",
+      "side_effect:RerankingKafkaSideEffect",
+      "side_effect:RetrievalCandidatesKafkaSideEffect",
+      "side_effect:RedisPostCandidateCacheSideEffect",
+      "side_effect:ScoredStatsSideEffect",
+      "side_effect:ResponseDiversityStatsSideEffect",
+      "side_effect:SerendipityStatsSideEffect",
+      "side_effect:AuthorServedMetricsSideEffect",
+      "side_effect:MutualFollowStatsSideEffect",
+      "side_effect:DebugSideEffect",
+      "side_effect:PhoenixRequestCacheSideEffect"
+    ],
+    "external_unpublished_dependency_ids": [
+      "external:grok_prompts",
+      "external:botmaker_rules",
+      "external:deployment_configuration",
+      "external:hidden_label_classifiers"
+    ],
+    "limitations": [
+      "26张事实卡是已核子集，不代表全仓覆盖",
+      "TweetMixer、Topics、MOE、SID、Cached等内部条件仍是公开未深读项",
+      "C14完整互动动作矩阵未核完",
+      "隐藏分类器、部分prompts、botmaker规则和部署配置未公开"
+    ]
+  },
+  "created_at": "2026-10-26T00:00:00Z"
+}

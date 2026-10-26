@@ -7,7 +7,7 @@ import { Temporal } from '@js-temporal/polyfill';
 const schemaUrl = new URL('../../schemas/contracts.schema.json', import.meta.url);
 const schema = JSON.parse(readFileSync(fileURLToPath(schemaUrl), 'utf8'));
 // V2 payloads keep the existing transport envelope and share one strict registry.
-for (const name of ['data-v2.schema.json', 'coaching-v2.schema.json', 'review-v2.schema.json', 'consumer-v2.schema.json', 'runtime-v2.schema.json', 'data-reliability-v3.schema.json', 'coaching-reliability-v3.schema.json', 'content-v3.schema.json', 'reliability-v3.schema.json']) {
+for (const name of ['data-v2.schema.json', 'coaching-v2.schema.json', 'review-v2.schema.json', 'consumer-v2.schema.json', 'runtime-v2.schema.json', 'data-reliability-v3.schema.json', 'coaching-reliability-v3.schema.json', 'content-v3.schema.json', 'reliability-v3.schema.json', 'data-reliability-v4.schema.json', 'coaching-v4.schema.json', 'knowledge-v4.schema.json', 'guidance-v4.schema.json', 'entry-v4.schema.json', 'runtime-v4.schema.json', 'collection-v4.schema.json']) {
   const extension = JSON.parse(readFileSync(new URL(`../../schemas/${name}`, import.meta.url), 'utf8'));
   for (const [key, definition] of Object.entries(extension.definitions)) {
     if (schema.definitions[key]) throw new Error(`Duplicate contract: ${key}`);
@@ -42,7 +42,7 @@ const errorCodes = new Set([
   'MISSING_EVIDENCE', 'STALE_DRAFT', 'STATE_CONFLICT', 'PERSIST_FAILED',
   'METRIC_DEFINITION_UNRESOLVED', 'ACCOUNT_MISMATCH', 'OBSERVATION_CONFLICT',
   'STALE_BUNDLE', 'INVALID_EVIDENCE_REF', 'REQUESTED_OUTPUT_INCOMPLETE',
-  'ADAPTER_UNVERIFIED', 'MIGRATION_REQUIRED', 'AUTH_REQUIRED'
+  'ADAPTER_UNVERIFIED', 'MIGRATION_REQUIRED', 'AUTH_REQUIRED', 'ENTITLEMENT_REQUIRED', 'EXPORT_UNAVAILABLE', 'TRANSFER_REQUIRED', 'SCOPE_UNVERIFIED', 'COVERAGE_PARTIAL', 'WINDOW_PENDING', 'WINDOW_MISSING', 'FUTURE_EVIDENCE'
 ]);
 
 export class ContractError extends Error {
@@ -76,6 +76,7 @@ function validatorFor(typeName) {
 ajv.addSchema(schema);
 
 export function validate(typeName, value) {
+  if (value?.contract_version === 4) typeName = ({'doctorPayload':'DoctorPayloadV4','recordPayload':'RecordPayloadV4','state-migratePayload':'StateMigratePayloadV4','coach-stepPayload':'CoachStepPayloadV4','reviewPayload':'ReviewPayloadV4','knowledge-stepPayload':'KnowledgeStepPayloadV4','collection-stepPayload':'CollectionStepPayloadV4'})[typeName] ?? typeName;
   if (value?.contract_version === 3) {
     typeName = ({'draft-checkPayload':'DraftCheckPayloadV3','recordPayload':'RecordPayloadV3','state-migratePayload':'StateMigratePayloadV3','content-stepPayload':'ContentStepPayloadV3','coach-stepPayload':'CoachStepPayloadV3','reviewPayload':'ReviewComputePayloadV3'})[typeName] ?? typeName;
   }

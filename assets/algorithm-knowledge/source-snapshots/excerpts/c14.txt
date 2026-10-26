@@ -1,0 +1,18 @@
+const PUBLIC_INTEREST_LABELS_START: u64 = 1554076800000;
+
+pub(super) const PUBLIC_INTEREST_LABEL_INTERSTITIAL: Rule = Rule {
+    id: RuleId::PublicInterest,
+    audience: Everyone,
+    when: all![
+        TweetCreatedAfter(PUBLIC_INTEREST_LABELS_START),
+        any![
+            TweetHasLabel(SafetyLabelType::LOW_QUALITY),
+            TweetHasLabel(SafetyLabelType::MISINFO_CIVIC),
+            TweetHasLabel(SafetyLabelType::MISINFO_GENERIC),
+            TweetHasLabel(SafetyLabelType::MISINFO_MEDICAL),
+            TweetHasLabel(SafetyLabelType::MISINFO_CRISIS),
+            TweetHasLabel(SafetyLabelType::IPI_DEVELOPMENT_ONLY)
+        ]
+    ],
+    action: label_interstitial(LabelInterstitialSpec::PublicInterest),
+};

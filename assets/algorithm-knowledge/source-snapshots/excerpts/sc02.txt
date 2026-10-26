@@ -1,0 +1,11 @@
+        apply(scores.follow_author_score, weights.follow_author),
+        apply(scores.not_interested_score, weights.not_interested),
+        apply(scores.block_author_score, weights.block_author),
+        apply(scores.mute_author_score, weights.mute_author),
+        apply(scores.report_score, weights.report),
+        apply(scores.not_dwelled_score, weights.not_dwelled),
+        apply(scores.post_unexplored_score, post_unexplored_weight),
+        apply(scores.react_with_video_score, weights.react_with_video),
+    ]
+    .iter()
+    .sum()

@@ -1,0 +1,81 @@
+    fn enable(&self, query: Arc<ScoredPostsQuery>) -> bool {
+        is_prod()
+            && !query.in_network_only
+            && !query.has_cached_posts
+            && is_sampled(
+                query.request_id,
+                query.params.get(RetrievalCandidatesKafkaSamplePercent),
+            )
+    }
+
+    async fn side_effect(
+        &self,
+        input: Arc<SideEffectInput<ScoredPostsQuery, PostCandidate>>,
+    ) -> Result<(), String> {
+        let batch = build_batch(&input);
+        if batch.candidates.is_empty() {
+            return Ok(());
+        }
+        self.kafka_client
+            .send(&batch.encode_to_vec())
+            .await
+            .map_err(|e| format!("Kafka publish failed: {e}"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::candidate::RetrievalSource;
+    use pb::{RetrievalCandidateStatus, ServedType};
+    use xai_candidate_pipeline::component_library::clients::phoenix_retrieval_client::PhoenixRetrievalCluster;
+
+    fn post(tweet_id: u64, served_type: ServedType, score: Option<f64>) -> PostCandidate {
+        PostCandidate {
+            tweet_id,
+            score,
+            served_type: Some(served_type),
+            retrieval_sources: vec![RetrievalSource::from_served_type(served_type)],
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn batch_covers_selected_and_non_selected_candidates() {
+        let selected = PostCandidate {
+            author_id: 10,
+            retweeted_tweet_id: Some(100),
+            retweeted_user_id: Some(1000),
+            weighted_score: Some(1.2),
+            in_network: Some(true),
+            retrieval_sources: vec![
+                RetrievalSource::from_served_type(ServedType::ForYouInNetwork),
+                RetrievalSource {
+                    served_type: ServedType::ForYouPhoenixRetrieval,
+                    cluster: Some(PhoenixRetrievalCluster::Experiment1Fou),
+                    score: Some(0.5),
+                    position: Some(12),
+                },
+            ],
+            ..post(1, ServedType::ForYouInNetwork, Some(0.9))
+        };
+
+        let batch = build_batch(&SideEffectInput {
+            query: Arc::new(ScoredPostsQuery::default()),
+            selected_candidates: vec![selected],
+            non_selected_candidates: vec![post(2, ServedType::ForYouPhoenixRetrieval, None)],
+        });
+
+        let outcomes: Vec<(u64, i32, Option<u32>)> = batch
+            .candidates
+            .iter()
+            .map(|c| (c.tweet_id, c.status, c.rank))
+            .collect();
+        assert_eq!(
+            vec![
+                (
+                    1,
+                    RetrievalCandidateStatus::RetrievalCandidateSelected.into(),
+                    Some(1)
+                ),
+                (

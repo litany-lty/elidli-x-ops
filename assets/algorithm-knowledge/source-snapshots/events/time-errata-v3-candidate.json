@@ -1,0 +1,23 @@
+{
+  "contract_version": 4,
+  "event_id": "knowledge-event-public-v3-candidate",
+  "event_type": "candidate_update",
+  "catalog_ref": "x-algorithm-public-v3",
+  "prior_catalog_ref": "x-algorithm-public-v2",
+  "checked_at": "2026-10-26T17:59:47Z",
+  "observed_head_commit": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+  "affected_rule_version_refs": [
+    "operational-op08-v3",
+    "operational-op09-v3"
+  ],
+  "gaps": [
+    "action_consumer:EvaluateTweetsTreatment",
+    "action_consumer:LimitedActionsPolicies",
+    "action_consumer:LimitedActionsPolicyResolver",
+    "external:botmaker_rules",
+    "external:deployment_configuration",
+    "external:grok_prompts",
+    "external:hidden_label_classifiers",
+    "external:limited_actions_policy_config"
+  ]
+}

@@ -1,0 +1,81 @@
+    fn filter(
+        &self,
+        query: &ScoredPostsQuery,
+        candidates: Vec<PostCandidate>,
+    ) -> FilterResult<PostCandidate> {
+        let followed_user_ids: FxHashSet<u64> = query
+            .user_features
+            .followed_user_ids
+            .iter()
+            .map(|&id| id as u64)
+            .collect();
+
+        let (removed, kept): (Vec<_>, Vec<_>) = candidates
+            .into_iter()
+            .partition(|candidate| Self::should_remove(candidate, &followed_user_ids));
+
+        FilterResult { kept, removed }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Stable sample ids from the set (sorted source list order).
+    const SAMPLE_LISTED: [u64; 4] = [29434532, 40053694, 74215006, 2670726740];
+
+    fn make_candidate(tweet_id: u64, author_id: u64) -> PostCandidate {
+        PostCandidate {
+            tweet_id,
+            author_id,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn keeps_candidates_from_non_listed_authors() {
+        let filter = Brazil2026ElectionFilter;
+        let candidates = vec![
+            make_candidate(1, 1),
+            make_candidate(2, 2),
+            make_candidate(3, 3),
+        ];
+
+        let result = filter.filter(&ScoredPostsQuery::default(), candidates);
+
+        assert_eq!(result.kept.len(), 3);
+        assert_eq!(result.removed.len(), 0);
+    }
+
+    #[test]
+    fn removes_candidates_from_listed_authors() {
+        let filter = Brazil2026ElectionFilter;
+        let listed = SAMPLE_LISTED[0];
+        let candidates = vec![
+            make_candidate(1, 1),
+            make_candidate(2, listed),
+            make_candidate(3, 3),
+        ];
+
+        let result = filter.filter(&ScoredPostsQuery::default(), candidates);
+
+        assert_eq!(result.kept.len(), 2);
+        assert_eq!(result.kept[0].tweet_id, 1);
+        assert_eq!(result.kept[1].tweet_id, 3);
+        assert_eq!(result.removed.len(), 1);
+        assert_eq!(result.removed[0].author_id, listed);
+    }
+
+    #[test]
+    fn removes_retweets_of_listed_authors() {
+        let filter = Brazil2026ElectionFilter;
+        let listed = SAMPLE_LISTED[1];
+        let mut retweet = make_candidate(10, 999);
+        retweet.retweeted_user_id = Some(listed);
+        let candidates = vec![make_candidate(1, 1), retweet];
+
+        let result = filter.filter(&ScoredPostsQuery::default(), candidates);
+
+        assert_eq!(result.kept.len(), 1);
+        assert_eq!(result.kept[0].tweet_id, 1);

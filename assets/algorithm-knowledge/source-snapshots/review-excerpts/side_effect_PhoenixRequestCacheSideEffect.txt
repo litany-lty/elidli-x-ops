@@ -1,0 +1,81 @@
+    fn enable(&self, query: Arc<ScoredPostsQuery>) -> bool {
+        is_prod() && query.params.get(EnablePhoenixRequestCacheSideEffect)
+    }
+
+    async fn side_effect(
+        &self,
+        input: Arc<SideEffectInput<ScoredPostsQuery, PostCandidate>>,
+    ) -> Result<(), String> {
+        let query = &input.query;
+        let ttl = query.params.get(PhoenixRequestCacheSideEffectTtlSeconds);
+
+        if input.selected_candidates.is_empty() && input.non_selected_candidates.is_empty() {
+            return Ok(());
+        }
+
+        let prediction_request_id = input
+            .selected_candidates
+            .iter()
+            .find_map(|c| c.prediction_request_id);
+        let Some(prediction_request_id) = prediction_request_id else {
+            return Ok(());
+        };
+
+        let product_surface = if query.in_network_only {
+            ProductSurface::HomeTimelineRankedFollowing
+        } else {
+            ProductSurface::HomeTimelineRanking
+        };
+
+        let mut entries: Vec<(String, Vec<u8>)> = Vec::new();
+
+        if !query.has_cached_posts {
+            let phoenix_request =
+                build_request_without_sequence_and_candidates(query, product_surface);
+            entries.push((
+                request_level_cache_key(prediction_request_id),
+                encode_cache_value(&phoenix_request)?,
+            ));
+        }
+
+        let log_slate_context = query.params.get(LogSlateContext);
+        let mut tweet_infos =
+            build_tweet_infos(query, &input.selected_candidates, query.request_time_ms);
+        tweet_infos.iter_mut().for_each(clear_post_engagers);
+        if log_slate_context {
+            for (info, candidate) in tweet_infos.iter_mut().zip(input.selected_candidates.iter()) {
+                info.score_info = Some(candidate.as_score_info_no_prediction_scores());
+            }
+        }
+        for candidate in tweet_infos {
+            entries.push((
+                candidate_cache_key(prediction_request_id, candidate.tweet_id),
+                encode_cache_value(&candidate)?,
+            ));
+        }
+
+        let mut futures: Vec<
+            std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), String>> + Send + '_>>,
+        > = Vec::new();
+
+        for (key, value) in entries {
+            let pdxa_key = key.clone();
+            let pdxa_value = value.clone();
+            futures.push(Box::pin(async move {
+                self.phoenix_request_cache_redis_atla_client
+                    .set_ex(key, value, ttl)
+                    .await
+                    .map_err(|e| e.to_string())
+            }));
+            futures.push(Box::pin(async move {
+                self.phoenix_request_cache_redis_pdxa_client
+                    .set_ex(pdxa_key, pdxa_value, ttl)
+                    .await
+                    .map_err(|e| format!("xdc: {e}"))
+            }));
+        }
+
+        let results = join_all(futures).await;
+        let total = results.len();
+        let mut first_error: Option<String> = None;
+        let mut error_count = 0usize;

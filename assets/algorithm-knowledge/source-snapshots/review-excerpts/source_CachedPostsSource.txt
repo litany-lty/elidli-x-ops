@@ -1,0 +1,8 @@
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        query.has_cached_posts
+    }
+
+    async fn source(&self, query: &ScoredPostsQuery) -> Result<Vec<PostCandidate>, String> {
+        Ok(query.cached_posts.clone())
+    }
+}

@@ -1,0 +1,22 @@
+{
+  "contract_version": 2,
+  "rule_id": "C12",
+  "rule_version_id": "fact-c12-6258a1549ef8",
+  "repo": "xai-org/x-algorithm",
+  "commit": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+  "path": "home-mixer/filters/vf_filter.rs",
+  "symbol": "should_drop_action",
+  "source_material_ref": "artifact-c12",
+  "source_content_hash": "37a2d41dcec10b693e17886748f0b2cf777239b36b73bf686d5bda718377865e",
+  "checked_at": "2026-10-26T00:00:00Z",
+  "publicly_available_from": null,
+  "applicable_surface": "home_for_you_public_path",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证"
+  ],
+  "observed_behavior": "移除、警示、限制互动与其他处理必须分开。",
+  "inference_boundary": "只陈述所列公开路径；不推算个人账号内部得分、曝光配额、隐藏标签或增长结果。",
+  "production_status": "unknown",
+  "supersedes": null
+}

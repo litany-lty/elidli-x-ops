@@ -1,0 +1,22 @@
+{
+  "contract_version": 2,
+  "rule_id": "SC03",
+  "rule_version_id": "fact-sc03-6258a1549ef8",
+  "repo": "xai-org/x-algorithm",
+  "commit": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+  "path": "xai-value-model/scoring.rs",
+  "symbol": "compute_weighted_score",
+  "source_material_ref": "artifact-sc03",
+  "source_content_hash": "042975d4ddf48749cd6957a343b98b8828630c2e00041b03c02bf454316acff5",
+  "checked_at": "2026-10-26T00:00:00Z",
+  "publicly_available_from": null,
+  "applicable_surface": "home_for_you_public_path",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证"
+  ],
+  "observed_behavior": "点击、停留与点开后停留是不同预测项，不能拼成单次计分公式。",
+  "inference_boundary": "只陈述所列公开路径；不推算个人账号内部得分、曝光配额、隐藏标签或增长结果。",
+  "production_status": "unknown",
+  "supersedes": null
+}

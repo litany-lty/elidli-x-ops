@@ -155,6 +155,13 @@
             "string",
             "null"
           ]
+        },
+        "delivery_intent": {
+          "enum": [
+            "plain_edit",
+            "pixel_edit",
+            "operational_optimize"
+          ]
         }
       }
     },
@@ -206,6 +213,13 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "delivery_intent": {
+          "enum": [
+            "plain_edit",
+            "pixel_edit",
+            "operational_optimize"
           ]
         }
       }

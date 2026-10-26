@@ -1,0 +1,161 @@
+{
+  "$id": "https://x-ops.local/schemas/coaching-v4.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "EvidenceEntryV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "locator", "content_hash", "evidence_role", "availability", "definition_id"],
+      "properties": {
+        "type": { "enum": ["observation", "source_material"] },
+        "locator": { "type": "object" },
+        "content_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "evidence_role": { "enum": ["target", "baseline", "background", "excluded"] },
+        "availability": { "type": "string" },
+        "definition_id": { "type": ["string", "null"] }
+      }
+    },
+    "EvidenceBundleV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "bundle_id", "cutoff", "target_selection", "baseline_selection", "background_refs", "evidence_index", "evidence_bundle_hash"],
+      "properties": {
+        "contract_version": { "const": 4 },
+        "bundle_id": { "type": "string", "minLength": 1 },
+        "cutoff": { "type": "string", "format": "instant" },
+        "target_selection": { "$ref": "#/definitions/ObservationSelectionV3" },
+        "baseline_selection": { "oneOf": [{ "$ref": "#/definitions/ObservationSelectionV3" }, { "type": "null" }] },
+        "background_refs": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "evidence_index": { "type": "object", "additionalProperties": { "$ref": "#/definitions/EvidenceEntryV4" } },
+        "evidence_bundle_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "CoachingRunV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "run_id", "intent", "goal", "use", "subject_ref", "cutoff", "canonical_state_input_hash", "evidence_bundle_ref", "evidence_bundle_hash", "personal_context_selection_ref", "personal_context_selection_hash", "rule_context_ref", "selected_rule_context_hash", "status"],
+      "properties": {
+        "contract_version": { "const": 4 },
+        "run_id": { "type": "string", "minLength": 1 },
+        "intent": { "type": "string", "minLength": 1 },
+        "goal": { "type": "string", "minLength": 1 },
+        "use": { "type": "string", "minLength": 1 },
+        "subject_ref": { "type": "string", "minLength": 1 },
+        "cutoff": { "type": "string", "format": "instant" },
+        "canonical_state_input_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "evidence_bundle_ref": { "type": "string", "minLength": 1 },
+        "evidence_bundle_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "personal_context_selection_ref": { "type": ["string", "null"] },
+        "personal_context_selection_hash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+        "rule_context_ref": { "type": "string", "minLength": 1 },
+        "selected_rule_context_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "status": { "enum": ["prepared", "awaiting_content", "awaiting_proposal", "awaiting_review", "complete"] }
+      }
+    },
+    "CoachingFindingV4": {
+      "type": "object", "additionalProperties": false,
+      "required": ["finding_id", "statement", "interpretation", "support_kind", "evidence_refs"],
+      "properties": {
+        "finding_id": { "type": "string", "minLength": 1 }, "statement": { "type": "string", "minLength": 1 }, "interpretation": { "type": "string", "minLength": 1 },
+        "support_kind": { "enum": ["target_metric", "comparison", "background_context"] },
+        "evidence_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } }
+      }
+    },
+    "CoachingActionV4": {
+      "type": "object", "additionalProperties": false,
+      "required": ["action_id", "objective", "target", "change", "primary_metric_ref", "evidence_refs", "status"],
+      "properties": {
+        "action_id": { "type": "string", "minLength": 1 }, "objective": { "type": "string", "minLength": 1 }, "target": { "type": "string", "minLength": 1 }, "change": { "type": "string", "minLength": 1 },
+        "primary_metric_ref": { "type": ["string", "null"] }, "evidence_refs": { "type": "array", "uniqueItems": true, "items": { "type": "string" } }, "status": { "const": "proposed" }
+      }
+    },
+    "CoachingProposalV4": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contract_version", "proposal_id", "run_ref", "evidence_bundle_ref", "evidence_bundle_hash", "rule_context_ref", "selected_rule_context_hash", "findings", "actions", "gaps", "proposal_hash"],
+      "properties": {
+        "contract_version": { "const": 4 }, "proposal_id": { "type": "string" }, "run_ref": { "type": "string" }, "evidence_bundle_ref": { "type": "string" }, "evidence_bundle_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "rule_context_ref": { "type": "string" }, "selected_rule_context_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "findings": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/CoachingFindingV4" } }, "actions": { "type": "array", "minItems": 1, "maxItems": 3, "items": { "$ref": "#/definitions/CoachingActionV4" } },
+        "gaps": { "type": "array", "items": { "type": "string" } }, "proposal_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "ReviewCoverageBindingV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["receipt_ref", "receipt_hash", "material_hash", "source_ref", "account_identity_ref", "collection_scope_ref", "collection_scope_hash", "request_scope_hash", "window_hash", "completeness"],
+      "properties": {
+        "receipt_ref": { "type": "string", "minLength": 1 },
+        "receipt_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "material_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "source_ref": { "type": "string", "minLength": 1 },
+        "account_identity_ref": { "type": "string", "minLength": 1 },
+        "collection_scope_ref": { "type": ["string", "null"] },
+        "collection_scope_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "request_scope_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "window_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "completeness": { "enum": ["complete", "partial", "unknown"] }
+      }
+    },
+    "ReviewComputationRequestV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "plan_view_ref", "plan_hash", "as_of", "target_scope", "baseline_scope", "window", "metric_requirements", "coverage_bindings"],
+      "properties": {
+        "contract_version": { "const": 4 },
+        "plan_view_ref": { "type": "string", "minLength": 1 },
+        "plan_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "as_of": { "type": "string", "format": "instant" },
+        "target_scope": { "$ref": "#/definitions/ObservationScopeV3" },
+        "baseline_scope": { "oneOf": [{ "$ref": "#/definitions/ObservationScopeV3" }, { "type": "null" }] },
+        "window": { "$ref": "#/definitions/ExperimentWindowV3" },
+        "metric_requirements": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/ReviewMetricRequirementV3" } },
+        "coverage_bindings": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/ReviewCoverageBindingV4" } }
+      }
+    },
+    "ReviewComputationV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "computation_id", "plan_view_ref", "plan_hash", "computed_at", "computation_request", "computation_request_hash", "target_selection", "baseline_selection", "method", "metric_results", "comparability", "publication_bindings", "limitations", "computation_hash"],
+      "properties": {
+        "contract_version": { "const": 4 },
+        "computation_id": { "type": "string", "minLength": 1 },
+        "plan_view_ref": { "type": "string", "minLength": 1 },
+        "plan_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "computed_at": { "type": "string", "format": "instant" },
+        "computation_request": { "$ref": "#/definitions/ReviewComputationRequestV4" },
+        "computation_request_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "target_selection": { "$ref": "#/definitions/ObservationSelectionV3" },
+        "baseline_selection": { "oneOf": [{ "$ref": "#/definitions/ObservationSelectionV3" }, { "type": "null" }] },
+        "method": { "type": "object", "additionalProperties": false, "required": ["version", "kind"], "properties": { "version": { "const": "review-computation-v4" }, "kind": { "enum": ["descriptive_comparison", "target_only"] } } },
+        "metric_results": { "type": "array", "items": { "$ref": "#/definitions/ReviewMetricResultV4" } },
+        "comparability": { "enum": ["compatible", "partially_compatible", "incompatible", "insufficient"] },
+        "publication_bindings": { "type": "array", "items": { "$ref": "#/definitions/ReviewPublicationBindingV4" } },
+        "limitations": { "type": "array", "items": { "type": "string" } },
+        "computation_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "ReviewMetricResultV4": {
+      "type": "object", "additionalProperties": false,
+      "required": ["definition_id", "role", "target_value", "baseline_value", "difference", "unit", "target_observation_refs", "baseline_observation_refs"],
+      "properties": {
+        "definition_id": { "type": "string" }, "role": { "enum": ["primary", "guardrail"] },
+        "target_value": { "type": ["number", "null"] }, "baseline_value": { "type": ["number", "null"] }, "difference": { "type": ["number", "null"] }, "unit": { "type": ["string", "null"] },
+        "target_observation_refs": { "type": "array", "items": { "type": "string" } }, "baseline_observation_refs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "ReviewPublicationBindingV4": {
+      "type": "object", "additionalProperties": false,
+      "required": ["publication_id", "post_key", "content_match"],
+      "properties": { "publication_id": { "type": "string" }, "post_key": { "type": "string" }, "content_match": { "enum": ["exact", "modified", "unverified"] } }
+    },
+    "ExperimentReviewV4": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contract_version", "review_id", "experiment_id", "plan_view_ref", "computation_ref", "computation_hash", "interpretation", "interpretation_proposal_hash", "interpretation_receipt_ref", "interpretation_receipt", "result_trust", "applicable_scope_hash", "closed_at"],
+      "properties": {
+        "contract_version": { "const": 4 }, "review_id": { "type": "string" }, "experiment_id": { "type": "string" }, "plan_view_ref": { "type": "string" }, "computation_ref": { "type": "string" }, "computation_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "interpretation": { "$ref": "#/definitions/ReviewInterpretationV3" }, "interpretation_proposal_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "interpretation_receipt_ref": { "type": "string" }, "interpretation_receipt": { "$ref": "#/definitions/ReviewInterpretationReceiptV3" },
+        "result_trust": { "const": "verified" }, "applicable_scope_hash": { "type": "string" }, "closed_at": { "type": "string", "format": "instant" }
+      }
+    }
+  }
+}

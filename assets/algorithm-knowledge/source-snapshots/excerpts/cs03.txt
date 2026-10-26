@@ -1,0 +1,10 @@
+fn cold_start_target(params: &ColdStartParams, scores: &[f64]) -> Option<(usize, f64)> {
+    let mut ranked = scores.to_vec();
+    ranked.sort_by(|a, b| b.total_cmp(a));
+    let hi = params.slot_max.min(ranked.len());
+    let lo = params.slot_min.min(hi);
+    if lo >= hi {
+        return None;
+    }
+    let rank = rand::rng().random_range(lo..hi);
+    Some((rank, ranked[rank]))

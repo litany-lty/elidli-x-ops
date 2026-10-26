@@ -1,0 +1,4 @@
+impl CandidateScoringInputs {
+    pub fn bidirectional_boost_eligible(&self) -> bool {
+        !self.is_reply && !self.is_retweet && self.is_mutual_follow_author
+    }

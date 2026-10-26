@@ -1,5 +1,6 @@
 import { Temporal } from '@js-temporal/polyfill';
 import { canonicalHash, ContractError, newId, textHash, validate } from './contracts.mjs';
+import { isReliableState } from './state-version.mjs';
 import { assetReviewSubjectHash, countAlt, dataSpecBindingHash } from './media.mjs';
 
 const fail=(code,path,message)=>{throw new ContractError(code,path,message,false);};
@@ -91,7 +92,7 @@ function prepareContent(state,payload,runId){
     items.push(workItem(id,payload.brief,slot,operation,available?'pending':'blocked',available?1:0,{capability_required:capability,input_refs:slot.required_data_refs}));
     if(available)reserved+=1;
   }
-  const run={contract_version:3,run_id:id,status:'prepared',brief_revision_ref:bRef,recipe_ref:payload.recipe.recipe_ref,base_pack_ref:payload.base_pack_ref,active_pack_ref:payload.base_pack_ref,work_items:items,budget:{reserved,used:0,limit:payload.budget},revision_request:null,created_at:payload.as_of,updated_at:payload.as_of,execution_status:'partial',next_actions:[]};
+  const run={contract_version:3,delivery_intent:payload.delivery_intent??'operational_optimize',delivery_use:payload.delivery_intent==='plain_edit'?'plain_edit':payload.delivery_intent==='pixel_edit'?'pixel_edit':'operational_guidance',run_id:id,status:'prepared',brief_revision_ref:bRef,recipe_ref:payload.recipe.recipe_ref,base_pack_ref:payload.base_pack_ref,active_pack_ref:payload.base_pack_ref,work_items:items,budget:{reserved,used:0,limit:payload.budget},revision_request:null,created_at:payload.as_of,updated_at:payload.as_of,execution_status:'partial',next_actions:[]};
   state.content_runs[id]=refreshRun(run);return{state,result:view(state,run)};
 }
 
@@ -190,6 +191,7 @@ function reviewContent(state,payload,context){
     const receipt=payload.receipt;validate('AssetReviewReceiptV3',receipt);const asset=getAsset(state,receipt.asset_ref),slot=pack.media_slots.find(item=>item.asset_ref&&same(item.asset_ref,receipt.asset_ref));
     if(!asset||!slot||receipt.subject_hash!==assetReviewSubjectHash(asset,slot))fail('STALE_BUNDLE','/receipt/subject_hash','Asset review is not bound to current bytes, alt and fact mappings');
     requireActualReview(context,receipt.actual_tool_receipt_ref,receipt.subject_hash);
+    for(const key of (payload.review_kind==='asset'||state.schema_version===4?['decision','checks','issues']:['decision','issues']))if(context.actual_review_result?.[key]===undefined||!same(context.actual_review_result[key],receipt[key]))fail('RECEIPT_CONFLICT',`/receipt/${key}`,'Saved visual review differs from the actual review result');
     if(receipt.decision==='approved'&&!Object.values(receipt.checks).every(Boolean))fail('INVALID_INPUT','/receipt/checks','Approved asset review requires every actual check');
     if(receipt.decision==='approved')for(const mapping of slot.visible_text_and_region_mapping){const actual=asset.visible_text_observation.find(item=>item.region_id===mapping.region_id&&item.text===mapping.visible_text_or_number&&item.observation_method!=='none');if(mapping.verification_status==='verified'&&!actual)fail('INVALID_EVIDENCE_REF','/receipt/subject_hash','Verified visible text is not present in the actual viewed asset observation');}
     if(receipt.supersedes_receipt_ref&&!state.asset_review_receipts[receipt.supersedes_receipt_ref])fail('INVALID_EVIDENCE_REF','/receipt/supersedes_receipt_ref','Superseded review does not exist');immutable(state.asset_review_receipts,receipt.receipt_id,receipt,'/asset_review_receipts');
@@ -198,6 +200,7 @@ function reviewContent(state,payload,context){
     const subject=canonicalHash({pack_ref:receipt.pack_ref,pack_content_hash:receipt.pack_content_hash,preview_ref:receipt.preview_ref,preview_hash:receipt.preview_hash});
     if(receipt.subject_hash!==subject||receipt.pack_ref!==run.active_pack_ref||receipt.pack_content_hash!==pack.pack_content_hash||!preview||preview.pack_ref!==run.active_pack_ref||receipt.preview_hash!==preview.byte_sha256)fail('STALE_BUNDLE','/receipt','Pack review is not bound to this pack and actual preview');
     requireActualReview(context,receipt.actual_tool_receipt_ref,receipt.subject_hash);
+    for(const key of (payload.review_kind==='asset'||state.schema_version===4?['decision','checks','issues']:['decision','issues']))if(context.actual_review_result?.[key]===undefined||!same(context.actual_review_result[key],receipt[key]))fail('RECEIPT_CONFLICT',`/receipt/${key}`,'Saved visual review differs from the actual review result');
     if(receipt.decision==='approved'&&receipt.issues.length)fail('INVALID_INPUT','/receipt/issues','Approved pack review cannot retain unresolved issues');
     if(receipt.supersedes_receipt_ref&&!state.pack_review_receipts[receipt.supersedes_receipt_ref])fail('INVALID_EVIDENCE_REF','/receipt/supersedes_receipt_ref','Superseded review does not exist');immutable(state.pack_review_receipts,receipt.receipt_id,receipt,'/pack_review_receipts');
   }
@@ -208,6 +211,7 @@ export function evaluatePackReadiness(state,packRefValue,context={}){
   const pack=getPack(state,packRefValue);if(!pack)return{readiness:'incomplete',unmet_requirements:['pack_missing']};const brief=state.content_briefs[pack.brief_revision_ref],unmet=[];
   const draftResult=context.evaluate_draft?.(pack.draft_ref,state)??{readiness:getDraft(state,pack.draft_ref)?.validity==='ready'?'ready':'needs_review',evidence_mapping_hash:canonicalHash(getDraft(state,pack.draft_ref)?.fact_mapping??[]),personal_context_selection_hash:getDraft(state,pack.draft_ref)?.personal_context_hash??null};
   if(draftResult.readiness!=='ready'||draftResult.evidence_mapping_hash!==pack.draft_evidence_mapping_hash)unmet.push('draft_review');
+  if(pack.personal_context_selection_hash!==draftResult.personal_context_selection_hash)unmet.push('personal_context_selection_current_draft');
   if(brief.personalization_mode==='evidence_bound'&&(!pack.personal_context_selection_hash||pack.personal_context_selection_hash!==brief.context_selection_hash))unmet.push('personal_context_selection');
   if(brief.required_deliverables.includes('sources')&&!brief.material_refs.length&&!brief.claim_refs.length)unmet.push('source_mapping_missing');
   if(brief.blockers.length)unmet.push(...brief.blockers.map((_,index)=>`brief_blocker:${index}`));
@@ -252,13 +256,15 @@ function resumeContent(state,payload,context){
   const run=getRun(state,payload.run_id),brief=state.content_briefs[run.brief_revision_ref],availableRefs=new Set([...brief.material_refs,...brief.claim_refs,run.revision_request?.instruction_ref].filter(Boolean));
   for(const item of run.work_items.filter(candidate=>candidate.status==='failed'))item.status='pending';
   for(const item of run.work_items.filter(candidate=>candidate.status==='blocked')){const reservation=item.operation==='build_preview'?0:1;if(item.capability_required&&context?.capabilities?.[item.capability_required]==='verified'&&item.input_refs.every(ref=>availableRefs.has(ref)||ref===run.active_pack_ref)&&(reservation===0||run.budget.reserved<run.budget.limit)){item.status='pending';item.budget_reservation=reservation;run.budget.reserved+=reservation;}}
-  run.updated_at=payload.as_of;refreshRun(run);return{state,result:view(state,run)};
+  run.updated_at=payload.as_of;refreshRun(run);
+  if(run.active_pack_ref)return finalizeContent(state,payload,context);
+  return{state,result:view(state,run)};
 }
 
 function view(state,run){return{run:clone(run),brief:clone(state.content_briefs[run.brief_revision_ref]),recipe:clone(state.recipe_versions[run.recipe_ref]),active_pack:clone(getPack(state,run.active_pack_ref)),user_summary:run.status==='ready'?'当前图文稿件已就绪。':'当前结果已保存，可按 next_actions 继续。',next_actions:clone(run.next_actions)};}
 
 export function advanceContent(state,payload,runId=null,context={}){
-  if(!state||state.schema_version!==3)fail('MIGRATION_REQUIRED','/state/schema_version','Content production requires state 3');contentCollections(state);validate('ContentStepPayloadV3',payload);
+  if(!state||!isReliableState(state))fail('MIGRATION_REQUIRED','/state/schema_version','Content production requires state 3');contentCollections(state);validate('ContentStepPayloadV3',payload);
   if(payload.operation==='prepare')return prepareContent(state,payload,runId);
   if(runId&&payload.run_id!==runId)fail('STATE_CONFLICT','/run_id','Envelope and payload run IDs differ');
   if(payload.operation==='ingest')return ingestContent(state,payload,context);

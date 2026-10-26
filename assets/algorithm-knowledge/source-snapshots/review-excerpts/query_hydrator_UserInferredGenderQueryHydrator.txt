@@ -1,0 +1,33 @@
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        query.params.get(EnableInferredGenderHydration) || query.is_shadow_traffic
+    }
+
+    async fn hydrate(&self, query: &ScoredPostsQuery) -> Result<ScoredPostsQuery, String> {
+        let mh_result = tokio::time::timeout(MH_GET_TIMEOUT, self.mh_client.fetch(query.user_id))
+            .await
+            .map_err(|_| "InferredGender MH get timed out".to_string())??;
+
+        let result = match mh_result {
+            Some(r) => Some(r),
+            None if is_new_user(query.user_id) => self.grpc_client.predict(query.user_id).await?,
+            None => None,
+        };
+
+        Ok(ScoredPostsQuery {
+            user_inferred_gender: result
+                .as_ref()
+                .and_then(|r| InferredGenderLabel::try_from(r.gender_label).ok()),
+            user_inferred_gender_score: result.and_then(|r| r.prediction_score),
+            ..Default::default()
+        })
+    }
+
+    fn update(&self, query: &mut ScoredPostsQuery, hydrated: ScoredPostsQuery) {
+        query.user_inferred_gender = hydrated.user_inferred_gender;
+        query.user_inferred_gender_score = hydrated.user_inferred_gender_score;
+    }
+}
+
+fn is_new_user(user_id: u64) -> bool {
+    days_since_creation(user_id) == 0
+}

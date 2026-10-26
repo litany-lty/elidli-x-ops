@@ -1,0 +1,36 @@
+        for candidate in candidates.iter() {
+            if candidate.in_network.unwrap_or(false) {
+                in_network_ids.push(candidate.tweet_id);
+            } else {
+                oon_ids.push(candidate.tweet_id);
+            }
+            for &ancestor_id in &candidate.ancestors {
+                oon_ids.push(ancestor_id);
+            }
+            if let Some(quoted_id) = candidate.quoted_tweet_id {
+                oon_ids.push(quoted_id);
+            }
+            if let Some(retweeted_id) = candidate.retweeted_tweet_id {
+                in_network_ids.push(retweeted_id);
+            }
+        }
+
+        in_network_ids.sort_unstable();
+        in_network_ids.dedup();
+        oon_ids.sort_unstable();
+        oon_ids.dedup();
+
+        let in_network_future = Self::fetch_vf_results(
+            client,
+            in_network_ids,
+            TimelineHome,
+            user_id,
+            context.clone(),
+        );
+
+        let oon_future = Self::fetch_vf_results(
+            client,
+            oon_ids,
+            TimelineHomeRecommendations,
+            user_id,
+            context,

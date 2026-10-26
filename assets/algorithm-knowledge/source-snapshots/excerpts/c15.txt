@@ -1,0 +1,28 @@
+pub(crate) fn should_drop_ancillary(
+    candidate: &PostCandidate,
+    vf_results: &HashMap<u64, Result<TweetVisibility>>,
+) -> bool {
+    for &ancestor_id in &candidate.ancestors {
+        if candidate.tombstone_ancestor_ids.contains(&ancestor_id) {
+            continue;
+        }
+        if let Some(Ok(visibility)) = vf_results.get(&ancestor_id)
+            && should_drop_action(&visibility.action)
+        {
+            return true;
+        }
+    }
+
+    if let Some(quoted_id) = candidate.quoted_tweet_id
+        && let Some(Ok(visibility)) = vf_results.get(&quoted_id)
+        && should_drop_action(&visibility.action)
+    {
+        return true;
+    }
+
+    if let Some(retweeted_id) = candidate.retweeted_tweet_id
+        && let Some(Ok(visibility)) = vf_results.get(&retweeted_id)
+        && should_drop_action(&visibility.action)
+    {
+        return true;
+    }

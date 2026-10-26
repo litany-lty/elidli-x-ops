@@ -1,0 +1,66 @@
+fn served_type(candidate: &PostCandidate) -> Option<ServedType> {
+    candidate.served_type.or_else(|| {
+        candidate
+            .retrieval_sources
+            .first()
+            .map(|source| source.served_type)
+    })
+}
+
+fn group_by_served_type(candidates: &[PostCandidate]) -> Vec<Vec<usize>> {
+    let mut keys: Vec<Option<ServedType>> = Vec::new();
+    let mut groups: Vec<Vec<usize>> = Vec::new();
+    for (index, candidate) in candidates.iter().enumerate() {
+        let key = served_type(candidate);
+        if let Some(group) = keys.iter().position(|seen| *seen == key) {
+            groups[group].push(index);
+        } else {
+            keys.push(key);
+            groups.push(vec![index]);
+        }
+    }
+    groups
+}
+
+fn fair_share_counts(counts: &[usize], budget: usize) -> Vec<usize> {
+    let total: usize = counts.iter().sum();
+    if total == 0 || total <= budget {
+        return counts.to_vec();
+    }
+    let total = total as u128;
+    let budget_u = budget as u128;
+    let mut alloc = Vec::with_capacity(counts.len());
+    let mut remainders = Vec::with_capacity(counts.len());
+    let mut assigned = 0usize;
+    for (index, &count) in counts.iter().enumerate() {
+        let product = count as u128 * budget_u;
+        let keep = (product / total) as usize;
+        alloc.push(keep);
+        assigned += keep;
+        remainders.push((product % total, index));
+    }
+    remainders.sort_by(|left, right| right.0.cmp(&left.0).then(left.1.cmp(&right.1)));
+    let mut leftover = budget - assigned;
+    for (_, index) in remainders {
+        if leftover == 0 {
+            break;
+        }
+        if alloc[index] < counts[index] {
+            alloc[index] += 1;
+            leftover -= 1;
+        }
+    }
+    alloc
+}
+
+fn selection_mask(candidates: &[PostCandidate], budget: usize) -> Vec<bool> {
+    let groups = group_by_served_type(candidates);
+    let demands: Vec<usize> = groups.iter().map(|group| group.len()).collect();
+    let keep = fair_share_counts(&demands, budget);
+    let mut selected = vec![false; candidates.len()];
+    for (group, &count) in groups.iter().zip(&keep) {
+        for &index in group.iter().take(count) {
+            selected[index] = true;
+        }
+    }
+    selected

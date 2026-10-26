@@ -1,0 +1,134 @@
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        query.params.get(EnableBidirectionalFollowHydration) && !query.has_cached_posts
+    }
+
+    async fn hydrate(
+        &self,
+        query: &ScoredPostsQuery,
+        candidates: &[PostCandidate],
+    ) -> Vec<Result<PostCandidate, String>> {
+        let following: HashSet<i64> = query
+            .user_features
+            .followed_user_ids
+            .iter()
+            .copied()
+            .collect();
+        let check_all_authors = query.params.get(EnableAllAuthorFollowHydration);
+
+        let authors: Vec<u64> = candidates
+            .iter()
+            .map(|c| c.author_id)
+            .filter(|a| check_all_authors || following.contains(&(*a as i64)))
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect();
+
+        let followers = if authors.is_empty() {
+            HashSet::new()
+        } else {
+            match self
+                .socialgraph_client
+                .check_followed_by(query.user_id, &authors)
+                .await
+            {
+                Ok(m) => m,
+                Err(e) => return candidates.iter().map(|_| Err(e.to_string())).collect(),
+            }
+        };
+
+        candidates
+            .iter()
+            .map(|c| {
+                let author_follows_viewer = followers.contains(&c.author_id);
+                Ok(PostCandidate {
+                    author_follows_viewer: check_all_authors.then_some(author_follows_viewer),
+                    is_mutual_follow_author: Some(
+                        author_follows_viewer && following.contains(&(c.author_id as i64)),
+                    ),
+                    ..Default::default()
+                })
+            })
+            .collect()
+    }
+
+    fn update(&self, candidate: &mut PostCandidate, hydrated: PostCandidate) {
+        candidate.is_mutual_follow_author = hydrated.is_mutual_follow_author;
+        candidate.author_follows_viewer = hydrated.author_follows_viewer;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::user_features::UserFeatures;
+    use tonic::Status;
+
+    struct MockSocialGraph {
+        followers: Vec<i64>,
+    }
+
+    #[async_trait]
+    impl SocialGraphClientOps for MockSocialGraph {
+        async fn get_following_list(&self, _user_id: u64) -> Result<Vec<u64>, Status> {
+            Ok(vec![])
+        }
+        async fn check_blocked_by(
+            &self,
+            _viewer_id: u64,
+            _author_ids: &[u64],
+        ) -> Result<HashSet<u64>, Status> {
+            Ok(HashSet::new())
+        }
+        async fn check_followed_by(
+            &self,
+            _viewer_id: u64,
+            user_ids: &[u64],
+        ) -> Result<HashSet<u64>, Status> {
+            let followers: HashSet<i64> = self.followers.iter().copied().collect();
+            Ok(user_ids
+                .iter()
+                .copied()
+                .filter(|id| followers.contains(&(*id as i64)))
+                .collect())
+        }
+        async fn get_blocked_user_ids(&self, _viewer_id: u64) -> Result<Vec<i64>, Status> {
+            Ok(vec![])
+        }
+        async fn get_muted_user_ids(&self, _viewer_id: u64) -> Result<Vec<i64>, Status> {
+            Ok(vec![])
+        }
+        async fn get_followed_user_ids(&self, _viewer_id: u64) -> Result<Vec<i64>, Status> {
+            Ok(vec![])
+        }
+        async fn get_follower_ids(&self, _user_id: u64) -> Result<Vec<i64>, Status> {
+            Ok(vec![])
+        }
+        async fn get_subscribed_user_ids(&self, _viewer_id: u64) -> Result<Vec<i64>, Status> {
+            Ok(vec![])
+        }
+        async fn get_device_following_user_ids(&self, _viewer_id: u64) -> Result<Vec<i64>, Status> {
+            Ok(vec![])
+        }
+        async fn get_hide_recommendations_user_ids(
+            &self,
+            _viewer_id: u64,
+        ) -> Result<Vec<i64>, Status> {
+            Ok(vec![])
+        }
+    }
+
+    fn hydrator(followers: Vec<i64>) -> BidirectionalFollowHydrator {
+        BidirectionalFollowHydrator {
+            socialgraph_client: Arc::new(MockSocialGraph { followers }),
+        }
+    }
+
+    fn query(followed: Vec<i64>, enabled: bool) -> ScoredPostsQuery {
+        let mut query = ScoredPostsQuery {
+            user_id: 42,
+            user_features: UserFeatures {
+                followed_user_ids: followed,
+                ..Default::default()
+            },
+            ..Default::default()
+        };

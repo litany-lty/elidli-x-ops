@@ -1,0 +1,85 @@
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        query.is_topic_request() || query.has_excluded_topics()
+    }
+
+    fn filter(
+        &self,
+        query: &ScoredPostsQuery,
+        candidates: Vec<PostCandidate>,
+    ) -> FilterResult<PostCandidate> {
+        let (mut kept, mut removed) = if query.is_topic_request() {
+            let query_topic_ids: HashSet<i64> = query.topic_ids.iter().copied().collect();
+            let expanded = TopicIdExpansion::expand(&query_topic_ids);
+
+            if query.is_bulk_topic_request() {
+                let all_topic_ids = TopicIdExpansion::all_production_topic_ids();
+                let excluded: HashSet<i64> = all_topic_ids.difference(&expanded).copied().collect();
+
+                let (kept, removed): (Vec<_>, Vec<_>) =
+                    candidates
+                        .into_iter()
+                        .partition(|c| match &c.filtered_topic_ids {
+                            Some(candidate_topics) if !candidate_topics.is_empty() => {
+                                !candidate_topics.iter().all(|tid| excluded.contains(tid))
+                            }
+                            _ => true,
+                        });
+                (kept, removed)
+            } else {
+                let supertopic_expanded: HashMap<i64, HashSet<i64>> = query
+                    .topic_ids
+                    .iter()
+                    .map(|&tid| (tid, TopicIdExpansion::expand_supertopic(tid)))
+                    .collect();
+
+                let (kept, removed): (Vec<_>, Vec<_>) = candidates.into_iter().partition(|c| {
+                    let exp_topics = c.filtered_topic_ids.as_deref().unwrap_or(&[]);
+                    let unf_topics = c.unfiltered_topic_ids.as_deref().unwrap_or(&[]);
+
+                    query.topic_ids.iter().any(|&tid| {
+                        let tid_expanded = match TopicIdExpansion::category_ids(tid) {
+                            Some(ids) => ids,
+                            None => std::slice::from_ref(&tid),
+                        };
+
+                        let path1 = exp_topics.iter().any(|et| tid_expanded.contains(et));
+
+                        if path1 {
+                            return true;
+                        }
+
+                        if let Some(st_ids) = supertopic_expanded.get(&tid) {
+                            let unf_has_topic =
+                                unf_topics.iter().any(|ut| tid_expanded.contains(ut));
+                            let exp_has_supertopic =
+                                exp_topics.iter().any(|et| st_ids.contains(et));
+                            unf_has_topic && exp_has_supertopic
+                        } else {
+                            false
+                        }
+                    })
+                });
+                (kept, removed)
+            }
+        } else {
+            (candidates, vec![])
+        };
+
+        if query.has_excluded_topics() {
+            if let Some(receiver) = global_stats_receiver() {
+                for &tid in &query.excluded_topic_ids {
+                    let tid_str = tid.to_string();
+                    receiver.incr(EXCLUDED_TOPIC_METRIC, &[("topic_id", &tid_str)], 1);
+                }
+            }
+            let excluded_ids: HashSet<i64> = query.excluded_topic_ids.iter().copied().collect();
+            let mut excluded_expanded = TopicIdExpansion::expand(&excluded_ids);
+            excluded_expanded.extend(&excluded_ids);
+
+            let (new_kept, new_removed): (Vec<_>, Vec<_>) =
+                kept.into_iter().partition(|c| match &c.filtered_topic_ids {
+                    Some(candidate_topics) if !candidate_topics.is_empty() => !candidate_topics
+                        .iter()
+                        .any(|tid| excluded_expanded.contains(tid)),
+                    _ => false,
+                });

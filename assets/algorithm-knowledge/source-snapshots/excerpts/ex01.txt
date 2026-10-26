@@ -1,0 +1,29 @@
+EXPLORATION_REACH_TARGET_FRACTION = 0.03
+EXPLORATION_WINDOW_HOURS = 24.0
+EXPLORATION_HALF_LIFE_HOURS = 8.0
+
+
+def compute_post_unexplored_labels(
+    follower_counts: npt.NDArray[np.float64],
+    view_counts: npt.NDArray[np.float64],
+    post_creation_ts_sec: np.ndarray,
+    impression_ts_sec: np.ndarray,
+    in_reply_to_post_ids: npt.NDArray[np.int64],
+) -> npt.NDArray[np.bool_]:
+    is_original = in_reply_to_post_ids == 0
+    has_valid_ts = (impression_ts_sec > 0) & (post_creation_ts_sec > 0)
+    age_hours = (
+        impression_ts_sec.astype(np.float64) - post_creation_ts_sec.astype(np.float64)
+    ) / 3600.0
+    in_exploration_window = has_valid_ts & (age_hours <= EXPLORATION_WINDOW_HOURS)
+    decay = np.log(2.0) / EXPLORATION_HALF_LIFE_HOURS
+    saturation = 1.0 - np.exp(-decay * EXPLORATION_WINDOW_HOURS)
+    clamped_age = np.clip(age_hours, 0.0, EXPLORATION_WINDOW_HOURS)
+    exploration_view_target = (
+        EXPLORATION_REACH_TARGET_FRACTION
+        * follower_counts
+        * (1.0 - np.exp(-decay * clamped_age))
+        / saturation
+    )
+    under_explored = view_counts < exploration_view_target
+    return is_original & in_exploration_window & under_explored

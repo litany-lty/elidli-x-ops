@@ -1,0 +1,5 @@
+pub(crate) fn should_drop_action(action: &Action) -> bool {
+    match action {
+        Action::Allow | Action::Interstitial | Action::Avoid | Action::Downrank => false,
+        Action::Drop(_) | Action::Tombstone | Action::NotEvaluated => true,
+    }

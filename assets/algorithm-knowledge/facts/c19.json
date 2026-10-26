@@ -1,0 +1,22 @@
+{
+  "contract_version": 2,
+  "rule_id": "C19",
+  "rule_version_id": "fact-c19-6258a1549ef8",
+  "repo": "xai-org/x-algorithm",
+  "commit": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+  "path": "home-mixer/filters/new_user_soft_nsfw_filter.rs",
+  "symbol": "NewUserSoftNsfwFilter",
+  "source_material_ref": "artifact-c19",
+  "source_content_hash": "5bb3e05226100e677122d6e91afc4167934a7358adc34fb0ec9a4d3b0fbd90d0",
+  "checked_at": "2026-10-27T00:00:00Z",
+  "publicly_available_from": null,
+  "applicable_surface": "home_for_you",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证"
+  ],
+  "observed_behavior": "在启用的非topic For You请求中，新观看者路径移除圈外且带soft_nsfw标签的候选。",
+  "inference_boundary": "条件中的新用户是观看者，标签生成逻辑与实际命中不可从作者低曝光推断。",
+  "production_status": "unknown",
+  "supersedes": null
+}

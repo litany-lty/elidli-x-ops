@@ -1,3 +1,4 @@
+import { canonicalStateInput } from './state-input.mjs';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { canonicalHash, textHash, validate, summarizeRun, ContractError } from './contracts.mjs';
@@ -16,7 +17,7 @@ function selectedRefs(value) {
   if(!value||typeof value!=='object')return[];
   return [...(value.selected_observation_refs??[]),...Object.values(value).flatMap(item=>typeof item==='object'?selectedRefs(item):[])];
 }
-export const canonicalStateInput = (state,cutoff) => ({contract_version:2,account:state.account,analysis_cutoff:cutoff,post_entities:values(state.post_entities),post_versions:values(state.post_versions),post_aliases:state.post_aliases,snapshots:values(state.snapshots_v2),source_series:values(state.source_series),coverage:values(state.import_batches).map(b=>b.coverage),post_metadata_facts:state.post_metadata_facts??{},collection_receipts:state.collection_receipts??{}});
+export {canonicalStateInput} from './state-input.mjs';
 
 export function coachingRunResult(state,runId,persistence='unverified') {
   const run=state.coaching_runs[runId];
@@ -48,7 +49,7 @@ async function importData(payload,request,stateDir,state) {
   catch(error){if(error.code!=='EEXIST')throw error;if(textHash(await readFile(path,'utf8'))!==artifactHash)fail('RECEIPT_CONFLICT','/artifact','Stored material differs');}
   let receipt;
   const next=await commitState(stateDir,request.expected_revision,working=>{
-    working.import_artifacts[preview.artifact_sha256]={artifact_sha256:artifactHash,path,source_ref:payload.source_ref,material_kind:payload.material_kind};
+    const artifact=working.import_artifacts[preview.artifact_sha256];working.import_artifacts[preview.artifact_sha256]=artifact?{...artifact,source_refs:[...new Set([...(artifact.source_refs??[artifact.source_ref]),payload.source_ref])].sort()}:{artifact_sha256:artifactHash,path,source_ref:payload.source_ref,source_refs:[payload.source_ref],material_kind:payload.material_kind};
     const merged=mergeImport(working,normalized);receipt=merged.receipt;return merged.nextState;
   });
   return{state:next,data:{import_receipt:receipt,artifact_sha256:artifactHash}};

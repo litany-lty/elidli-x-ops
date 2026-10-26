@@ -1,0 +1,34 @@
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        video_carousel::is_enabled(query) && query.params.get(EnableVideoCarouselEmbeddingDedupe)
+    }
+
+    async fn hydrate(
+        &self,
+        _query: &ScoredPostsQuery,
+        candidates: &[PostCandidate],
+    ) -> Vec<Result<PostCandidate, String>> {
+        let post_ids: Vec<u64> = candidates
+            .iter()
+            .filter(|candidate| video_carousel::is_carousel_video(candidate))
+            .map(|candidate| candidate.get_original_tweet_id())
+            .collect();
+        let embeddings = self.client.fetch_embeddings(&post_ids).await;
+
+        candidates
+            .iter()
+            .map(|candidate| {
+                Ok(PostCandidate {
+                    video_embedding: video_carousel::is_carousel_video(candidate)
+                        .then(|| embeddings.get(&candidate.get_original_tweet_id()))
+                        .flatten()
+                        .cloned(),
+                    ..Default::default()
+                })
+            })
+            .collect()
+    }
+
+    fn update(&self, candidate: &mut PostCandidate, hydrated: PostCandidate) {
+        candidate.video_embedding = hydrated.video_embedding;
+    }
+}

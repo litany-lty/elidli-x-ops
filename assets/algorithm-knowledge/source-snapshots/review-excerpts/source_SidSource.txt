@@ -1,0 +1,55 @@
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        sid_source_enabled(query)
+            && !query.is_topic_request()
+            && !query.in_network_only
+            && !query.has_cached_posts
+            && has_post_signals(query)
+    }
+
+    async fn source(&self, query: &ScoredPostsQuery) -> Result<Vec<PostCandidate>, String> {
+        let mut seed_post_ids = post_signal_ids(query);
+        seed_post_ids.truncate(query.params.get(SidSourceMaxSeeds));
+        if seed_post_ids.is_empty() {
+            return Ok(vec![]);
+        }
+        record("seeds", seed_post_ids.len());
+
+        let response = self
+            .client
+            .retrieve(RetrieveRequest {
+                seed_post_ids,
+                max_results: query.params.get(SidSourceMaxResults),
+                max_per_seed: query.params.get(SidSourceMaxPerSeed),
+                min_prefix_depth: query.params.get(SidSourceMinPrefixDepth),
+                max_prefix_depth: 0,
+                caller: CALLER.clone(),
+            })
+            .await
+            .map_err(|e| format!("SidSource: {e}"))?;
+        record("retrieved", response.candidates.len());
+
+        let mut candidates: Vec<PostCandidate> = response
+            .candidates
+            .into_iter()
+            .enumerate()
+            .map(|(index, c)| PostCandidate {
+                tweet_id: c.post_id as u64,
+                served_type: Some(pb::ServedType::ForYouPhoenixRetrievalMoe),
+                retrieval_sources: vec![RetrievalSource {
+                    served_type: pb::ServedType::ForYouPhoenixRetrievalMoe,
+                    cluster: None,
+                    score: Some(c.shared_prefix_depth as f32),
+                    position: Some(index as u32 + 1),
+                }],
+                ..Default::default()
+            })
+            .collect();
+
+        let hydrated = self.core_data_hydrator.hydrate(query, &candidates).await;
+        self.core_data_hydrator
+            .update_all(&mut candidates, hydrated);
+        candidates.retain(|c| c.author_id != 0);
+        record("hydrated", candidates.len());
+        Ok(candidates)
+    }
+}

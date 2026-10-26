@@ -1,0 +1,66 @@
+impl LimitedActionsPolicies {
+    pub(super) fn resolve(
+        reasons: impl IntoIterator<Item = LimitedEngagementReason>,
+        match_reason: impl Fn(LimitedEngagementReason) -> FeatureSwitchResults,
+        prompt: impl Fn(LimitedActionType, &PromptCopy) -> Option<Prompt>,
+        stats: Option<&dyn StatsReceiverExt>,
+    ) -> Self {
+        let mut matched: Vec<LimitedEngagementReason> = Vec::new();
+        let mut policies = Vec::new();
+        let count = |reason: LimitedEngagementReason, missing: Missing| {
+            if let Some(stats) = stats {
+                let labels = [("reason", reason.into()), ("missing", missing.into())];
+                stats.incr(MISSING_POLICY_COUNTER, &labels, 1);
+            }
+        };
+        for reason in reasons {
+            if matched.contains(&reason) {
+                continue;
+            }
+            matched.push(reason);
+            let results = match_reason(reason);
+            let action_types: Vec<LimitedActionType> = results
+                .get_array_no_impression(LIMITED_ACTIONS_KEY)
+                .into_iter()
+                .flatten()
+                .filter_map(|name| name.as_str()?.parse().ok())
+                .collect();
+            if action_types.is_empty() {
+                count(reason, Missing::Actions);
+                continue;
+            }
+            let copy = PromptCopy::from_switches(
+                results.get_string_no_impression(COPY_NAMESPACE_KEY),
+                results.get_string_no_impression(PROMPT_TYPE_KEY),
+                results.get_string_no_impression(LEARN_MORE_URL_KEY),
+            );
+            let actions: Vec<LimitedAction> = action_types
+                .into_iter()
+                .map(|action_type| LimitedAction {
+                    action_type,
+                    prompt: copy.as_ref().and_then(|copy| prompt(action_type, copy)),
+                })
+                .collect();
+            if copy.is_some() && actions.iter().any(|action| action.prompt.is_none()) {
+                count(reason, Missing::Copy);
+            }
+            policies.push((reason, actions));
+        }
+        Self {
+            policies,
+            language: None,
+        }
+    }
+
+    pub(super) fn in_language(mut self, language: Option<&str>) -> Self {
+        self.language = language.map(str::to_owned);
+        self
+    }
+
+    pub(crate) fn language(&self) -> &str {
+        self.language.as_deref().unwrap_or(DEFAULT_LANGUAGE)
+    }
+
+    pub(crate) fn actions(&self, reason: LimitedEngagementReason) -> &[LimitedAction] {
+        self.policies
+            .iter()

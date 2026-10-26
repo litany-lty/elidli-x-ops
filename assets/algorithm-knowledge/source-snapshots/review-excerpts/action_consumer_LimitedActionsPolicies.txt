@@ -1,0 +1,72 @@
+    policies: &LimitedActionsPolicies,
+) -> LimitedEngagements {
+    let mut actions: Vec<LimitedAction> = Vec::new();
+    for action in limit.reasons().flat_map(|reason| policies.actions(reason)) {
+        let action_type = limited_action_type(action.action_type);
+        if !actions
+            .iter()
+            .any(|kept| kept.limited_action_type == action_type)
+        {
+            let prompt = action.prompt.as_ref().map(limited_action_prompt);
+            actions.push(LimitedAction::new(action_type, prompt));
+        }
+    }
+    LimitedEngagements::new(
+        limited_engagement_reason(limit.reason()),
+        (!actions.is_empty()).then(|| LimitedActionsPolicy::new(actions)),
+        limit.reason().limited_actions_string().to_string(),
+    )
+}
+
+fn limited_action_prompt(prompt: &Prompt) -> LimitedActionPrompt {
+    let headline = prompt.headline.clone();
+    let subtext = prompt.subtext.clone();
+    match &prompt.kind {
+        PromptKind::Basic => LimitedActionPrompt::BasicLimitedActionPrompt(
+            BasicLimitedActionPrompt::new(headline, subtext),
+        ),
+        PromptKind::SeeConversation => LimitedActionPrompt::CtaLimitedActionPrompt(
+            CtaLimitedActionPrompt::new(headline, subtext, LimitedActionCtaType::SEE_CONVERSATION),
+        ),
+        PromptKind::LearnMore {
+            language,
+            link_text,
+            url,
+        } => LimitedActionPrompt::LocalizedMessageLimitedActionPrompt(
+            LocalizedMessageLimitedActionPrompt::new(
+                LocalizedMessage::new(headline, language.clone(), Vec::new()),
+                LocalizedMessage::new(
+                    subtext,
+                    language.clone(),
+                    vec![MessageLink::new(
+                        LEARN_MORE_PLACEHOLDER.to_string(),
+                        link_text.to_string(),
+                        url.clone(),
+                    )],
+                ),
+            ),
+        ),
+    }
+}
+
+fn limited_action_type(action_type: LimitedActionType) -> action::LimitedActionType {
+    use action::LimitedActionType as T;
+    use LimitedActionType as L;
+    match action_type {
+        L::Reply => T::REPLY,
+        L::Retweet => T::RETWEET,
+        L::QuoteTweet => T::QUOTE_TWEET,
+        L::Like => T::LIKE,
+        L::React => T::REACT,
+        L::SendViaDm => T::SEND_VIA_DM,
+        L::AddToBookmarks => T::ADD_TO_BOOKMARKS,
+        L::AddToMoment => T::ADD_TO_MOMENT,
+        L::PinToProfile => T::PIN_TO_PROFILE,
+        L::ViewTweetActivity => T::VIEW_TWEET_ACTIVITY,
+        L::ShareTweetVia => T::SHARE_TWEET_VIA,
+        L::Follow => T::FOLLOW,
+        L::ListsAddRemove => T::LISTS_ADD_REMOVE,
+        L::MuteConversation => T::MUTE_CONVERSATION,
+        L::Embed => T::EMBED,
+        L::ViewHiddenReplies => T::VIEW_HIDDEN_REPLIES,
+        L::HideCommunityTweet => T::HIDE_COMMUNITY_TWEET,

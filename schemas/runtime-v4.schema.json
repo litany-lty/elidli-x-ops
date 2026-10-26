@@ -1,0 +1,29 @@
+{
+  "$id":"https://x-ops.local/schemas/runtime-v4.schema.json",
+  "$schema":"http://json-schema.org/draft-07/schema#",
+  "definitions":{
+    "MigrationPreviewV4":{
+      "type":"object",
+      "additionalProperties":false,
+      "required":["contract_version","preview_id","source_hash","source_revision","source_version","target_version","rule_version","counts","recheck_items","limitations","preview_hash"],
+      "properties":{
+        "contract_version":{"const":4},
+        "preview_id":{"type":"string","minLength":1},
+        "source_hash":{"type":"string","pattern":"^[a-f0-9]{64}$"},
+        "source_revision":{"type":"integer","minimum":1},
+        "source_version":{"enum":[1,2,3]},
+        "target_version":{"const":4},
+        "rule_version":{"const":"state4@1"},
+        "counts":{"type":"object","additionalProperties":{"type":"integer","minimum":0}},
+        "recheck_items":{"type":"array","uniqueItems":true,"items":{"type":"string","minLength":1}},
+        "limitations":{"type":"array","items":{"type":"string","minLength":1}},
+        "preview_hash":{"type":"string","pattern":"^[a-f0-9]{64}$"}
+      }
+    },
+    "StateMigratePayloadV4":{"oneOf":[
+      {"type":"object","additionalProperties":false,"required":["contract_version","operation"],"properties":{"contract_version":{"const":4},"operation":{"const":"preview"}}},
+      {"type":"object","additionalProperties":false,"required":["contract_version","operation","preview","backup_directory"],"properties":{"contract_version":{"const":4},"operation":{"const":"apply"},"preview":{"$ref":"#/definitions/MigrationPreviewV4"},"backup_directory":{"type":"string","minLength":1}}},
+      {"type":"object","additionalProperties":false,"required":["contract_version","operation","preview"],"properties":{"contract_version":{"const":4},"operation":{"const":"resume_verify"},"preview":{"$ref":"#/definitions/MigrationPreviewV4"}}}
+    ]}
+  }
+}

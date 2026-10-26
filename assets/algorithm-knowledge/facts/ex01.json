@@ -1,0 +1,22 @@
+{
+  "contract_version": 2,
+  "rule_id": "EX01",
+  "rule_version_id": "fact-ex01-6258a1549ef8",
+  "repo": "xai-org/x-algorithm",
+  "commit": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+  "path": "phoenix/xrex/data/recsys/recsys_batch.py",
+  "symbol": "compute_post_unexplored_labels",
+  "source_material_ref": "artifact-ex01",
+  "source_content_hash": "2ad7c28b9d8cbc6435e75fd78448496fed830121ef1f8f373469210158206e89",
+  "checked_at": "2026-10-26T00:00:00Z",
+  "publicly_available_from": null,
+  "applicable_surface": "home_for_you_public_path",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证"
+  ],
+  "observed_behavior": "24小时探索训练标签与两小时冷启动是不同机制。",
+  "inference_boundary": "只陈述所列公开路径；不推算个人账号内部得分、曝光配额、隐藏标签或增长结果。",
+  "production_status": "unknown",
+  "supersedes": null
+}

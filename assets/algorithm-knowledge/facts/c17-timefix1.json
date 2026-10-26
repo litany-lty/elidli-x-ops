@@ -1,0 +1,22 @@
+{
+  "contract_version": 2,
+  "rule_id": "C17",
+  "rule_version_id": "fact-c17-6258a1549ef8-timefix1",
+  "repo": "xai-org/x-algorithm",
+  "commit": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+  "path": "visibility-filtering/params/limited_actions_policy.rs",
+  "symbol": "LimitedActionsPolicies::resolve",
+  "source_material_ref": "artifact-c17-timefix1",
+  "source_content_hash": "ce18f626ce32d13eb49e2b439ff1af8680d0b59f60d833f64a9fdf901abd081f",
+  "checked_at": "2026-10-26T17:59:47Z",
+  "publicly_available_from": null,
+  "applicable_surface": "visibility_treatment",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证"
+  ],
+  "observed_behavior": "互动限制动作按具体LimitedEngagementReason和请求feature switches解析；空动作不会生成policy。",
+  "inference_boundary": "固定仓库缺少被引用的外部limited_actions_policy.yml，不能公布LOW_QUALITY/MISINFO的精确生产动作矩阵。 前版预置未来UTC时间错误，本次校正实际审查时间，机制解释未变。",
+  "production_status": "unknown",
+  "supersedes": "fact-c17-6258a1549ef8"
+}

@@ -21,7 +21,7 @@ async function invoke(command,payload,dir,allowed=[0,3,4]){
 }
 
 test('E01 real CLI archive object preview commit reload and analysis preserve exact file bytes',async()=>{
- const dir=await mkdtemp(join(tmpdir(),'xops-next-archive-')),state=initializeState(createDefaultConfig(account),3);state.revision=1;
+ const dir=await mkdtemp(join(tmpdir(),'xops-next-archive-')),state=initializeState(createDefaultConfig(account),4);state.revision=1;
  await writeFile(join(dir,'account-state.json'),JSON.stringify(state)+'\n');
  const bytes='{"posts":[{"id":"9001","text":"历史正文","created_at":"2026-10-20T00:00:00Z","post_type":"reply","parent_post_key":"x:8001"}]}\n',material=join(dir,'archive-posts.json');await writeFile(material,bytes);
  const base={contract_version:2,operation:'preview',material_path:material,material_kind:'archive_posts',source_ref:'archive-material',declared_context:{account_identity_ref:'x-user:9000001',measurement_context:{observed_at:null,source_timezone:null,basis:'archive',definition_context:'archive-posts-json'}}};
@@ -35,14 +35,14 @@ test('E01 real CLI archive object preview commit reload and analysis preserve ex
 });
 
 test('E01 invalid archive JSON reports a precise material error and leaves state unchanged',async()=>{
- const dir=await mkdtemp(join(tmpdir(),'xops-next-archive-bad-')),state=initializeState(createDefaultConfig(account),3);state.revision=1;await writeFile(join(dir,'account-state.json'),JSON.stringify(state)+'\n');
+ const dir=await mkdtemp(join(tmpdir(),'xops-next-archive-bad-')),state=initializeState(createDefaultConfig(account),4);state.revision=1;await writeFile(join(dir,'account-state.json'),JSON.stringify(state)+'\n');
  const material=join(dir,'bad.json');await writeFile(material,'{"posts":[');const before=await readFile(join(dir,'account-state.json'),'utf8');
  const result=await invoke('data-import',{contract_version:2,operation:'preview',material_path:material,material_kind:'archive_posts',source_ref:'bad',declared_context:{account_identity_ref:'x-user:9000001',measurement_context:{observed_at:null,source_timezone:null,basis:'archive',definition_context:'archive-posts-json'}}},dir,[2]);
  assert.equal(result.envelope.errors[0].code,'INVALID_INPUT');assert.equal(result.envelope.errors[0].path,'/material');assert.equal(await readFile(join(dir,'account-state.json'),'utf8'),before);
 });
 
 test('E04 edited post body and old-ID observation survive separate CLI imports and reload as one entity',async()=>{
- const dir=await mkdtemp(join(tmpdir(),'xops-next-edit-')),state=initializeState(createDefaultConfig(account),3);state.revision=1;await writeFile(join(dir,'account-state.json'),JSON.stringify(state)+'\n');
+ const dir=await mkdtemp(join(tmpdir(),'xops-next-edit-')),state=initializeState(createDefaultConfig(account),4);state.revision=1;await writeFile(join(dir,'account-state.json'),JSON.stringify(state)+'\n');
  const bodyPath=join(dir,'edited.json'),body='{"posts":[{"post_id":"2","text":"edited body","created_at":"2026-10-20T00:00:00Z","edit_history_ids":["1","2"]}]}\n';await writeFile(bodyPath,body);
  const context={account_identity_ref:'x-user:9000001',measurement_context:{observed_at:null,source_timezone:null,basis:'archive',definition_context:'edited-history'}};
  const bodyBase={contract_version:2,operation:'preview',material_path:bodyPath,material_kind:'archive_posts',source_ref:'edited-body',declared_context:context},bodyPreview=await invoke('data-import',bodyBase,dir,[0]);await invoke('data-import',{...bodyBase,operation:'commit',preview_hash:bodyPreview.envelope.data.import_preview.preview_hash},dir,[0]);

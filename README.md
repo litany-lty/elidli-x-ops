@@ -62,6 +62,8 @@ node scripts/x-ops.mjs <command> \
 | `data-import` | 预览并提交 V2 Analytics、宿主观测或历史帖子材料 |
 | `coach-step` | 准备证据、接收内容分析与建议、绑定语义复核并交付报告 |
 | `state-migrate` | 预览或应用 V1 到 V2 的可恢复状态迁移 |
+| `knowledge-step` | 离线知识种入、实际规则选择、解释与审核后更新 |
+| `collection-step` | 已登录Chrome采集的材料、范围、导入、封存和只读恢复 |
 | `content-step` | 准备、制作、组装、审核、局部修改、恢复和交付真实图文稿件 |
 
 各命令的请求对象和状态规则见 [`references/data-contracts.md`](references/data-contracts.md)。可复制的输入骨架见 [`assets/input-templates.md`](assets/input-templates.md)。
@@ -132,7 +134,7 @@ node scripts/x-ops.mjs doctor \
 
 不要把账号状态、原始回执、凭据或真实账号材料提交到 Git。不要直接编辑 `account-state.json` 绕过 revision 与引用校验。
 
-V1/V2 状态在首次 NEXT-2.1 写入前先运行 `state-migrate preview`。应用迁移会在账号私有目录保存原始字节备份与 hash；state 3 写入完成后需要重新加载并取得当前状态的持久化回执。不要把备份或实际媒体放进仓库。
+state1/2/3 在首次 NEXT-2.2 写入前使用 contract4 `state-migrate preview/apply`。迁移先保存原始字节备份与清单，直接原子提交 state4；回读失败仅 `resume_verify`，不重做迁移。不要把备份或实际媒体放进仓库。
 
 ## 测试
 
@@ -157,3 +159,7 @@ V2 的任务、问题和 48 个确定性案例对应关系见 [`references/v2-ac
 本项目以 [MIT License](LICENSE) 发布。第三方依赖仍分别适用其原许可证，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 NEXT-2.1 的完整范围、52项场景与真实使用边界见[交付与验收](references/next-acceptance.md)。最终精确提交的工程门禁以本仓库 Actions 为准。
+
+NEXT-2.2 的实际入口、Chrome范围、指导审核及旧版本迁移见 [运行合同](references/next22-runtime.md)。验收范围见 [本轮验收](references/next22-acceptance.md)。
+
+项目自有实现采用 MIT；随包的上游源码节选保留 Apache-2.0 许可与固定提交来源，见 `assets/algorithm-knowledge/source-snapshots/LICENSE.xai-algorithm.txt`。

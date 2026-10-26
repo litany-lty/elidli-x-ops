@@ -1,0 +1,21 @@
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        query.params.get(EnableContextFeatures) || query.is_shadow_traffic
+    }
+
+    async fn hydrate(&self, query: &ScoredPostsQuery) -> Result<ScoredPostsQuery, String> {
+        let ids = tokio::time::timeout(MH_GET_TIMEOUT, self.client.fetch(query.user_id))
+            .await
+            .map_err(|_| "FollowedGrokTopics MH get timed out".to_string())??;
+
+        let topics = ids.map(|ids| ids_to_bool_array(&ids, &PARENT_TOPIC_IDS));
+
+        Ok(ScoredPostsQuery {
+            followed_grok_topics: topics,
+            ..Default::default()
+        })
+    }
+
+    fn update(&self, query: &mut ScoredPostsQuery, hydrated: ScoredPostsQuery) {
+        query.followed_grok_topics = hydrated.followed_grok_topics;
+    }
+}

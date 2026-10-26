@@ -1,0 +1,22 @@
+{
+  "contract_version": 2,
+  "rule_id": "C18",
+  "rule_version_id": "fact-c18-6258a1549ef8-timefix1",
+  "repo": "xai-org/x-algorithm",
+  "commit": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+  "path": "home-mixer/filters/new_user_min_engagement_filter.rs",
+  "symbol": "NewUserMinEngagementFilter",
+  "source_material_ref": "artifact-c18-timefix1",
+  "source_content_hash": "0b36731ef483cad35417483de607b4dd64be24179cd4b932d07b6620f8c7b56f",
+  "checked_at": "2026-10-26T17:59:47Z",
+  "publicly_available_from": null,
+  "applicable_surface": "home_for_you",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证"
+  ],
+  "observed_behavior": "启用时只针对新建或复活窗口内的观看者请求，以配置的fav/engagement/view值或比率过滤圈外候选。",
+  "inference_boundary": "观看者窗口和阈值是请求配置；不能推导作者账号的统一最低互动门槛。 前版预置未来UTC时间错误，本次校正实际审查时间，机制解释未变。",
+  "production_status": "unknown",
+  "supersedes": "fact-c18-6258a1549ef8"
+}

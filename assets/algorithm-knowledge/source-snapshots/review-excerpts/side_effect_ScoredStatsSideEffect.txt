@@ -1,0 +1,81 @@
+    fn enable(&self, _query: Arc<ScoredPostsQuery>) -> bool {
+        true
+    }
+
+    async fn side_effect(
+        &self,
+        input: Arc<SideEffectInput<ScoredPostsQuery, PostCandidate>>,
+    ) -> Result<(), String> {
+        let Some(receiver) = global_stats_receiver() else {
+            return Ok(());
+        };
+
+        record_trace_author_served_by_type(
+            receiver.as_ref(),
+            &input.selected_candidates,
+            input.query.request_type,
+        );
+
+        record_trace_author_score_distributions(
+            receiver.as_ref(),
+            &input.selected_candidates,
+            &input.non_selected_candidates,
+        );
+
+        let candidates = &input.selected_candidates;
+        if candidates.is_empty() {
+            return Ok(());
+        }
+
+        record_served_by_source(receiver.as_ref(), candidates);
+
+        if !input.query.has_cached_posts {
+            let retrieval_cluster: String =
+                input.query.params.get(PhoenixRetrievalInferenceClusterId);
+            let moe_cluster: String = input
+                .query
+                .params
+                .get(PhoenixRetrievalMOEInferenceClusterId);
+            let experiment_buckets = input
+                .query
+                .params
+                .experiment_buckets(EnablePhoenixRetrievalStatsExperimentBucket);
+            let score_buckets = input
+                .query
+                .params
+                .experiment_buckets(EnablePhoenixScoreStatsExperimentBucket);
+
+            let sampled = random::<f64>() < DEFAULT_SAMPLING_RATE;
+            if !score_buckets.is_empty() || sampled {
+                record_score_distributions(
+                    receiver.as_ref(),
+                    "score",
+                    candidates.iter(),
+                    &score_buckets,
+                );
+            }
+            if input.query.request_type != RequestType::PhoenixScores
+                && !input.query.in_network_only
+            {
+                record_net_negative_stats(
+                    receiver.as_ref(),
+                    &input.query,
+                    &input.selected_candidates,
+                    &input.non_selected_candidates,
+                );
+            }
+            if !experiment_buckets.is_empty() || sampled {
+                record_phoenix_retrieval_stats(
+                    receiver.as_ref(),
+                    &input.selected_candidates,
+                    &input.non_selected_candidates,
+                    &retrieval_cluster,
+                    &experiment_buckets,
+                );
+                record_phoenix_retrieval_moe_stats(
+                    receiver.as_ref(),
+                    &input.selected_candidates,
+                    &input.non_selected_candidates,
+                    &moe_cluster,
+                    &experiment_buckets,
+                );

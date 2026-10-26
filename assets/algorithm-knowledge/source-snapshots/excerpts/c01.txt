@@ -1,0 +1,11 @@
+        let sources: Vec<Box<dyn Source<ScoredPostsQuery, PostCandidate>>> = vec![
+            thunder_source,
+            popular_posts_source,
+            tweet_mixer_source,
+            simclusters_source,
+            phoenix_source,
+            phoenix_topics_source,
+            phoenix_moe_source,
+            sid_source,
+            cached_posts_source,
+        ];

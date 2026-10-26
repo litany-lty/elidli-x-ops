@@ -1,0 +1,27 @@
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        query.params.get(EnableUserInstalledAppsHydration) || query.is_shadow_traffic
+    }
+
+    async fn hydrate(&self, query: &ScoredPostsQuery) -> Result<ScoredPostsQuery, String> {
+        let slugs = tokio::time::timeout(MH_GET_TIMEOUT, self.client.fetch(query.user_id))
+            .await
+            .map_err(|_| "UserInstalledApps MH get timed out".to_string())??;
+
+        let installed_apps = slugs.as_ref().map(|s| {
+            if query.params.get(EnableUserInstalledAppsV2) {
+                InstalledApp::build_multi_hot(s, NUM_INSTALLED_APPS_128)
+            } else {
+                InstalledApp::build_multi_hot(s, NUM_INSTALLED_APPS)
+            }
+        });
+
+        Ok(ScoredPostsQuery {
+            user_installed_apps: installed_apps,
+            ..Default::default()
+        })
+    }
+
+    fn update(&self, query: &mut ScoredPostsQuery, hydrated: ScoredPostsQuery) {
+        query.user_installed_apps = hydrated.user_installed_apps;
+    }
+}

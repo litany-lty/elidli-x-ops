@@ -1,0 +1,139 @@
+{
+  "contract_version": 4,
+  "rule_id": "OP09",
+  "rule_version_id": "operational-op09-v1",
+  "review_status": "approved",
+  "origin": "algorithm_inference",
+  "fact_version_refs": [
+    "fact-sc01-6258a1549ef8"
+  ],
+  "dependency_ids": [
+    "scorer:compute_weighted_score"
+  ],
+  "support_material_refs": [
+    "artifact-sc01"
+  ],
+  "derivation": "运营推断：结合公开机制边界与实际用户内容，只在当前语义证据支持时给动作。",
+  "boundaries": [
+    "不计算推荐积分",
+    "不把候选预算当曝光配额",
+    "不推断隐藏标签或线上实验条件",
+    "原稿已满足时允许保持不改"
+  ],
+  "applicability": {
+    "intents": [
+      "coach",
+      "draft",
+      "news",
+      "content",
+      "review",
+      "operational_optimize"
+    ],
+    "goals": [
+      "*"
+    ],
+    "uses": [
+      "*"
+    ],
+    "surfaces": [
+      "*"
+    ],
+    "post_types": [
+      "*"
+    ]
+  },
+  "mechanism_predicate": {
+    "eq": {
+      "signal": "internal_mechanism_observed",
+      "value": true,
+      "unit": "flag"
+    }
+  },
+  "editorial_predicate": {
+    "all": [
+      {
+        "eq": {
+          "signal": "wants_visuals",
+          "value": true,
+          "unit": "flag"
+        }
+      },
+      {
+        "in": {
+          "signal": "visual_fit",
+          "value": [
+            "comparison",
+            "process",
+            "data"
+          ],
+          "unit": "category"
+        }
+      }
+    ]
+  },
+  "required_signals": [
+    "wants_visuals",
+    "visual_fit"
+  ],
+  "optional_signals": [
+    "internal_mechanism_observed"
+  ],
+  "missing_policy": "editorial_only",
+  "deterministic_checks": [
+    "输入ref与hash完整",
+    "单位与信号类型匹配"
+  ],
+  "semantic_checks": [
+    "wants_visuals",
+    "visual_fit"
+  ],
+  "action_template": "选择合适图文recipe并实际渲染检查；不宣称图片固定加分。",
+  "counterexamples": [
+    "实际正文已清楚时保持原稿",
+    "信息不足时只补证，不强行修改"
+  ],
+  "measurement_plan_template": "记录实际发布、同口径观察窗口与目标指标；不保证增长。",
+  "replay_cases": [
+    {
+      "case_id": "OP09-applicable",
+      "expected": "applicable",
+      "signals": {
+        "wants_visuals": {
+          "value": true,
+          "unit": "flag"
+        },
+        "visual_fit": {
+          "value": "comparison",
+          "unit": "category"
+        }
+      }
+    },
+    {
+      "case_id": "OP09-not-applicable",
+      "expected": "not_applicable",
+      "signals": {
+        "wants_visuals": {
+          "value": false,
+          "unit": "flag"
+        },
+        "visual_fit": {
+          "value": "comparison",
+          "unit": "category"
+        }
+      }
+    },
+    {
+      "case_id": "OP09-unknown",
+      "expected": "unknown",
+      "signals": {
+        "visual_fit": {
+          "value": "comparison",
+          "unit": "category"
+        }
+      }
+    }
+  ],
+  "review_refs": [
+    "spec-next-2.2-section-8.4"
+  ]
+}

@@ -1,5 +1,7 @@
-import { canonicalHash, ContractError } from './contracts.mjs';
-import { buildReviewComputation, validateReviewInterpretation } from './review.mjs';
+import { canonicalHash, ContractError, validate } from './contracts.mjs';
+import { buildReviewComputation, buildReviewComputationV4, validateReviewInterpretation } from './review.mjs';
+import { personalPatternHash } from './guidance.mjs';
+import { resolvePostMetadataView } from './imports.mjs';
 
 const fail = (code, path, message) => { throw new ContractError(code, path, message, false); };
 const values = value => Object.values(value ?? {});
@@ -33,11 +35,29 @@ function canonicalPostKey(state, key) {
 }
 
 function publicationCreatedAt(state, publication) {
+  if(publication.published_at)return publication.published_at;
   const key = canonicalPostKey(state, `x:${publication.post_id}`);
   const entity = state.post_entities?.[key];
   const version = entity?.current_version_ref && state.post_versions?.[entity.current_version_ref];
-  if (version?.created_at) return version.created_at;
+  const view=version&&resolvePostMetadataView(state,version.post_version_id,'created_at');
+  if(view?.status==='confirmed')return view.value;
   return values(state.posts).find(item => item.post_id === publication.post_id)?.created_at ?? null;
+}
+
+export function observationWindowStatusV4(state,planView,cutoff){
+  const cutoffMs=Date.parse(cutoff);if(!Number.isFinite(cutoffMs))fail('INVALID_INPUT','/cutoff','A frozen instant cutoff is required');
+  const window=planView?.window;
+  if(window?.kind==='period'){
+    const requiredMs=Date.parse(window.end_exclusive);if(!Number.isFinite(requiredMs))return{status:'missing',reason_code:'WINDOW_MISSING',required_at:null,cutoff};
+    return cutoffMs<requiredMs?{status:'pending',reason_code:'WINDOW_PENDING',required_at:window.end_exclusive,cutoff}:{status:'mature',reason_code:null,required_at:window.end_exclusive,cutoff};
+  }
+  if(window?.kind!=='age_window'||!Number.isFinite(window.target_hours)||!Number.isFinite(window.tolerance_hours))return{status:'missing',reason_code:'WINDOW_MISSING',required_at:null,cutoff};
+  const publications=(planView.linked_publication_ids??[]).map(id=>state.publications?.[id]);
+  if(!publications.length||publications.some(item=>!item))return{status:'missing',reason_code:'WINDOW_MISSING',required_at:null,cutoff};
+  const created=publications.map(item=>publicationCreatedAt(state,item)),createdMs=created.map(value=>Date.parse(value));
+  if(createdMs.some(value=>!Number.isFinite(value)))return{status:'missing',reason_code:'WINDOW_MISSING',required_at:null,cutoff};
+  const requiredMs=Math.max(...createdMs.map(value=>value+(window.target_hours+window.tolerance_hours)*3_600_000)),requiredAt=new Date(requiredMs).toISOString();
+  return cutoffMs<requiredMs?{status:'pending',reason_code:'WINDOW_PENDING',required_at:requiredAt,cutoff}:{status:'mature',reason_code:null,required_at:requiredAt,cutoff};
 }
 
 function validateMatureObservations(state, experiment, refs) {
@@ -181,10 +201,53 @@ export function priorActionOutcome(state, action) {
     const reviews = experiments.map(item => item.review_ref && state.experiment_reviews?.[item.review_ref]).filter(Boolean);
     const priorEvidence = [prior.action_id, ...(prior.account_evidence_refs ?? []), ...(prior.content_evidence_refs ?? []), ...(prior.rule_version_refs ?? [])];
     if (prior.status === 'declined') return { repeated: true, outcome: 'declined', evidence_refs: priorEvidence };
-    const adverse = reviews.find(item => ['revise', 'stop', 'inconclusive'].includes(item.conclusion));
-    if (adverse) return { repeated: true, outcome: adverse.conclusion, evidence_refs: [...priorEvidence, adverse.review_id, ...(adverse.evidence_refs ?? [])] };
+    const adverse = reviews.map(item=>({item,conclusion:item.interpretation?.conclusion??item.conclusion,evidence_refs:item.interpretation?.evidence_refs??item.evidence_refs??[]})).find(({conclusion}) => ['revise', 'stop', 'inconclusive'].includes(conclusion));
+    if (adverse) return { repeated: true, outcome: adverse.conclusion, evidence_refs: [...priorEvidence, adverse.item.review_id, ...adverse.evidence_refs] };
   }
   return { repeated: false, outcome: null, evidence_refs: [] };
+}
+
+/** Replay a frozen V4 computation for maturity and close; callers cannot replace its inputs. */
+export function applyExperimentTransitionV4(state,event){
+  if(!['check_maturity','close'].includes(event?.type))fail('INVALID_INPUT','/type','V4 transition supports maturity and close');
+  const next=structuredClone(state),experiment=next.experiments?.[event.experiment_id],plan=next.experiment_plan_views?.[event.plan_view_ref],stored=next.review_computations?.[event.computation_ref];
+  if(!experiment||!plan||stored?.contract_version!==4)fail('MISSING_EVIDENCE','/event','Experiment, plan view and V4 review computation are required');
+  if(plan.source_experiment_id!==experiment.experiment_id||stored.plan_view_ref!==plan.plan_view_id)fail('INVALID_EVIDENCE_REF','/event','Plan and computation belong to another experiment');
+  const frozen=stored.computation_request;
+  if(stored.computation_request_hash!==canonicalHash(frozen))fail('STALE_BUNDLE','/computation_request_hash','Frozen review request changed');
+  const recomputed=buildReviewComputationV4(next,plan,{as_of:frozen.as_of,coverage_receipt_refs:frozen.coverage_bindings.map(item=>item.receipt_ref)});
+  if(recomputed.computation_hash!==stored.computation_hash)fail('STALE_BUNDLE','/computation_ref','Relevant observations, coverage or publication bindings changed; recompute and review again');
+  const windowStatus=observationWindowStatusV4(next,plan,frozen.as_of),primary=stored.metric_results.find(item=>item.role==='primary'),mature=windowStatus.status==='mature'&&primary?.target_value!==null&&stored.target_selection.completeness==='complete'&&frozen.coverage_bindings.every(item=>item.completeness==='complete');
+  if(event.type==='check_maturity'){
+    if(experiment.status!=='running')fail('STATE_CONFLICT','/status','Only a running experiment may become ready');
+    if(windowStatus.status!=='mature')fail(windowStatus.reason_code,'/computation_ref',windowStatus.status==='pending'?`Observation window is pending until ${windowStatus.required_at}`:'Observation window maturity cannot be established without a reliable publication time or period end');
+    if(!mature)fail('REQUESTED_OUTPUT_INCOMPLETE','/computation_ref','Planned primary metric and actual coverage are not mature');
+    appendStatus(experiment,'ready_for_review',{...event,basis_refs:[stored.computation_id,...frozen.coverage_bindings.map(item=>item.receipt_ref)]});return next;
+  }
+  if(!['running','ready_for_review'].includes(experiment.status))fail('STATE_CONFLICT','/status','Only an executed experiment may close');
+  if(windowStatus.status!=='mature'&&event.interpretation?.conclusion!=='inconclusive')fail(windowStatus.reason_code,'/interpretation/conclusion',windowStatus.status==='pending'?`Observation window is pending until ${windowStatus.required_at}`:'Observation window maturity cannot be established');
+  if(!mature&&event.interpretation?.conclusion!=='inconclusive')fail('REQUESTED_OUTPUT_INCOMPLETE','/interpretation/conclusion','Missing mature observations can close only as inconclusive');
+  const validated=validateReviewInterpretation(stored,event.interpretation,event.interpretation_receipt);
+  next.experiment_reviews??={};const review={contract_version:4,review_id:event.review_id,experiment_id:experiment.experiment_id,plan_view_ref:plan.plan_view_id,computation_ref:stored.computation_id,computation_hash:stored.computation_hash,interpretation:validated.interpretation,interpretation_proposal_hash:validated.interpretation_proposal_hash,interpretation_receipt_ref:validated.receipt.receipt_id,interpretation_receipt:structuredClone(validated.receipt),result_trust:'verified',applicable_scope_hash:stored.target_selection.selection_hash,closed_at:event.at};
+  validate('ExperimentReviewV4',review);const old=next.experiment_reviews[review.review_id];if(old&&canonicalHash(old)!==canonicalHash(review))fail('STATE_CONFLICT','/review_id','Review ID identifies different content');
+  next.experiment_reviews[review.review_id]=review;experiment.review_ref=review.review_id;appendStatus(experiment,'closed',{...event,basis_refs:[stored.computation_id,validated.receipt.receipt_id]});return next;
+}
+
+/** Promote only a real publication with mature, verified observations into account-local learning. */
+export function buildPersonalPatternFromReviewV4(state,{review_ref,pattern_id,topic_scope=[],format_scope=[],pattern_statement,alternative_explanations,updated_at}={}){
+  const review=state.experiment_reviews?.[review_ref],experiment=review&&state.experiments?.[review.experiment_id],computation=review&&state.review_computations?.[review.computation_ref];
+  if(review?.contract_version!==4||review.result_trust!=='verified'||experiment?.status!=='closed'||computation?.contract_version!==4)fail('MISSING_EVIDENCE','/review_ref','Personal learning requires a closed verified V4 review');
+  const publicationRefs=[...(experiment.linked_publication_ids??[])];
+  if(!publicationRefs.length||publicationRefs.some(ref=>!state.publications?.[ref]))fail('MISSING_EVIDENCE','/publication_refs','Personal learning requires actual stored publications');
+  const coverage=computation.computation_request.coverage_bindings;
+  const learningWindow=observationWindowStatusV4(state,state.experiment_plan_views?.[review.plan_view_ref],computation.computation_request.as_of);if(learningWindow.status!=='mature')fail(learningWindow.reason_code,'/review_ref','Personal learning requires the frozen observation window to be mature');
+  if(computation.target_selection.completeness!=='complete'||coverage.some(item=>item.completeness!=='complete'))fail('REQUESTED_OUTPUT_INCOMPLETE','/review_ref','Personal learning requires mature target observations and complete coverage');
+  const observationRefs=[...new Set(computation.metric_results.flatMap(item=>item.target_observation_refs))].sort();
+  if(!observationRefs.length)fail('MISSING_EVIDENCE','/observation_refs','Personal learning requires selected observations');
+  if(!pattern_statement?.trim()||!alternative_explanations?.length)fail('INVALID_INPUT','/pattern_statement','Personal learning requires a scoped statement and alternative explanations');
+  const conclusion=review.interpretation?.conclusion??'inconclusive',support_status=({continue:'supported',revise:'mixed',stop:'refuted',inconclusive:'insufficient'})[conclusion]??'insufficient';
+  const base={contract_version:4,pattern_id,account_ref:state.account?.user_id??`handle:${state.account?.handle}`,goal:experiment.goal,topic_scope:[...topic_scope],format_scope:[...format_scope],publication_refs:publicationRefs,observation_refs:observationRefs,review_refs:[review_ref],pattern_statement,alternative_explanations:[...alternative_explanations],support_status,counter_evidence_refs:support_status==='refuted'?[review_ref]:[],updated_at};
+  return validate('PersonalPatternV4',{...base,pattern_hash:personalPatternHash(base)});
 }
 
 /** Close/review a V3-compatible plan only from a stored deterministic computation. */

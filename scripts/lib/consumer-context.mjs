@@ -49,7 +49,7 @@ export function goalSnapshotFromState(state, effectiveConfig = null) {
 
 /** Freeze the current personal evidence that draft and news flows may consume. */
 export function buildConsumerContext(state, { intent, goal_snapshot: goalSnapshot, requested_use='current', post_version_refs=[] }) {
-  if (![2,3].includes(state?.schema_version)) fail('MIGRATION_REQUIRED', '/state/schema_version', 'Personalized draft and news context requires a V2 or V3 state');
+  if (![2,3,4].includes(state?.schema_version)) fail('MIGRATION_REQUIRED', '/state/schema_version', 'Personalized draft and news context requires a V2, V3 or V4 state');
   if (!['draft', 'news'].includes(intent)) fail('INVALID_INPUT', '/intent', 'Consumer intent must be draft or news');
   validate('GoalSnapshotV2', goalSnapshot);
 
@@ -63,7 +63,7 @@ export function buildConsumerContext(state, { intent, goal_snapshot: goalSnapsho
     .filter(experiment => ['proposed', 'accepted', 'running', 'ready_for_review'].includes(experiment.status))
     .sort((left, right) => left.experiment_id.localeCompare(right.experiment_id));
   const reviews = values(state.experiment_reviews)
-    .filter(review => state.experiments?.[review.experiment_id]?.status === 'closed' && (state.schema_version===2 || (review.contract_version === 3 && review.result_trust === 'verified')))
+    .filter(review => state.experiments?.[review.experiment_id]?.status === 'closed' && (state.schema_version===2 || ([3,4].includes(review.contract_version) && review.result_trust === 'verified')))
     .sort((left, right) => left.review_id.localeCompare(right.review_id));
   const limitations = [];
   if (!analyses.length) limitations.push('没有与当前正文版本一致的历史内容分析；个性化内容判断只能作为编辑假设');
@@ -108,7 +108,7 @@ export function buildConsumerContext(state, { intent, goal_snapshot: goalSnapsho
     })),
     ...reviews.map(item => ({
       kind: 'experiment_review', ref: item.review_id, content_hash: canonicalHash(item),
-      value: item.contract_version===3?{experiment_id:item.experiment_id,conclusion:item.interpretation?.conclusion??'inconclusive',reason:item.interpretation?.reason??'',metric_results:(state.review_computations?.[item.computation_ref]?.metric_results??[]).map(metric=>({metric_definition_id:metric.definition_id,value:metric.target_value,selected_observation_refs:[...metric.target_observation_refs],status:metric.target_value===null?'unavailable':'available',reasons:[]})),evidence_refs:[item.computation_ref,item.interpretation_receipt_ref].filter(Boolean)}:{ experiment_id: item.experiment_id, conclusion: item.conclusion, reason: item.reason, metric_results: structuredClone(item.metric_results), evidence_refs: [...item.evidence_refs] },
+      value: [3,4].includes(item.contract_version)?{experiment_id:item.experiment_id,conclusion:item.interpretation?.conclusion??'inconclusive',reason:item.interpretation?.reason??'',metric_results:(state.review_computations?.[item.computation_ref]?.metric_results??[]).map(metric=>({metric_definition_id:metric.definition_id,value:metric.target_value,selected_observation_refs:[...metric.target_observation_refs],status:metric.target_value===null?'unavailable':'available',reasons:[]})),evidence_refs:[item.computation_ref,item.interpretation_receipt_ref].filter(Boolean)}:{ experiment_id: item.experiment_id, conclusion: item.conclusion, reason: item.reason, metric_results: structuredClone(item.metric_results), evidence_refs: [...item.evidence_refs] },
     })),
   ].sort((left, right) => left.ref.localeCompare(right.ref));
   const base = {
@@ -143,7 +143,7 @@ function personalEvidence(state,ref){
     if(analysis.contract_version===3){const context=resolvePostContext(state,analysis.post_version_ref,{}),receipt=activeContentReceiptV3(state,analysis);if(analysis.content_hash!==context.target_content_hash||analysis.context_selection_hash!==context.context_selection_hash||(receipt&&receipt.decision!=='approved'))return null;}
     else if(!isContentAnalysisCurrent(analysis,version,analysis.analysis_version,state.post_versions))return null;
   }
-  if(state.experiment_reviews?.[ref]&&(value.contract_version!==3||value.result_trust!=='verified'))return null;
+  if(state.experiment_reviews?.[ref]&&(![3,4].includes(value.contract_version)||value.result_trust!=='verified'))return null;
   return value;
 }
 
@@ -176,7 +176,19 @@ export function resolvePersonalContextSelection(state,{goal_hash,brief_or_use_ha
   return{...base,selection_hash:canonicalHash(base)};
 }
 
-export function validatePersonalContextSelection(state,selection){
+export function validatePersonalContextSelection(state,selection,expectedContext={}){
+  const {goal_hash:expectedGoalHash=null,brief_or_use_hash:expectedUseHash=null,requested_use:expectedUse=null,post_version_refs:expectedPostVersionRefs=[],selection_policy_version:expectedPolicy=null}=expectedContext;
+  if(state?.schema_version===4&&(!expectedGoalHash||!expectedUseHash||!expectedUse||!expectedPolicy))fail('INVALID_INPUT','/personal_context_selection','State 4 callers must supply the actual goal, use and selection policy');
+  if(expectedGoalHash&&selection.goal_hash!==expectedGoalHash)fail('STALE_DRAFT','/personal_context_selection/goal_hash','Selected personal evidence belongs to another goal');
+  if(expectedUseHash&&selection.brief_or_use_hash!==expectedUseHash)fail('STALE_DRAFT','/personal_context_selection/brief_or_use_hash','Selected personal evidence belongs to another task use');
+  if(expectedPolicy&&selection.selection_policy_version!==expectedPolicy)fail('STALE_DRAFT','/personal_context_selection/selection_policy_version','Selected personal evidence used another policy');
+  if(expectedUse==='historical_compare'){
+    if(state?.schema_version===4&&!expectedPostVersionRefs.length)fail('INVALID_INPUT','/personal_context_selection','Historical comparison requires explicit post versions');
+    const allowed=new Set(expectedPostVersionRefs);for(const item of selection.selected??[]){const analysis=state.content_analyses?.[item.ref];if(analysis&&!allowed.has(analysis.post_version_ref))fail('STALE_DRAFT','/personal_context_selection/selected','Historical content is outside the caller selected comparison set');}
+  } else {
+    const allowed=new Set(expectedPostVersionRefs),currentRefs=new Set(values(state.post_entities).map(item=>item.current_version_ref).filter(Boolean));
+    for(const item of selection.selected??[]){const analysis=state.content_analyses?.[item.ref];if(analysis&&(!currentRefs.has(analysis.post_version_ref)||(allowed.size&&!allowed.has(analysis.post_version_ref))))fail('STALE_DRAFT','/personal_context_selection/selected','Historical content may only be used for an explicit historical comparison');}
+  }
   const current=resolvePersonalContextSelection(state,selection);
   if(current.selection_hash!==selection.selection_hash)fail('STALE_DRAFT','/personal_context_selection','Selected personal evidence changed or became stale');
   return structuredClone(selection);

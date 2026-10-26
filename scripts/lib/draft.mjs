@@ -331,6 +331,10 @@ function effectiveReview(state, ref, selected = null) {
   return leaves.length === 1 ? leaves[0] : null;
 }
 
+export function draftPersonalCallerContext(state,input){
+  return {goal_hash:canonicalHash(goalSnapshotFromState(state)),brief_or_use_hash:canonicalHash({intent:'draft',format:input.format,original_text:input.original_text,original_ref:input.original_ref,edit_base_ref:input.edit_base_ref??null}),requested_use:'current',post_version_refs:[],selection_policy_version:'personal-context-v3'};
+}
+
 export function checkDraftV3(payload, context) {
   validate('DraftCheckPayloadV3', payload);
   const input = {...payload.draft_input, personal_context_hash:null};
@@ -342,7 +346,7 @@ export function checkDraftV3(payload, context) {
   const personalErrors = [];
   if (payload.personalization_mode === 'evidence_bound') {
     if (!selection?.selected.length) personalErrors.push('personal_context_selection');
-    else validatePersonalContextSelection(state, selection);
+    else validatePersonalContextSelection(state, selection,draftPersonalCallerContext(state,input));
   }
   const previous = effectiveReview(state,{draft_id:checked.draft.draft_id,revision:checked.draft.revision});
   if (payload.supersedes_receipt_ref && !state.draft_review_receipts[payload.supersedes_receipt_ref]) fail('MISSING_EVIDENCE','/supersedes_receipt_ref','找不到待替代审核');
@@ -356,7 +360,8 @@ export function checkDraftV3(payload, context) {
     decision:checked.validity === 'ready' && !personalErrors.length ? 'approved' : checked.evidence_status === 'supported' ? 'needs_review':'incomplete',
     supersedes_receipt_ref:payload.supersedes_receipt_ref,
   };
-  receipt.subject_hash=canonicalHash({draft_ref:receipt.draft_ref,original_text:input.original_text,original_ref:input.original_ref,format:input.format,card_id:checked.draft.card_id,edit_base_ref:input.edit_base_ref??null,text_hashes:receipt.text_hashes,evidence_mapping_hash:receipt.evidence_mapping_hash,personalization_mode:receipt.personalization_mode,personal_context_selection_hash:receipt.personal_context_selection_hash});
+  receipt.subject_hash=canonicalHash({...(payload.delivery_intent&&payload.delivery_intent!=='operational_optimize'?{delivery_intent:payload.delivery_intent}:{}),draft_ref:receipt.draft_ref,original_text:input.original_text,original_ref:input.original_ref,format:input.format,card_id:checked.draft.card_id,edit_base_ref:input.edit_base_ref??null,text_hashes:receipt.text_hashes,evidence_mapping_hash:receipt.evidence_mapping_hash,personalization_mode:receipt.personalization_mode,personal_context_selection_hash:receipt.personal_context_selection_hash});
+  receipt.delivery_intent=payload.delivery_intent??'operational_optimize';
   receipt.actual_review_receipt_ref=payload.actual_review_receipt_ref??null;
   const actualReview=state.host_media_receipts?.[receipt.actual_review_receipt_ref];
   if(!actualReview||actualReview.operation!=='review_draft'||actualReview.status!=='succeeded'||actualReview.subject_hash!==receipt.subject_hash)receipt.decision=receipt.decision==='incomplete'?'incomplete':'needs_review';
@@ -377,12 +382,12 @@ export function evaluateDraftReadiness(ref, selectedReviewRef, state) {
     if(draftEvidenceMappingHash(state,receipt.fact_mapping)!==receipt.evidence_mapping_hash)unmet.push('evidence_mapping');
     if(checkEvidence({...draft,fact_mapping:receipt.fact_mapping},state).issues.length)unmet.push('evidence');
     if(draft.texts.some(text=>!parseTweet(text).valid))unmet.push('length');
-    const subject=canonicalHash({draft_ref:receipt.draft_ref,original_text:draft.original_text,original_ref:draft.original_ref,format:draft.format,card_id:draft.card_id,edit_base_ref:draft.edit_base_ref??null,text_hashes:receipt.text_hashes,evidence_mapping_hash:receipt.evidence_mapping_hash,personalization_mode:receipt.personalization_mode,personal_context_selection_hash:receipt.personal_context_selection_hash});
+    const subject=canonicalHash({...(receipt.delivery_intent&&receipt.delivery_intent!=='operational_optimize'?{delivery_intent:receipt.delivery_intent}:{}),draft_ref:receipt.draft_ref,original_text:draft.original_text,original_ref:draft.original_ref,format:draft.format,card_id:draft.card_id,edit_base_ref:draft.edit_base_ref??null,text_hashes:receipt.text_hashes,evidence_mapping_hash:receipt.evidence_mapping_hash,personalization_mode:receipt.personalization_mode,personal_context_selection_hash:receipt.personal_context_selection_hash});
     if(subject!==receipt.subject_hash)unmet.push('draft_review_subject');
     if(receipt.decision!=='approved')unmet.push('semantic_review');
     const actual=state.host_media_receipts?.[receipt.actual_review_receipt_ref];if(!actual||actual.status!=='succeeded'||actual.operation!=='review_draft'||actual.subject_hash!==receipt.subject_hash)unmet.push('actual_draft_review');
     if(receipt.personalization_mode==='evidence_bound'){
-      try{if(!receipt.personal_context_selection?.selected.length)throw Error();validatePersonalContextSelection(state,receipt.personal_context_selection);}catch{unmet.push('personal_context_selection');}
+      try{if(!receipt.personal_context_selection?.selected.length)throw Error();validatePersonalContextSelection(state,receipt.personal_context_selection,draftPersonalCallerContext(state,draft));}catch{unmet.push('personal_context_selection');}
     }
   }
   return {review_receipt_ref:receipt?.receipt_id??null,readiness:!draft?'incomplete':unmet.length?'needs_review':'ready',evidence_mapping_hash:receipt?.evidence_mapping_hash??null,personal_context_selection_hash:receipt?.personal_context_selection_hash??null,text_hashes:draft?.text_hashes??[],unmet_requirements:unmet};

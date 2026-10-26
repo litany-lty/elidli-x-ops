@@ -1,0 +1,88 @@
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        query.params.get(EnableSimclustersSource)
+            && !query.in_network_only
+            && !query.has_cached_posts
+            && has_post_signals(query)
+    }
+
+    async fn source(&self, query: &ScoredPostsQuery) -> Result<Vec<PostCandidate>, String> {
+        let signal_ids: Vec<i64> = post_signal_ids(query)
+            .into_iter()
+            .filter(|&signal_id| {
+                duration_since_creation_opt(signal_id as u64).is_some_and(|age| age <= MAX_SEED_AGE)
+            })
+            .collect();
+        if signal_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let max_per_query = (MAX_SANN_CANDIDATES / signal_ids.len()).max(1);
+        let max_candidate_age_hours: i32 = query.params.get(SimclustersMaxCandidateAgeHours);
+
+        let mut candidates_by_seed = self
+            .candidates_by_seed(&signal_ids, max_candidate_age_hours)
+            .await?;
+        let per_query_results: Vec<Vec<SimClustersANNTweetCandidate>> = signal_ids
+            .iter()
+            .filter_map(|signal_id| candidates_by_seed.remove(signal_id))
+            .map(|candidates| {
+                candidates
+                    .into_iter()
+                    .filter(|c| *c.score > POST_ANN_MIN_SCORE)
+                    .take(max_per_query)
+                    .collect()
+            })
+            .collect();
+
+        let mut interleaved = interleave_by_post_id(per_query_results);
+        interleaved.truncate(MAX_RESULTS);
+        let mut candidates: Vec<PostCandidate> = interleaved
+            .into_iter()
+            .enumerate()
+            .map(|(index, c)| PostCandidate {
+                tweet_id: c.tweet_id as u64,
+                served_type: Some(pb::ServedType::ForYouSimclusters),
+                retrieval_sources: vec![RetrievalSource {
+                    served_type: pb::ServedType::ForYouSimclusters,
+                    cluster: None,
+                    score: Some(*c.score as f32),
+                    position: Some(index as u32 + 1),
+                }],
+                ..Default::default()
+            })
+            .collect();
+
+        let hydrated = self.core_data_hydrator.hydrate(query, &candidates).await;
+        self.core_data_hydrator
+            .update_all(&mut candidates, hydrated);
+        candidates.retain(|c| c.author_id != 0);
+        Ok(candidates)
+    }
+}
+
+pub(crate) fn has_post_signals(query: &ScoredPostsQuery) -> bool {
+    [
+        query.explicit_engagement_signals.as_ref(),
+        query.implicit_engagement_signals.as_ref(),
+    ]
+    .into_iter()
+    .flatten()
+    .any(|by_type| by_type.values().any(|list| !list.is_empty()))
+}
+
+pub(crate) fn post_signal_ids(query: &ScoredPostsQuery) -> Vec<i64> {
+    let mut signals: Vec<&EngagementSignal> = Vec::new();
+    for by_type in [
+        query.explicit_engagement_signals.as_ref(),
+        query.implicit_engagement_signals.as_ref(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        for list in by_type.values() {
+            signals.extend(list.iter());
+        }
+    }
+
+    signals.sort_by_key(|b| std::cmp::Reverse(b.engaged_at_ms));
+

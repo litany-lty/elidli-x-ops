@@ -1,0 +1,386 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ReviewPayloadV4": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contract_version": {
+              "const": 4
+            },
+            "operation": {
+              "const": "compute"
+            },
+            "plan_view_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "as_of": {
+              "type": "string",
+              "format": "instant"
+            },
+            "coverage_receipt_refs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "contract_version",
+            "operation",
+            "plan_view_ref",
+            "as_of",
+            "coverage_receipt_refs"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contract_version": {
+              "const": 4
+            },
+            "operation": {
+              "const": "transition"
+            },
+            "event": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "contract_version",
+            "operation",
+            "event"
+          ]
+        }
+      ]
+    },
+    "CoachStepPayloadV4": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contract_version": {
+              "const": 4
+            },
+            "operation": {
+              "const": "prepare"
+            },
+            "request": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "contract_version",
+            "operation",
+            "request"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contract_version": {
+              "const": 4
+            },
+            "operation": {
+              "const": "propose"
+            },
+            "proposal": {
+              "$ref": "#/definitions/CoachingProposalV4"
+            }
+          },
+          "required": [
+            "contract_version",
+            "operation",
+            "proposal"
+          ]
+        }
+      ]
+    },
+    "KnowledgeStepPayloadV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": 4
+        },
+        "operation": {
+          "enum": [
+            "seed",
+            "select",
+            "explain",
+            "propose-update",
+            "activate"
+          ]
+        },
+        "input": {
+          "type": "object"
+        },
+        "package_dir": {
+          "type": "string",
+          "minLength": 1
+        },
+        "as_of": {
+          "type": "string",
+          "format": "instant"
+        },
+        "head_commit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "proposal": {
+          "type": "object"
+        },
+        "review_receipt": {
+          "type": "object"
+        },
+        "case_results": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "contract_version",
+        "operation",
+        "as_of"
+      ]
+    },
+    "HostGuidanceReviewReceiptV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": 4
+        },
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operation": {
+          "const": "review_guidance"
+        },
+        "subject_hash": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actual_result_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actual_result_sha256": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generator_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "data_mode": {
+          "enum": [
+            "live",
+            "fixture"
+          ]
+        },
+        "decision": {
+          "enum": [
+            "approved",
+            "revision_required"
+          ]
+        },
+        "checks": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "instant"
+        }
+      },
+      "required": [
+        "contract_version",
+        "receipt_id",
+        "operation",
+        "subject_hash",
+        "actual_result_ref",
+        "actual_result_sha256",
+        "generator_ref",
+        "tool_name",
+        "data_mode",
+        "decision",
+        "checks",
+        "issues",
+        "reviewed_at"
+      ]
+    },
+    "RecordPayloadV4": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contract_version": {
+              "const": 4
+            },
+            "operation": {
+              "const": "rule_application"
+            },
+            "data": {
+              "$ref": "#/definitions/RuleApplicationV4"
+            },
+            "as_of": {
+              "type": "string",
+              "format": "instant"
+            }
+          },
+          "required": [
+            "contract_version",
+            "operation",
+            "data",
+            "as_of"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contract_version": {
+              "const": 4
+            },
+            "operation": {
+              "const": "guidance_output"
+            },
+            "data": {
+              "$ref": "#/definitions/GuidanceOutputV4"
+            },
+            "as_of": {
+              "type": "string",
+              "format": "instant"
+            }
+          },
+          "required": [
+            "contract_version",
+            "operation",
+            "data",
+            "as_of"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contract_version": {
+              "const": 4
+            },
+            "operation": {
+              "const": "guidance_receipt"
+            },
+            "data": {
+              "$ref": "#/definitions/GuidanceReceiptV4"
+            },
+            "as_of": {
+              "type": "string",
+              "format": "instant"
+            }
+          },
+          "required": [
+            "contract_version",
+            "operation",
+            "data",
+            "as_of"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contract_version": {
+              "const": 4
+            },
+            "operation": {
+              "const": "personal_pattern"
+            },
+            "data": {
+              "$ref": "#/definitions/PersonalPatternV4"
+            },
+            "as_of": {
+              "type": "string",
+              "format": "instant"
+            }
+          },
+          "required": [
+            "contract_version",
+            "operation",
+            "data",
+            "as_of"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "contract_version": {
+              "const": 4
+            },
+            "operation": {
+              "const": "guidance_review_result"
+            },
+            "data": {
+              "$ref": "#/definitions/HostGuidanceReviewReceiptV4"
+            },
+            "as_of": {
+              "type": "string",
+              "format": "instant"
+            }
+          },
+          "required": [
+            "contract_version",
+            "operation",
+            "data",
+            "as_of"
+          ]
+        }
+      ]
+    },
+    "DoctorPayloadV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "binding",
+        "probe_receipt_ids"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 4
+        },
+        "binding": {
+          "$ref": "#/definitions/HostBindingV4"
+        },
+        "probe_receipt_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

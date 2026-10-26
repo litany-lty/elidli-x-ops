@@ -1,0 +1,22 @@
+{
+  "contract_version": 2,
+  "rule_id": "C16",
+  "rule_version_id": "fact-c16-6258a1549ef8",
+  "repo": "xai-org/x-algorithm",
+  "commit": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+  "path": "home-mixer/selectors/top_k_score_selector.rs",
+  "symbol": "TopKScoreSelector::select",
+  "source_material_ref": "artifact-c16",
+  "source_content_hash": "3a9509cb51c6b684e5a4e865e8c00e4cd4f9ed7b75f7d5bc25fa6e131b4b4058",
+  "checked_at": "2026-10-27T00:00:00Z",
+  "publicly_available_from": null,
+  "applicable_surface": "home_for_you",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证"
+  ],
+  "observed_behavior": "选择器先按候选score保留固定Top-K；启用视频轮播时，再按独立轮播分数追加有限视频候选。",
+  "inference_boundary": "这不表示所有视频或图片获得固定加分；实际开关、候选分数和观看者请求仍未知。",
+  "production_status": "unknown",
+  "supersedes": null
+}

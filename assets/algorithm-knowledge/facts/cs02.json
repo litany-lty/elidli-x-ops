@@ -1,0 +1,22 @@
+{
+  "contract_version": 2,
+  "rule_id": "CS02",
+  "rule_version_id": "fact-cs02-6258a1549ef8",
+  "repo": "xai-org/x-algorithm",
+  "commit": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+  "path": "home-mixer/scorers/author_cold_start.rs",
+  "symbol": "pick_thompson",
+  "source_material_ref": "artifact-cs02",
+  "source_content_hash": "95ffd28394fa457ebb9d9c25e99d376d08b35ff359bbf7e8170db77db51cf494",
+  "checked_at": "2026-10-26T00:00:00Z",
+  "publicly_available_from": null,
+  "applicable_surface": "home_for_you_public_path",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证"
+  ],
+  "observed_behavior": "冷启动采用概率探索并受池与配置影响，不是简单选公开点赞率最高。",
+  "inference_boundary": "只陈述所列公开路径；不推算个人账号内部得分、曝光配额、隐藏标签或增长结果。",
+  "production_status": "unknown",
+  "supersedes": null
+}

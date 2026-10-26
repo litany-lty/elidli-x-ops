@@ -1,0 +1,68 @@
+pub fn diversity_multiplier(decay_factor: f64, floor: f64, exponent: f64) -> f64 {
+    (1.0 - floor) * decay_factor.powf(exponent) + floor
+}
+
+pub fn author_pool_counts(author_ids: &[u64], ordering_scores: &[f64]) -> Vec<u32> {
+    let mut indexed: Vec<(usize, f64)> = ordering_scores
+        .iter()
+        .enumerate()
+        .map(|(i, &s)| (i, s))
+        .collect();
+    indexed.sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap_or(Ordering::Equal));
+
+    let mut counts = vec![0u32; author_ids.len()];
+    let mut author_counts: FxHashMap<u64, u32> = FxHashMap::default();
+    for (idx, _) in indexed {
+        let author_id = author_ids[idx];
+        let k = author_counts.get(&author_id).copied().unwrap_or(0);
+        counts[idx] = k;
+        author_counts.insert(author_id, k + 1);
+    }
+    counts
+}
+
+fn oon_applies(weights: &ValueModelWeights, candidate: &CandidateScoringInputs) -> bool {
+    match candidate.in_network {
+        Some(false) => true,
+        Some(true) => {
+            weights.oon_rescore_in_network_replies_retweets
+                && (candidate.is_reply || candidate.is_retweet)
+        }
+        None => false,
+    }
+}
+
+pub fn post_fusion_multipliers(
+    weights: &ValueModelWeights,
+    ctx: &QueryScoringContext,
+    candidates: &[CandidateScoringInputs],
+    ordering_scores: &[f64],
+) -> Vec<PostFusionMultiplier> {
+    let author_diversity: Vec<f64> = if weights.enable_author_diversity {
+        let author_ids: Vec<u64> = candidates.iter().map(|c| c.author_id).collect();
+        author_pool_counts(&author_ids, ordering_scores)
+            .into_iter()
+            .map(|k| {
+                diversity_multiplier(
+                    weights.author_diversity_decay,
+                    weights.author_diversity_floor,
+                    f64::from(k),
+                )
+            })
+            .collect()
+    } else {
+        vec![1.0; candidates.len()]
+    };
+
+    candidates
+        .iter()
+        .zip(author_diversity)
+        .map(|(c, author_diversity)| PostFusionMultiplier {
+            author_diversity,
+            oon: if oon_applies(weights, c) {
+                ctx.effective_oon_weight
+            } else {
+                1.0
+            },
+        })
+        .collect()

@@ -28,7 +28,9 @@ test('RULES: a synthetic code update preserves old run rule identity and online 
     const runId = initialized.envelope.data.run.run_id;
     invoke('record', { operation: 'rule_version', data: { ...rule, rule_version_id: nextId, source_commit: 'fixture-after', checked_at: '2026-10-26T05:00:00Z', supersedes: oldId }, as_of: '2026-10-26T05:00:00Z' }, { stateDir: dir });
     const state = JSON.parse(await readFile(join(dir, 'account-state.json'), 'utf8'));
-    assert.deepEqual(state.runs[runId].rule_version_ids, [oldId]);
+    assert.ok(state.runs[runId].rule_version_ids.includes(oldId));
+    assert.ok(!state.runs[runId].rule_version_ids.includes(nextId));
+    assert.ok(state.runs[runId].rule_version_ids.some(id => id.startsWith('fact-')));
     assert.equal(state.rule_versions[oldId].source_commit, 'fixture-before');
     assert.equal(state.rule_versions[nextId].supersedes, oldId);
     assert.match(state.rule_versions[nextId].inference_boundary, /Do not infer/);

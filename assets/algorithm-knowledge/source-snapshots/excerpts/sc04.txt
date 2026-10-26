@@ -1,0 +1,28 @@
+        apply(scores.share_score, weights.share),
+        apply(scores.share_via_dm_score, weights.share_via_dm),
+        apply(
+            scores.share_via_copy_link_score,
+            weights.share_via_copy_link,
+        ),
+        apply(scores.dwell_score, weights.dwell_weight_for(candidate)),
+        apply(scores.quote_score, weights.quote),
+        apply(scores.quoted_click_score, weights.quoted_click),
+        apply(scores.quoted_vqv_score, quoted_vqv_weight),
+        apply(scores.dwell_time, weights.cont_dwell_time),
+        apply(scores.click_dwell_time, weights.cont_click_dwell_time),
+        apply(
+            product(scores.video_open_score, scores.home_video_continuation_secs),
+            weights.video_continuation,
+        ),
+        apply(
+            product(
+                scores.video_open_score,
+                candidate.user_video_continuation_secs,
+            ),
+            weights.user_video_continuation,
+        ),
+        apply(
+            product(scores.profile_click_score, scores.home_profile_visit_secs),
+            weights.profile_visit_secs,
+        ),
+        apply(scores.follow_author_score, weights.follow_author),

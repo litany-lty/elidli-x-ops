@@ -1,0 +1,24 @@
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        query.params.get(EnableMutualFollowJaccardHydration)
+    }
+
+    async fn hydrate(&self, query: &ScoredPostsQuery) -> Result<ScoredPostsQuery, String> {
+        let user_id = query.user_id as i64;
+        let result = self
+            .strato_client
+            .get_minhash_with_count(user_id)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let viewer_minhash = result.map(|(minhash, _count)| minhash);
+
+        Ok(ScoredPostsQuery {
+            viewer_minhash,
+            ..Default::default()
+        })
+    }
+
+    fn update(&self, query: &mut ScoredPostsQuery, hydrated: ScoredPostsQuery) {
+        query.viewer_minhash = hydrated.viewer_minhash;
+    }
+}

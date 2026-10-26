@@ -1,0 +1,33 @@
+## Experiments and Configuration
+
+As we work to improve the algorithm we regularly run experiments on a small percentage of timeline traffic. Our aim is for experiments running at a notable share of traffic — e.g. 10% or more — to be visible in this repository.
+
+To enable experimentation, many tunable values are read from a configuration system rather than written into the code. To help people understand the production defaults, we run cron scripts that set the defaults in this repository's code to be the primary production values, for example in [`home-mixer/params/param.rs`](home-mixer/params/param.rs).
+
+[`docs/BIDIRECTIONAL_BOOST_CHANGE.md`](docs/BIDIRECTIONAL_BOOST_CHANGE.md) follows a widely-discussed timeline change, exemplifying what you would see as a param value changes over time.
+
+---
+
+
+
+## What's not in this repo?
+
+We believe transparency is important for trust, and our aim is for the public to be able to understand how posts are distributed on X, so they can audit, critique or even help improve the system.
+
+One challenge with making code that impacts post distribution public is that people could use it to try to game the system. To reduce the risk of this, there are a limited set of files not currently published in the repository, e.g.:
+
+- Grox prompts. E.g. the j2 files with the specific LLM prompts used in Grox.
+- Some botmaker rules
+
+However, we still want the public to have insight into these systems. To accomplish that, we're piloting a new [transparency tool](#under-the-hood-label-transparency-tool) that will show people the visibility-impacting labels that have been applied to their account and posts. This approach has multiple benefits:
+
+- one can see the outcomes of these systems (and whether they affect their own account)
+- one can see whether labels have been manually applied outside of automated systems
+- one can match any labels present on their account to the code to understand if or how the visibility of their posts is affected, and critique it if desired
+
+We believe the combination of code + transparent outputs is a powerful one for public transparency, and welcome feedback.
+
+
+### Deployment-related code
+
+The focus of the repository is transparency into the code that affects post visibility in the For You timeline. All of the code here is inspectable, and some of the code is even designed to be runnable end-to-end — e.g. training and running the Phoenix scoring model. Where code is meant to be built and run, the relevant manifests are in the repo, e.g. [`phoenix/`](phoenix/) ships a Cargo workspace, a `pyproject.toml`, a [quickstart](phoenix/QUICKSTART.md) and synthetic data generation, so a small model can be trained and served end-to-end. Elsewhere, code may not necessarily include build- or deployment-related files or generally self-explanatory infrastructure imports (e.g. `xai_service_runner` or `xai_kafka`). If there's anything not here that you believe would help your understanding of the algorithm, please let us know.

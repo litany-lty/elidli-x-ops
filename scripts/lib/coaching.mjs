@@ -1,8 +1,11 @@
-import { canonicalHash, newId, ContractError } from './contracts.mjs';
+import { canonicalHash, newId, ContractError, validate } from './contracts.mjs';
 import { analyzeAccountV2 } from './account.mjs';
 import { prepareContentAnalysis, validateContentAnalysis, isContentAnalysisCurrent, prepareContentAnalysisV3, validateContentAnalysisV3, activeContentReceiptV3 } from './post-content.mjs';
 import { priorActionOutcome, validateExperimentPlan } from './experiments.mjs';
 import { selectMetricObservations } from './observation-selection.mjs';
+import { canonicalStateInput } from './state-input.mjs';
+import { buildRuleContextV4 } from './knowledge.mjs';
+import { validatePersonalContextSelection } from './consumer-context.mjs';
 
 const fail = (code, path, message) => { throw new ContractError(code, path, message, false); };
 const values = value => Object.values(value ?? {});
@@ -115,38 +118,35 @@ function currentContentRefs(state, requestedRefs, analysisVersion) {
 }
 
 function canonicalInput(state, request) {
-  return {
-    contract_version: 2,
-    account: clone(state.account),
-    analysis_cutoff: request.analysis_cutoff,
-    post_entities: values(state.post_entities),
-    post_versions: values(state.post_versions),
-    snapshots: values(state.snapshots_v2),
-    source_series: values(state.source_series),
-    requested_scope: clone(request.requested_scope)
-  };
+  return canonicalStateInput(state, request.analysis_cutoff, { requested_scope: request.requested_scope });
 }
 
 function analysisDataset(state, analysisRequest, cutoff) {
+  const canonical=canonicalStateInput(state,cutoff,{requested_scope:analysisRequest.requested_scope});
   const outputs = new Set(analysisRequest.requested_outputs ?? ['account_period', 'publication_cohort', 'age_matched']);
   const requestedKeys = analysisRequest.target_post_keys?.length ? new Set(analysisRequest.target_post_keys) : null;
-  const entities = values(state.post_entities).filter(item => !requestedKeys || requestedKeys.has(item.post_key));
+  const entities = canonical.post_entities.filter(item => !requestedKeys || requestedKeys.has(item.post_key));
   const entityKeys = new Set(entities.map(item => item.post_key));
   const periods = new Set((analysisRequest.periods ?? []).map(item => `${item.start}|${item.end_exclusive}`));
-  const snapshots = values(state.snapshots_v2).filter(snapshot => {
+  const snapshots = canonical.snapshots.filter(snapshot => {
     if (snapshot.entity_type === 'account') return outputs.has('account_period') && periods.has(`${snapshot.period?.start}|${snapshot.period?.end_exclusive}`);
     if (snapshot.entity_type !== 'post' || !(outputs.has('publication_cohort') || outputs.has('age_matched'))) return false;
     return entityKeys.has(state.post_aliases?.[snapshot.entity_id] ?? snapshot.entity_id) && (!snapshot.observed_at || Date.parse(snapshot.observed_at) <= Date.parse(cutoff));
   });
-  const versionRefs = new Set(entities.map(item => item.current_version_ref).filter(Boolean));
+  const versionRefs = new Set(entities.map(item => item.current_version_ref).filter(Boolean)),sourceRefs=new Set(snapshots.map(item=>item.source_ref));
   const seriesRefs = new Set(snapshots.map(item => item.source_series_id));
+  const aliases=Object.fromEntries(Object.entries(canonical.post_aliases).filter(([from,to])=>entityKeys.has(from)||entityKeys.has(to)||snapshots.some(item=>item.entity_id===from)));
+  const metadata=Object.fromEntries(Object.entries(canonical.post_metadata_facts).filter(([,fact])=>entityKeys.has(fact.post_key)||versionRefs.has(fact.post_version_ref)));
   return {
     analysis_request: clone(analysisRequest),
-    account: clone(state.account),
+    account: clone(canonical.account),
     entities: entities.sort((a, b) => a.post_key.localeCompare(b.post_key)),
-    versions: values(state.post_versions).filter(item => versionRefs.has(item.post_version_id)).sort((a, b) => a.post_version_id.localeCompare(b.post_version_id)),
+    versions: canonical.post_versions.filter(item => versionRefs.has(item.post_version_id)).sort((a, b) => a.post_version_id.localeCompare(b.post_version_id)),
+    aliases,
+    metadata,
     snapshots: snapshots.sort((a, b) => a.snapshot_id.localeCompare(b.snapshot_id)),
-    source_series: values(state.source_series).filter(item => seriesRefs.has(item.source_series_id)).sort((a, b) => a.source_series_id.localeCompare(b.source_series_id))
+    source_series: canonical.source_series.filter(item => seriesRefs.has(item.source_series_id)).sort((a, b) => a.source_series_id.localeCompare(b.source_series_id)),
+    coverage: canonical.coverage.filter(item=>sourceRefs.has(item.source_ref)).sort((a,b)=>String(a.import_batch_id).localeCompare(String(b.import_batch_id)))
   };
 }
 
@@ -164,13 +164,67 @@ function materialScope(state, refs) {
 
 /** Build purpose-bound evidence; background/excluded refs never become target metric results. */
 export function buildEvidenceRolesV3(state,{target,baseline=null,background_refs=[],as_of}={}) {
-  const targetSelection=selectMetricObservations(state,{...target,as_of,role:'target'});
-  const baselineSelection=baseline?selectMetricObservations(state,{...baseline,as_of,role:'baseline'}):null;
+  const normalizeRequest=(request)=>({scope:{entity_type:request.scope.entity_type,entity_keys:[...(request.scope.entity_keys??[])],...(request.scope.distribution!==undefined?{distribution:request.scope.distribution}:{}),...(request.scope.surface!==undefined?{surface:request.scope.surface}:{}),...(request.scope.aggregation_basis!==undefined?{aggregation_basis:request.scope.aggregation_basis}:{})},window:request.window.kind==='period'?{kind:'period',...(request.window.start!==undefined?{start:request.window.start}:{}),...(request.window.end_exclusive!==undefined?{end_exclusive:request.window.end_exclusive}:{}),...(request.window.source_date_start!==undefined?{source_date_start:request.window.source_date_start}:{}),...(request.window.source_date_end_inclusive!==undefined?{source_date_end_inclusive:request.window.source_date_end_inclusive}:{})}:clone(request.window),metric_requirements:clone(request.metric_requirements??(request.scope.metric_definition_ids??[]).map(definition_id=>({definition_id})))});
+  const targetSelection=selectMetricObservations(state,{...normalizeRequest(target),as_of,role:'target'});
+  const baselineSelection=baseline?selectMetricObservations(state,{...normalizeRequest(baseline),as_of,role:'baseline'}):null;
   const index={};
   for(const selection of [targetSelection,baselineSelection].filter(Boolean))for(const selected of selection.selected)addEvidence(index,selected.observation_ref,objectHashEntry('observation',{observation_ref:selected.observation_ref,role:selection.role,selection_hash:selection.selection_hash},selected,{availability:'observed',definition_id:selected.metric_definition_id,evidence_role:selection.role}));
   for(const ref of background_refs){const material=resolveMaterial(state,ref);if(!material)fail('INVALID_EVIDENCE_REF','/background_refs',`Background material is missing: ${ref}`);addEvidence(index,ref,objectHashEntry('source_material',{ref,role:'background'},material,{evidence_role:'background'}));}
   for(const excluded of targetSelection.excluded)addEvidence(index,`excluded:${excluded.observation_ref}:${excluded.reason}`,objectHashEntry('observation',{observation_ref:excluded.observation_ref,role:'excluded'},excluded,{availability:'excluded',definition_id:null,evidence_role:'excluded'}));
   return{contract_version:3,target_selection:targetSelection,baseline_selection:baselineSelection,evidence_index:index,evidence_roles_hash:canonicalHash({target:targetSelection.selection_hash,baseline:baselineSelection?.selection_hash??null,background_refs:[...background_refs].sort()})};
+}
+
+/** Freeze the actual purpose-bound observations consumed by a V4 coaching run. */
+export function buildEvidenceBundleV4(state,{target,baseline=null,background_refs=[],as_of}={}) {
+  if(!as_of)fail('INVALID_INPUT','/as_of','V4 coaching evidence requires a frozen cutoff');
+  const roles=buildEvidenceRolesV3(state,{target,baseline,background_refs,as_of});
+  const evidenceIndex=Object.fromEntries(Object.entries(roles.evidence_index).map(([ref,entry])=>[ref,{...entry,availability:entry.availability??'available',definition_id:entry.definition_id??null}]));
+  const base={contract_version:4,bundle_id:'',cutoff:as_of,target_selection:roles.target_selection,baseline_selection:roles.baseline_selection,background_refs:[...new Set(background_refs)].sort(),evidence_index:evidenceIndex};
+  const evidence_bundle_hash=canonicalHash(base),bundle={...base,bundle_id:`evidence-v4-${evidence_bundle_hash.slice(0,24)}`,evidence_bundle_hash};
+  return validate('EvidenceBundleV4',bundle);
+}
+
+/** Build a state-4 coaching run from the same canonical input used by account analysis. */
+export function prepareCoachingV4(state,request,{catalog,max_new_items}={}) {
+  if(state?.schema_version!==4)fail('MIGRATION_REQUIRED','/state/schema_version','V4 coaching requires state 4');
+  if(!request?.run_id||!request.intent||!request.use||!request.subject_ref||!request.as_of)fail('INVALID_INPUT','/request','V4 coaching requires run, intent, use, subject and cutoff');
+  const coachingRequest=request.coaching_request;
+  if(!coachingRequest)fail('INVALID_INPUT','/coaching_request','V4 coaching requires the deterministic account-analysis request');
+  const canonical=analysisDataset(state,coachingRequest.analysis_request,request.as_of);
+  const prepared=prepareCoaching(state,coachingRequest,{max_new_items});
+  const evidenceBundle=buildEvidenceBundleV4(state,{...request.evidence_request,as_of:request.as_of});
+  const goalHash=canonicalHash(coachingRequest.goal_snapshot),useHash=canonicalHash({intent:request.intent,use:request.use,subject_ref:request.subject_ref});
+  let personalRef=null,personalHash=null;
+  if(request.personal_context_selection){
+    const personal=validatePersonalContextSelection(state,request.personal_context_selection,{goal_hash:goalHash,brief_or_use_hash:useHash,requested_use:request.use,post_version_refs:coachingRequest.requested_post_version_refs??[],selection_policy_version:request.personal_selection_policy_version});
+    personalHash=personal.selection_hash;personalRef=request.personal_context_selection_ref??`personal-selection-${personalHash.slice(0,24)}`;
+  }
+  const ruleInput={run_id:request.run_id,intent:request.intent,goal:coachingRequest.goal_snapshot,use:request.use,subject_ref:request.subject_ref,cutoff:request.as_of,personal_context_selection:request.personal_context_selection??null,personal_context_selection_ref:personalRef,personal_context_selection_hash:personalHash,evidence_bundle_ref:evidenceBundle.bundle_id,evidence_bundle_hash:evidenceBundle.evidence_bundle_hash,explicit_rule_version_refs:[...(coachingRequest.rule_version_refs??[])]};
+  const ruleContext=buildRuleContextV4(ruleInput,catalog);
+  const runBase={contract_version:4,run_id:request.run_id,intent:request.intent,goal:coachingRequest.goal_snapshot.primary_goal,use:request.use,subject_ref:request.subject_ref,cutoff:request.as_of,canonical_state_input_hash:canonicalHash(canonical),evidence_bundle_ref:evidenceBundle.bundle_id,evidence_bundle_hash:evidenceBundle.evidence_bundle_hash,personal_context_selection_ref:personalRef,personal_context_selection_hash:personalHash,rule_context_ref:ruleContext.context_id??ruleContext.rule_context_id,selected_rule_context_hash:ruleContext.selected_rule_context_hash,status:prepared.content_work_items.work_items?.length?'awaiting_content':'awaiting_proposal'};
+  return{run:validate('CoachingRunV4',runBase),content_work_items:prepared.content_work_items,evidence_bundle:evidenceBundle,rule_context:ruleContext,analysis_view:{account_period_results:prepared.bundle.account_period_results,publication_structure:prepared.bundle.publication_structure,post_cohort_results:prepared.bundle.post_cohort_results,age_matched_results:prepared.bundle.age_matched_results,comparison_results:prepared.bundle.comparison_results,derived_metrics:prepared.bundle.derived_metrics,deliverable_status:prepared.bundle.deliverable_status,computed_limitations:prepared.bundle.computed_limitations}};
+}
+
+export function coachingProposalHashV4(proposal){
+  const frozen=clone(proposal);delete frozen.proposal_id;delete frozen.proposal_hash;return canonicalHash(frozen);
+}
+
+/** Enforce evidence roles at the real V4 proposal boundary. */
+export function validateCoachingProposalV4(proposal,{run,evidence_bundle:evidenceBundle,rule_context:ruleContext,state}){
+  validate('CoachingProposalV4',proposal);
+  if(proposal.run_ref!==run.run_id||proposal.evidence_bundle_ref!==evidenceBundle.bundle_id||proposal.evidence_bundle_hash!==evidenceBundle.evidence_bundle_hash)fail('STALE_BUNDLE','/evidence_bundle_ref','Proposal is not bound to the prepared V4 run evidence');
+  const ruleRef=ruleContext.context_id??ruleContext.rule_context_id;
+  if(proposal.rule_context_ref!==ruleRef||proposal.selected_rule_context_hash!==ruleContext.selected_rule_context_hash)fail('STALE_BUNDLE','/rule_context_ref','Proposal is not bound to the selected rule context');
+  if(proposal.proposal_hash!==coachingProposalHashV4(proposal))fail('STALE_BUNDLE','/proposal_hash','Proposal content changed after it was frozen');
+  const entry=ref=>{const value=evidenceBundle.evidence_index[ref];if(!value)fail('INVALID_EVIDENCE_REF','/evidence_refs',`Evidence is not in the prepared bundle: ${ref}`);if(value.evidence_role==='excluded')fail('INVALID_EVIDENCE_REF','/evidence_refs',`Excluded evidence cannot support a proposal: ${ref}`);return value;};
+  for(const finding of proposal.findings){
+    const roles=new Set(finding.evidence_refs.map(ref=>entry(ref).evidence_role));
+    if(finding.support_kind==='target_metric'&&([...roles].some(role=>role!=='target')))fail('INVALID_EVIDENCE_REF','/findings/evidence_refs','Current metric findings may use target evidence only');
+    if(finding.support_kind==='comparison'&&!(roles.has('target')&&roles.has('baseline')))fail('INVALID_EVIDENCE_REF','/findings/evidence_refs','Comparison findings require target and baseline evidence');
+    if(finding.support_kind==='background_context'&&([...roles].some(role=>role!=='background')))fail('INVALID_EVIDENCE_REF','/findings/evidence_refs','Background context findings may use background evidence only');
+  }
+  for(const action of proposal.actions){for(const ref of action.evidence_refs)entry(ref);if(action.primary_metric_ref&&entry(action.primary_metric_ref).evidence_role!=='target')fail('INVALID_EVIDENCE_REF','/actions/primary_metric_ref','An action primary metric must be target evidence');const prior=priorActionOutcome(state??{},action);if(prior.repeated&&!action.evidence_refs.some(ref=>!prior.evidence_refs.includes(ref)))fail('INVALID_INPUT','/actions','A stopped, revised or inconclusive action needs new evidence or an explicit evidence-gathering step before repetition');}
+  return clone(proposal);
 }
 
 export function prepareCoaching(state, request, options = {}) {
@@ -179,7 +233,7 @@ export function prepareCoaching(state, request, options = {}) {
   const analysisResults = analyzeAccountV2(canonicalInput(state, request), request.analysis_request);
   const requestedPostRefs = request.requested_post_version_refs ?? [];
   const contentAnalysisRefs = currentContentRefs(state, requestedPostRefs, request.content_analysis_version);
-  const content = state.schema_version===3?prepareContentAnalysisV3(state,requestedPostRefs,{analysis_version:request.content_analysis_version,max_items:options.max_new_items??request.content_budget.max_items}):prepareContentAnalysis(values(state.post_versions).filter(item => requestedPostRefs.includes(item.post_version_id ?? item.version_id)), {
+  const content = [3,4].includes(state.schema_version)?prepareContentAnalysisV3(state,requestedPostRefs,{analysis_version:request.content_analysis_version,max_items:options.max_new_items??request.content_budget.max_items}):prepareContentAnalysis(values(state.post_versions).filter(item => requestedPostRefs.includes(item.post_version_id ?? item.version_id)), {
     requested_post_version_refs: requestedPostRefs,
     analysis_version: request.content_analysis_version,
     max_items: options.max_new_items ?? request.content_budget.max_items
@@ -328,9 +382,9 @@ export function validateCoachingProposal(proposal, bundle, state) {
 export function validateRuleVersionV2(rule, state) {
   if (!rule || rule.contract_version !== 2 || !rule.rule_version_id || !rule.source_content_hash || !rule.source_material_ref) fail('INVALID_INPUT', '/rule', 'Rule must bind a source material and content hash');
   const sourceVersion = values(state.sources).map(item => item.versions?.[rule.source_material_ref]).find(Boolean);
-  const source = sourceVersion ?? state.sources?.[rule.source_material_ref]?.record ?? state.sources?.[rule.source_material_ref] ?? state.import_batches?.[rule.source_material_ref] ?? state.raw_receipts?.[rule.source_material_ref];
+  const source = state.knowledge_artifacts?.[rule.source_material_ref] ?? sourceVersion ?? state.sources?.[rule.source_material_ref]?.record ?? state.sources?.[rule.source_material_ref] ?? state.import_batches?.[rule.source_material_ref] ?? state.raw_receipts?.[rule.source_material_ref];
   if (!source) fail('MISSING_EVIDENCE', '/source_material_ref', 'Rule source material does not exist');
-  const actualSourceHash = source.captured_text_hash ?? source.content_hash ?? source.source_content_hash ?? source.artifact_sha256 ?? source.raw_hash ?? null;
+  const actualSourceHash = source.artifact_content_hash ?? source.captured_text_hash ?? source.content_hash ?? source.source_content_hash ?? source.artifact_sha256 ?? source.raw_hash ?? null;
   if (!actualSourceHash) fail('MISSING_EVIDENCE', '/source_content_hash', 'Rule source has no recoverable content hash');
   if (actualSourceHash && actualSourceHash !== rule.source_content_hash) fail('RECEIPT_CONFLICT', '/source_content_hash', 'Rule is not bound to the actual source bytes');
   if (rule.supersedes) {
@@ -342,10 +396,18 @@ export function validateRuleVersionV2(rule, state) {
   return clone(rule);
 }
 
-export function assessRuleHistoricalApplicability(rule, postCreatedAt) {
+export function assessRuleHistoricalApplicability(rule,postCreatedAt,{surface=null,effective_interval=null,catalog=null}={}) {
+  const at=Date.parse(postCreatedAt),interval=effective_interval??catalog?.effective_intervals?.[rule.rule_version_id]??null;
+  if(!Number.isFinite(at))return{status:'unknown',reason:'Reliable post creation time is missing'};
+  if(surface&&rule.applicable_surface&&rule.applicable_surface!=='all'&&surface!==rule.applicable_surface)return{status:'not_applicable',reason:'The requested surface is outside the documented rule scope'};
+  if(interval?.production_status==='confirmed'&&interval.evidence_refs?.length){
+    if(interval.production_effective_from&&at<Date.parse(interval.production_effective_from))return{status:'not_applicable',reason:'The post predates the evidenced production interval'};
+    if(interval.production_effective_until&&at>=Date.parse(interval.production_effective_until))return{status:'not_applicable',reason:'The post follows the evidenced production interval'};
+    if(interval.production_effective_from)return{status:'potentially_applicable',reason:'Production interval and surface are compatible; this does not establish an effect on the post'};
+  }
   if (!rule.publicly_available_from) return { status: 'unknown', reason: 'The public availability date is not known' };
-  if (Date.parse(postCreatedAt) < Date.parse(rule.publicly_available_from)) return { status: 'unknown', reason: 'The post predates the public rule version; historical production applicability is unknown' };
-  if (rule.production_status !== 'confirmed') return { status: 'unknown', reason: 'Public source does not confirm production deployment' };
+  if (at < Date.parse(rule.publicly_available_from)) return { status: 'unknown', reason: 'The post predates the public rule version; historical production applicability is unknown' };
+  if (rule.production_status !== 'confirmed'||catalog||effective_interval) return { status: 'unknown', reason: 'Public source does not confirm the actual production interval' };
   return { status: 'potentially_applicable', reason: 'Public timing is compatible, subject to the stated preconditions' };
 }
 
@@ -407,9 +469,10 @@ function contentRunStatus(work) {
 }
 
 export function advanceCoaching(state, payload, runId = null) {
-  if (!state || ![2,3].includes(state.schema_version)) fail('MIGRATION_REQUIRED', '/state/schema_version', 'Coaching requires a v2 or v3 state');
+  if (!state || ![2,3,4].includes(state.schema_version)) fail('MIGRATION_REQUIRED', '/state/schema_version', 'Coaching requires a supported state');
   for (const key of ['content_analyses', 'content_review_receipts', 'coaching_runs', 'evidence_bundles', 'diagnoses', 'actions', 'experiments', 'experiment_reviews', 'rule_versions_v2']) state[key] ??= {};
   if (payload.operation === 'prepare') {
+    if(state.schema_version===4)fail('MIGRATION_REQUIRED','/contract_version','State 4 coaching preparation must use the V4 guidance route');
     const id = runId ?? newId('coach_run');
     if (state.coaching_runs[id]) fail('STATE_CONFLICT', '/run_id', 'Coaching run already exists');
     const run = { contract_version: state.schema_version===3?3:2, run_id: id, status: 'prepared', request: clone(payload.request), bundle_versions: [], active_bundle_id: null, active_bundle_hash: null, content_work_items: null, accepted_content_refs: [], accepted_content_count: 0, proposal: null, semantic_review: null, report_ref: null, created_at: payload.as_of, updated_at: payload.as_of };
@@ -423,8 +486,8 @@ export function advanceCoaching(state, payload, runId = null) {
   if (run.status === 'delivered') fail('STATE_CONFLICT', '/run_id', 'Delivered runs are immutable');
   if (payload.operation === 'ingest' && payload.kind === 'content_analysis') {
     if (run.accepted_content_count >= run.request.content_budget.max_items) fail('BUDGET_EXHAUSTED', '/content_budget', 'This run has used its total new-content analysis budget');
-    const analysis = state.schema_version===3?validateContentAnalysisV3(payload.data.analysis,state,payload.data.semantic_receipt):validateContentAnalysis(payload.data.analysis, state, payload.data.semantic_receipt);
-    const item = run.content_work_items.work_items.find(candidate => candidate.post_version_ref === analysis.post_version_ref && candidate.content_hash === analysis.content_hash && (state.schema_version===3?candidate.context_selection_hash===analysis.context_selection_hash:candidate.context_hash===analysis.context_hash));
+    const reliableRun=run.contract_version===3,analysis = reliableRun?validateContentAnalysisV3(payload.data.analysis,state,payload.data.semantic_receipt):validateContentAnalysis(payload.data.analysis, state, payload.data.semantic_receipt);
+    const item = run.content_work_items.work_items.find(candidate => candidate.post_version_ref === analysis.post_version_ref && candidate.content_hash === analysis.content_hash && (reliableRun?candidate.context_selection_hash===analysis.context_selection_hash:candidate.context_hash===analysis.context_hash));
     if (!item) fail('STALE_BUNDLE', '/post_version_ref', 'Content analysis does not answer an active work item');
     storeImmutable(state.content_review_receipts, payload.data.semantic_receipt.review_id, payload.data.semantic_receipt, '/content_review_receipts');
     storeImmutable(state.content_analyses, analysis.analysis_id, analysis, '/content_analyses');

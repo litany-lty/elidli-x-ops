@@ -1,0 +1,30 @@
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        if !query.params.get(EnableFairShareRanking)
+            || query.has_cached_posts
+            || query.scoring_sequence.is_none()
+        {
+            return false;
+        }
+        !query
+            .decider
+            .as_ref()
+            .is_some_and(|decider| decider.enabled(PHOENIX_RANKER_KILL_SWITCH_DECIDER))
+    }
+
+    fn filter(
+        &self,
+        query: &ScoredPostsQuery,
+        candidates: Vec<PostCandidate>,
+    ) -> FilterResult<PostCandidate> {
+        let budget = query.params.get(PhoenixScoresResultSize) as usize;
+        let selected = selection_mask(&candidates, budget);
+        let mut kept = Vec::new();
+        let mut removed = Vec::new();
+        for (candidate, keep) in candidates.into_iter().zip(selected) {
+            if keep {
+                kept.push(candidate);
+            } else {
+                removed.push(candidate);
+            }
+        }
+        FilterResult { kept, removed }
