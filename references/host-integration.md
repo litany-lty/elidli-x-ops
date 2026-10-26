@@ -36,6 +36,36 @@ node scripts/x-ops.mjs COMMAND --input /absolute/request.json --output /absolute
 
 新上下文恢复仅给技能路径和持久目录，重新加载状态、核对 sidecar hash，沿来源→主张→准确稿件revision→采用→发布→观测复盘。不要依靠上一上下文变量。`doctor` 只把已登记且成功的 live raw receipts 对应 search/read 标 verified；fixture 返回不证明网络。保存由当前 revision/hash 回执证明。
 
+## 账号数据采集回执
+
+Analytics 页面、正常导出、历史帖子读取和已授权官方 API 分别登记能力，不能用其中一种成功替代其余能力。宿主完成真实调用后，把未改写的结果保存到账号私有材料目录，再使用 V2 `record / collection_receipt` 登记：
+
+```json
+{
+  "contract_version": 2,
+  "operation": "collection_receipt",
+  "data": {
+    "receipt_id": "代码或宿主生成的不可变ID",
+    "binding_id": "实际HostBinding ID",
+    "capability": "visible_analytics_read",
+    "status": "succeeded",
+    "account_identity_ref": "x-handle:fixture_example",
+    "tool_name": "实际工具名",
+    "host_call_ref": "实际调用引用",
+    "actual_result_ref": "/absolute/private/path/raw-result.json",
+    "actual_result_sha256": "64位小写sha256",
+    "identity_locator": {"start": 0, "end": 15, "exact_text": "fixture_example"},
+    "material_locator": {"start": 20, "end": 42, "exact_text": "实际材料中的逐字片段"},
+    "captured_at": "2026-10-26T04:00:00Z",
+    "data_mode": "fixture"
+  }
+}
+```
+
+示例只说明结构，不是能力通过证据。`start/end` 是原始结果字符串的 UTF-16 `[start,end)` 位置；代码会核对文件 hash、账号文本和材料文本。真实账号使用 `data_mode=live`，并把 `account_identity_ref` 换成当前目标账号。403、登录墙、错号和读取失败分别登记实际状态，不能保存成 succeeded。
+
+`HostBinding.account_collection` 中的 `available/unavailable/unverified` 是配置声明；`doctor` 只有在同一 binding、同一账号存在可恢复的真实成功回执时才能报告 verified。回执过期、文件丢失或身份不符时恢复为未验证，并保留原失败证据。
+
 ## 安装后验收
 
 先验证当前宿主确实具备 Node 24、文件保存、搜索与原文读取能力，再按生产配方完成真实任务。开源仓库只包含合成测试，不附带个人账号状态、原始联网返回或私人验收材料。fixture 的通过不证明当前宿主已经联网或具备跨会话保存能力。

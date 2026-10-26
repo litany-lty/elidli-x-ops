@@ -1069,7 +1069,8 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/AgeWindow"
-          }
+          },
+          "uniqueItems": true
         },
         "group_by": {
           "type": "array",
@@ -1664,6 +1665,33 @@
             "in_window",
             "out_of_window"
           ]
+        },
+        "personalization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "context_hash",
+            "evidence_refs",
+            "interpretation"
+          ],
+          "properties": {
+            "context_hash": {
+              "type": "string"
+            },
+            "evidence_refs": {
+              "$ref": "#/definitions/UniqueStrings"
+            },
+            "interpretation": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "personalization_basis": {
+          "enum": [
+            "account_evidence",
+            "editorial_hypothesis"
+          ]
         }
       }
     },
@@ -1847,6 +1875,13 @@
               "type": "null"
             }
           ]
+        },
+        "personal_context_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
         }
       }
     },
@@ -2004,6 +2039,13 @@
           "items": {
             "$ref": "#/definitions/StatusHistoryItem"
           }
+        },
+        "personal_context_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
         }
       }
     },
@@ -2193,6 +2235,9 @@
             "suggestions_only",
             "draft_required"
           ]
+        },
+        {
+          "$ref": "#/definitions/CoachingRunScopeV2"
         }
       ]
     },
@@ -2219,6 +2264,9 @@
             "suggestions_only",
             "draft_required"
           ]
+        },
+        {
+          "$ref": "#/definitions/CoachingRunScopeV2"
         }
       ]
     },
@@ -2249,7 +2297,8 @@
             "account_analysis",
             "content_optimization",
             "news",
-            "review"
+            "review",
+            "coaching"
           ]
         },
         "requested_scope": {
@@ -3325,13 +3374,15 @@
             ],
             "properties": {
               "statement": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
               },
               "evidence_refs": {
                 "$ref": "#/definitions/StringArray"
               },
               "interpretation": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
               },
               "alternative_explanations": {
                 "$ref": "#/definitions/StringArray"
@@ -3354,13 +3405,15 @@
             ],
             "properties": {
               "change": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
               },
               "basis_refs": {
                 "$ref": "#/definitions/StringArray"
               },
               "next_check": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
               }
             }
           }
@@ -4030,7 +4083,8 @@
         "semantic_status",
         "evidence_status",
         "validity",
-        "errors"
+        "errors",
+        "personalization_context"
       ],
       "properties": {
         "draft": {
@@ -4066,6 +4120,16 @@
         },
         "errors": {
           "type": "array"
+        },
+        "personalization_context": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ConsumerContextV2"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -4161,6 +4225,9 @@
             "live",
             "fixture"
           ]
+        },
+        "rule_version_refs": {
+          "$ref": "#/definitions/UniqueStrings"
         }
       }
     },
@@ -4264,6 +4331,68 @@
         },
         "persistence": {
           "$ref": "#/definitions/HostPersistence"
+        },
+        "account_collection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "visible_analytics_read",
+            "analytics_export",
+            "history_read",
+            "official_api_read",
+            "current_account_identity",
+            "last_verified_receipt_ref"
+          ],
+          "properties": {
+            "visible_analytics_read": {
+              "enum": [
+                "available",
+                "unavailable",
+                "unverified"
+              ]
+            },
+            "analytics_export": {
+              "enum": [
+                "available",
+                "unavailable",
+                "unverified"
+              ]
+            },
+            "history_read": {
+              "enum": [
+                "available",
+                "unavailable",
+                "unverified"
+              ]
+            },
+            "official_api_read": {
+              "enum": [
+                "available",
+                "unavailable",
+                "unverified"
+              ]
+            },
+            "current_account_identity": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "last_verified_receipt_ref": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
         }
       }
     },
@@ -4837,6 +4966,9 @@
           "additionalProperties": {
             "$ref": "#/definitions/RegionAssessment"
           }
+        },
+        "consumer_context": {
+          "$ref": "#/definitions/ConsumerContextV2"
         }
       }
     },
@@ -4904,11 +5036,21 @@
             "draft-check",
             "news-step",
             "record",
-            "review"
+            "review",
+            "data-import",
+            "coach-step",
+            "state-migrate"
           ]
         },
         "run_id": {
-          "type": "string"
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "status": {
           "enum": [

@@ -1,0 +1,109 @@
+{
+  "$id": "https://x-ops.local/schemas/consumer-v2.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ConsumerContentAnalysisValueV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["post_version_ref", "primary_topic", "intended_reader", "reader_problem", "post_purpose", "context_coverage", "strengths", "issues", "uncertainties"],
+      "properties": {
+        "post_version_ref": { "type": "string", "minLength": 1 },
+        "primary_topic": { "type": "string" },
+        "intended_reader": { "type": "string" },
+        "reader_problem": { "type": "string" },
+        "post_purpose": { "type": "string" },
+        "context_coverage": { "$ref": "#/definitions/ContentContextCoverageV2" },
+        "strengths": { "$ref": "#/definitions/V2Strings" },
+        "issues": { "$ref": "#/definitions/V2Strings" },
+        "uncertainties": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "ConsumerActionValueV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["objective", "target", "change", "why_now", "status", "uncertainties", "goal_hash", "goal_matches_current", "applicability_limitation"],
+      "properties": {
+        "objective": { "type": "string" },
+        "target": { "enum": ["post_ids", "content_series", "profile", "publishing_habit", "data_collection"] },
+        "change": { "type": "string", "minLength": 1 },
+        "why_now": { "type": "string" },
+        "status": { "enum": ["proposed", "accepted", "declined", "superseded"] },
+        "uncertainties": { "type": "array", "items": { "type": "string" } },
+        "goal_hash": { "type": ["string", "null"] },
+        "goal_matches_current": { "type": ["boolean", "null"] },
+        "applicability_limitation": { "type": ["string", "null"] }
+      }
+    },
+    "ConsumerActiveExperimentValueV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["goal", "hypothesis", "single_primary_change", "status", "planned_primary_metric", "planned_review_condition", "known_confounders", "linked_publication_ids", "is_effect_result"],
+      "properties": {
+        "goal": { "type": "string" },
+        "hypothesis": { "type": "string" },
+        "single_primary_change": { "type": "string" },
+        "status": { "enum": ["proposed", "accepted", "running", "ready_for_review"] },
+        "planned_primary_metric": { "$ref": "#/definitions/ExperimentMetricV2" },
+        "planned_review_condition": { "type": "string" },
+        "known_confounders": { "type": "array", "items": { "type": "string" } },
+        "linked_publication_ids": { "$ref": "#/definitions/V2Strings" },
+        "is_effect_result": { "const": false }
+      }
+    },
+    "ConsumerExperimentReviewValueV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["experiment_id", "conclusion", "reason", "metric_results", "evidence_refs"],
+      "properties": {
+        "experiment_id": { "type": "string", "minLength": 1 },
+        "conclusion": { "enum": ["continue", "revise", "stop", "inconclusive"] },
+        "reason": { "type": "string" },
+        "metric_results": { "type": "array", "items": { "$ref": "#/definitions/CoachMetricResultV2" } },
+        "evidence_refs": { "$ref": "#/definitions/V2Strings" }
+      }
+    },
+    "ConsumerContextItemV2": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["kind", "ref", "content_hash", "value"], "properties": { "kind": { "const": "content_analysis" }, "ref": { "type": "string" }, "content_hash": { "type": "string" }, "value": { "$ref": "#/definitions/ConsumerContentAnalysisValueV2" } } },
+        { "type": "object", "additionalProperties": false, "required": ["kind", "ref", "content_hash", "value"], "properties": { "kind": { "const": "voice_sample" }, "ref": { "type": "string" }, "content_hash": { "type": "string" }, "value": { "$ref": "#/definitions/VoiceSample" } } },
+        { "type": "object", "additionalProperties": false, "required": ["kind", "ref", "content_hash", "value"], "properties": { "kind": { "const": "prior_action" }, "ref": { "type": "string" }, "content_hash": { "type": "string" }, "value": { "$ref": "#/definitions/ConsumerActionValueV2" } } },
+        { "type": "object", "additionalProperties": false, "required": ["kind", "ref", "content_hash", "value"], "properties": { "kind": { "const": "active_experiment" }, "ref": { "type": "string" }, "content_hash": { "type": "string" }, "value": { "$ref": "#/definitions/ConsumerActiveExperimentValueV2" } } },
+        { "type": "object", "additionalProperties": false, "required": ["kind", "ref", "content_hash", "value"], "properties": { "kind": { "const": "experiment_review" }, "ref": { "type": "string" }, "content_hash": { "type": "string" }, "value": { "$ref": "#/definitions/ConsumerExperimentReviewValueV2" } } }
+      ]
+    },
+    "ConsumerContextV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "intent",
+        "context_hash",
+        "goal_hash",
+        "goal_snapshot",
+        "content_analysis_refs",
+        "voice_sample_refs",
+        "prior_action_refs",
+        "active_experiment_refs",
+        "experiment_review_refs",
+        "refs",
+        "items",
+        "limitations"
+      ],
+      "properties": {
+        "contract_version": { "const": 2 },
+        "intent": { "enum": ["draft", "news"] },
+        "context_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "goal_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "goal_snapshot": { "$ref": "#/definitions/GoalSnapshotV2" },
+        "content_analysis_refs": { "$ref": "#/definitions/UniqueStrings" },
+        "voice_sample_refs": { "$ref": "#/definitions/UniqueStrings" },
+        "prior_action_refs": { "$ref": "#/definitions/UniqueStrings" },
+        "active_experiment_refs": { "$ref": "#/definitions/UniqueStrings" },
+        "experiment_review_refs": { "$ref": "#/definitions/UniqueStrings" },
+        "refs": { "$ref": "#/definitions/UniqueStrings" },
+        "items": { "type": "array", "items": { "$ref": "#/definitions/ConsumerContextItemV2" } },
+        "limitations": { "$ref": "#/definitions/StringArray" }
+      }
+    }
+  }
+}

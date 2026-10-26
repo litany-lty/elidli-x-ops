@@ -1,11 +1,14 @@
 import { readFile, writeFile, mkdir, open, rename, unlink } from 'node:fs/promises';
 import { join, resolve, isAbsolute } from 'node:path';
 import { canonicalHash, validate, ContractError } from './contracts.mjs';
+import { validateMetricObservation } from './metrics.mjs';
 
 const fail = (code, path, message) => { throw new ContractError(code, path, message, false); };
 const collections = ['runs','sources','raw_receipts','user_facts','events','claims','drafts','adoptions','publications','posts','snapshots','reviews','rule_versions'];
+export const v2Collections = ['import_batches','source_series','post_entities','post_versions','post_aliases','snapshots_v2','content_analyses','content_review_receipts','coaching_runs','coaching_reports','evidence_bundles','diagnoses','actions','action_decisions','experiments','experiment_reviews','rule_versions_v2','import_artifacts','migration_receipts','collection_receipts'];
 
 export function validateState(state) {
+  if (![1,2].includes(state.schema_version)) fail('SCHEMA_VERSION','/schema_version','Unsupported state version');
   validate('ConfigV1',state.config);
   if(canonicalHash(state.account)!==canonicalHash(state.config.account))fail('IDENTITY_MISMATCH','/account','State identity must match its configuration');
   for(const key of collections)if(!state[key]||typeof state[key]!=='object'||Array.isArray(state[key]))fail('INVALID_INPUT',`/${key}`,'Expected an ID-indexed state collection');
@@ -25,7 +28,7 @@ export function validateState(state) {
   }
   for(const adoption of Object.values(state.adoptions)) {validate('AdoptionRecord',adoption);if(!state.drafts[adoption.draft_id]?.revisions[adoption.revision])fail('MISSING_EVIDENCE','/adoptions/revision','Adopted draft revision does not exist');}
   for(const publication of Object.values(state.publications)) {validate('PublicationRecord',publication);if(publication.adoption_id&&!state.adoptions[publication.adoption_id])fail('MISSING_EVIDENCE','/publications/adoption_id','Publication adoption does not exist');}
-  for(const post of Object.values(state.posts)) {validate('PostRecord',post);if(post.author_handle.toLowerCase()!==state.account.handle.toLowerCase()||(state.account.user_id&&post.account_id&&post.account_id!==state.account.user_id))fail('IDENTITY_MISMATCH','/posts','Post does not belong to this account');if(!state.sources[post.source_ref])fail('MISSING_EVIDENCE','/posts/source_ref','Post source does not exist');}
+  for(const post of Object.values(state.posts)) {validate('PostRecord',post);const stable=state.account.user_id&&post.account_id;if((stable?post.account_id!==state.account.user_id:post.author_handle.toLowerCase()!==state.account.handle.toLowerCase()))fail('IDENTITY_MISMATCH','/posts','Post does not belong to this account');if(!state.sources[post.source_ref])fail('MISSING_EVIDENCE','/posts/source_ref','Post source does not exist');}
   for(const snapshot of Object.values(state.snapshots)) {
     validate('Snapshot',snapshot);
     if(snapshot.account_id&&state.account.user_id&&snapshot.account_id!==state.account.user_id)fail('IDENTITY_MISMATCH','/snapshots/account_id','Snapshot belongs to another account');
@@ -36,18 +39,45 @@ export function validateState(state) {
   for(const rule of Object.values(state.rule_versions))validate('RuleVersion',rule);
   for(const review of Object.values(state.reviews)){validate('ReviewInput',review.review_input);validate('ReviewResult',review.report);}
   for(const run of Object.values(state.runs))if(run.binding)validate('NewsRun',run);else {validate('RunContext',run.run_context);validate('RunResult',run.run_result);}
+  if (state.schema_version === 2) validateV2State(state);
   return state;
 }
 
-export function initializeState(config) {
-  return { schema_version: 1, revision: 0, account: structuredClone(config.account), config: structuredClone(config),
-    preference_meta: {}, ...Object.fromEntries(collections.map(key => [key, {}])) };
+export function initializeState(config, version = 2) {
+  return { schema_version: version, revision: 0, account: structuredClone(config.account), config: structuredClone(config),
+    preference_meta: {}, ...Object.fromEntries([...collections,...(version===2?v2Collections:[])].map(key => [key, {}])) };
+}
+
+function validateV2State(state) {
+  for (const key of v2Collections) if(!state[key] || typeof state[key]!=='object' || Array.isArray(state[key])) fail('INVALID_INPUT',`/${key}`,'Expected a V2 ID-indexed collection');
+  const types = {import_batches:'ImportBatchV2',source_series:'SourceSeriesV2',post_entities:'PostEntityV2',post_versions:'PostVersionV2',snapshots_v2:'SnapshotV2',content_analyses:'PostContentAnalysisV2',content_review_receipts:'ContentSemanticReceiptV2',coaching_runs:'CoachingRunV2',coaching_reports:'CoachingReportV2',evidence_bundles:'EvidenceBundleV2',diagnoses:'AccountDiagnosisV2',actions:'ActionRecommendationV2',action_decisions:'ActionDecisionV2',experiments:'ExperimentPlanV2',experiment_reviews:'ReviewResultV2',rule_versions_v2:'RuleVersionV2',collection_receipts:'CollectionReceiptV2'};
+  for (const [collection,type] of Object.entries(types)) for (const value of Object.values(state[collection])) validate(type,value);
+  const hasMaterial = ref => Boolean(state.sources[ref] || Object.values(state.import_artifacts).some(a=>a.source_ref===ref));
+  for(const analysis of Object.values(state.content_analyses)) {
+    const receipt=state.content_review_receipts[analysis.semantic_review_receipt_ref];
+    if(!receipt||['post_version_ref','content_hash','context_hash','analysis_version'].some(key=>receipt[key]!==analysis[key])||receipt.decision!=='approved')fail('INVALID_EVIDENCE_REF','/content_analyses/semantic_review_receipt_ref','Content analysis needs its exact recoverable review receipt');
+  }
+  for (const version of Object.values(state.post_versions)) {
+    if(!state.post_entities[version.post_key] || !hasMaterial(version.source_ref)) fail('INVALID_EVIDENCE_REF','/post_versions','A post version must retain its entity and original material');
+  }
+  for (const entity of Object.values(state.post_entities)) {
+    if(entity.current_version_ref && !state.post_versions[entity.current_version_ref])fail('INVALID_EVIDENCE_REF','/current_version_ref','Current post version is missing');
+    const stable=state.account.user_id&&entity.author_id;
+    if(stable?entity.author_id!==state.account.user_id:entity.author_handle?.toLowerCase()!==state.account.handle.toLowerCase())fail('ACCOUNT_MISMATCH','/post_entities','Post entity belongs to another account');
+  }
+  for (const [alias,key] of Object.entries(state.post_aliases)) if(typeof key!=='string'||!state.post_entities[key])fail('INVALID_EVIDENCE_REF',`/post_aliases/${alias}`,'Canonical entity is missing');
+  for (const snapshot of Object.values(state.snapshots_v2)) {
+    if(!Object.values(snapshot.metrics).every(metric=>metric.definition_id.startsWith('legacy.v1.')))validateMetricObservation(snapshot,undefined,state.account);
+    if (state.account.user_id && snapshot.account_id && snapshot.account_id!==state.account.user_id)fail('ACCOUNT_MISMATCH','/snapshots_v2/account_id','Observation belongs to another account');
+    if (!hasMaterial(snapshot.source_ref)||!state.source_series[snapshot.source_series_id])fail('INVALID_EVIDENCE_REF','/snapshots_v2','Observation material or series is missing');
+    if (snapshot.entity_type==='post'&&!state.post_entities[state.post_aliases[snapshot.entity_id]??snapshot.entity_id])fail('INVALID_EVIDENCE_REF','/snapshots_v2/entity_id','Observation post is missing');
+  }
 }
 
 export async function loadState(dir) {
   try {
     const state = JSON.parse(await readFile(join(dir, 'account-state.json'), 'utf8'));
-    if (state.schema_version !== 1) fail('SCHEMA_VERSION', '/schema_version', 'Unsupported state version');
+    if (![1,2].includes(state.schema_version)) fail('SCHEMA_VERSION', '/schema_version', 'Unsupported state version');
     if (!Number.isSafeInteger(state.revision) || state.revision < 1) fail('INVALID_INPUT', '/revision', 'Invalid state revision');
     return validateState(state);
   } catch (error) {
@@ -56,7 +86,7 @@ export async function loadState(dir) {
   }
 }
 
-export async function commitState(dir, expectedRevision, mutation) {
+export async function commitState(dir, expectedRevision, mutation, { migration = false } = {}) {
   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) fail('STATE_CONFLICT', '/expected_revision', 'A current revision is required for every write');
   await mkdir(dir, {recursive: true, mode: 0o700});
   const lockPath = join(dir, '.write.lock');
@@ -66,11 +96,12 @@ export async function commitState(dir, expectedRevision, mutation) {
   const temporary = join(dir, `.account-state.${process.pid}.${crypto.randomUUID()}.tmp`);
   try {
     const previous = await loadState(dir);
+    if (previous?.schema_version === 1 && !migration) fail('MIGRATION_REQUIRED','/schema_version','Preview and apply the V2 migration before writing this account');
     if ((previous?.revision ?? 0) !== expectedRevision) fail('STATE_CONFLICT', '/expected_revision', 'State changed; read the current revision before writing');
     const working = previous ? structuredClone(previous) : null;
     const result = await mutation(working);
     const next = result?.state ?? result;
-    if (!next || next.schema_version !== 1) fail('INVALID_INPUT', '/state', 'Mutation must return a versioned state');
+    if (!next || ![1,2].includes(next.schema_version)) fail('INVALID_INPUT', '/state', 'Mutation must return a versioned state');
     if (previous && canonicalHash(previous) === canonicalHash(next)) return previous;
     next.revision = expectedRevision + 1;
     validateState(next);

@@ -1,0 +1,331 @@
+{
+  "$id": "https://x-ops.local/schemas/review-v2.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ReviewInputV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "account",
+        "analysis_cutoff",
+        "publication_ids",
+        "post_keys",
+        "experiment_id",
+        "analysis_request"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 2
+        },
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "analysis_cutoff": {
+          "type": "string",
+          "format": "instant"
+        },
+        "publication_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "post_keys": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "experiment_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "analysis_request": {
+          "$ref": "#/definitions/AnalysisRequestV2"
+        }
+      }
+    },
+    "ReviewSourceAngleLinkV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publication_id",
+        "draft_id",
+        "revision",
+        "card_id",
+        "card_resolution",
+        "event_id",
+        "claim_ids",
+        "source_version_ids",
+        "angle"
+      ],
+      "properties": {
+        "publication_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "draft_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revision": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "card_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "card_resolution": {
+          "enum": [
+            "resolved",
+            "not_applicable",
+            "missing",
+            "conflicting"
+          ]
+        },
+        "event_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "claim_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "source_version_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "angle": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ReviewExperimentExecutionV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "experiment_id",
+        "status",
+        "linked_publication_ids",
+        "selected_publication_ids",
+        "executed",
+        "planned_primary_metric",
+        "observation_state",
+        "review_eligibility"
+      ],
+      "properties": {
+        "experiment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "proposed",
+            "accepted",
+            "running",
+            "ready_for_review",
+            "closed"
+          ]
+        },
+        "linked_publication_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "selected_publication_ids": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "executed": {
+          "type": "boolean"
+        },
+        "planned_primary_metric": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "definition_id"
+          ],
+          "properties": {
+            "definition_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "observation_state": {
+          "enum": [
+            "mature",
+            "partial",
+            "pending",
+            "missing"
+          ]
+        },
+        "review_eligibility": {
+          "enum": [
+            "ready",
+            "closed",
+            "running_or_pending",
+            "not_executed"
+          ]
+        }
+      }
+    },
+    "ReviewPendingRequirementV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "window_id",
+        "metric_definition_id",
+        "pending_n"
+      ],
+      "properties": {
+        "window_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metric_definition_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pending_n": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "DeterministicReviewV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_id",
+        "contract_version",
+        "account",
+        "analysis_cutoff",
+        "experiment_id",
+        "experiment_status",
+        "experiment_execution",
+        "publication_links",
+        "source_angle_links",
+        "account_analysis",
+        "mature_observation_refs",
+        "pending_observation_refs",
+        "pending_requirements",
+        "computed_limitations",
+        "semantic_review_required"
+      ],
+      "properties": {
+        "review_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contract_version": {
+          "const": 2
+        },
+        "account": {
+          "$ref": "#/definitions/Account"
+        },
+        "analysis_cutoff": {
+          "type": "string",
+          "format": "instant"
+        },
+        "experiment_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "experiment_status": {
+          "oneOf": [
+            {
+              "enum": [
+                "proposed",
+                "accepted",
+                "running",
+                "ready_for_review",
+                "closed"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "experiment_execution": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ReviewExperimentExecutionV2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "publication_links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PublicationLink"
+          }
+        },
+        "source_angle_links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReviewSourceAngleLinkV2"
+          }
+        },
+        "account_analysis": {
+          "$ref": "#/definitions/AccountAnalysisResultV2"
+        },
+        "mature_observation_refs": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "pending_observation_refs": {
+          "$ref": "#/definitions/UniqueStrings"
+        },
+        "pending_requirements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReviewPendingRequirementV2"
+          }
+        },
+        "computed_limitations": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "semantic_review_required": {
+          "const": true
+        }
+      }
+    },
+    "ReviewPayloadV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "review_input"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 2
+        },
+        "review_input": {
+          "$ref": "#/definitions/ReviewInputV2"
+        }
+      }
+    }
+  }
+}

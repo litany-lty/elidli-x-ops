@@ -9,7 +9,7 @@ description: >
 
 # X 运营助手
 
-围绕一个已指定的 X 账号完成五类任务：近期分析、原稿优化、新闻选题、偏好配置和发布后复盘。
+围绕一个已指定的 X 账号完成六类任务：持续数据分析、历史内容理解、原稿优化、新闻选题、偏好配置和发布后复盘。
 保持事实、计算、编辑判断和运营假设彼此可区分；不要保证流量增长。
 
 ## 先选择本次流程
@@ -21,6 +21,7 @@ description: >
 - “找适合发 X 的新闻”进入新闻发现。
 - “以后关注／这次只看”分别进入长期配置更新／本次覆盖。
 - “复盘上轮”进入采用、发布和观测关联复盘。
+- “结合数据和历史推文告诉我接下来怎么做”进入 V2 数据运营指导流程。
 
 普通新闻问答、邮件润色、数学变量 X 不属于本技能。
 用户指定账号后不要重复索取；没有完整数据时处理已取得范围并准确标记覆盖。
@@ -49,6 +50,10 @@ node scripts/x-ops.mjs <command> --input <request.json> --output <result.json> -
 涉及对象、命令 payload、错误和合并规则时读取 [数据合同](references/data-contracts.md)。
 需要导入或可选 X API 时读取 [数据访问](references/data-access.md)。
 需要真实搜索、读取、保存或恢复时读取 [宿主接入](references/host-integration.md)。
+需要连续导入 Analytics、理解历史内容、生成具体动作或复盘试验时读取 [V2 数据运营指导流程](references/v2-data-coaching.md)。
+需要核对 V2 实现范围、验收案例或剩余真实门禁时读取 [V2 需求与验收对应表](references/v2-acceptance.md)。
+
+V2 新增 `data-import`、`coach-step` 和 `state-migrate`，仍使用同一 CLI 入口。`preview` 不写状态；写入操作必须使用最新 `expected_revision`。`prepare` 或 `ingest` 成功只表示该步骤完成，不能据此把整个运营任务标为 complete。业务返回 `partial/3` 时按返回的缺口继续下一阶段，保留已经取得的材料与结果。
 
 ## 账号分析
 
@@ -69,6 +74,10 @@ node scripts/x-ops.mjs <command> --input <request.json> --output <result.json> -
 
 报告先写取得多少材料和覆盖，再写发现、其他可能解释、动作及下一次判断方式。
 只取得样本而用户要求完整近况时，结果必须保持 partial。
+
+需要持续运营指导时，账号分析还要分别输出账号期间表现、发布队列表现和同帖龄表现。先用 `data-import preview` 核对真实材料、身份、时间和指标口径，再 `commit`；同一材料重复导入应幂等，新导出可追加。正文和指标可以来自不同材料，通过稳定帖子实体关联，不能要求它们共用 source ID。
+
+运行 `coach-step prepare` 后，只分析实际读取的正文、父帖、引用、线程与媒体。将内容分析、有限证据范围、建议提案和实际语义复核按 `ingest kind` 逐步提交，最后 `finalize`。默认输出一个主要问题、最多三项具体动作和一个主要试验；每项动作都要有对象、改法、依据、成本、指标、观察窗口和停止条件。
 
 ## 原稿优化
 
@@ -143,6 +152,10 @@ node scripts/x-ops.mjs <command> --input <request.json> --output <result.json> -
 
 一次 fixture 表现不能表述成真实增长；没有实际观测时不能把预想结果当复盘。
 更正产生新来源版本；明确失效的主张使依赖草稿 needs_revision，但保留历史原文和当时状态。
+
+新闻草稿后续变成普通修订时必须继承原 `card_id`；不得改绑另一张卡。复盘全局精确解析该卡，缺失或冲突就明确报告，不回退到第一张卡。指标按帖子实体跨来源选择，再检查口径；正文来自归档、指标来自 Analytics 是有效关系。
+
+试验状态按 `proposed → accepted → running → ready_for_review → closed` 推进。没有明确采用不算执行，没有可靠发布不算运行，观测未成熟不宣称成功；达到复查条件但数据不足时可关闭为 `inconclusive`。下一轮读取此前已拒绝、已执行和无结果的动作，重复建议需要新证据或变化条件。
 
 ## 算法依据的使用边界
 

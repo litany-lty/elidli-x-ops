@@ -7,6 +7,7 @@ import {
   textHash,
   validate,
 } from './contracts.mjs';
+import { buildConsumerContext, goalSnapshotFromState } from './consumer-context.mjs';
 
 const require = createRequire(import.meta.url);
 const { version: parserVersion } = require('twitter-text/package.json');
@@ -43,6 +44,9 @@ function assertDraftShape(input) {
   if (input.card_id !== null && typeof input.card_id !== 'string') {
     fail('INVALID_INPUT', '/payload/draft_input/card_id', '必须是字符串或 null');
   }
+  if (input.personal_context_hash !== undefined && input.personal_context_hash !== null && typeof input.personal_context_hash !== 'string') {
+    fail('INVALID_INPUT', '/payload/draft_input/personal_context_hash', '必须是字符串、null 或省略');
+  }
   const hasOriginalText = typeof input.original_text === 'string' && input.original_text.length > 0;
   const hasOriginalRef = typeof input.original_ref === 'string' && input.original_ref.length > 0;
   if (!hasOriginalText && !hasOriginalRef) {
@@ -67,6 +71,11 @@ function assertDraftShape(input) {
 function allowedFormats(context) {
   const formats = context?.effective_config?.config?.content?.allowed_formats;
   return Array.isArray(formats) ? formats : [];
+}
+
+function currentGoalSnapshot(context) {
+  if (context.goal_snapshot) return context.goal_snapshot;
+  return goalSnapshotFromState(context.state, context.effective_config);
 }
 
 function getDraftHistory(input, state) {
@@ -222,6 +231,17 @@ export function checkDraft(input, context, asOf) {
   }
 
   const { draftId, previous, mode } = getDraftHistory(input, context.state ?? {});
+  if (previous?.card_id && input.card_id && input.card_id !== previous.card_id) {
+    fail('STALE_DRAFT', '/payload/draft_input/card_id', '草稿修订必须保留原新闻卡关联；不能改绑到另一张卡');
+  }
+  const cardId = input.card_id ?? previous?.card_id ?? null;
+  const personalizationContext = context.state?.schema_version === 2
+    ? buildConsumerContext(context.state, { intent: 'draft', goal_snapshot: currentGoalSnapshot(context) })
+    : null;
+  const personalContextHash = input.personal_context_hash ?? previous?.personal_context_hash ?? null;
+  if (personalContextHash && personalizationContext?.context_hash !== personalContextHash) {
+    fail('STALE_DRAFT', '/payload/draft_input/personal_context_hash', '个性化依据已变化；请读取当前上下文后重新复核草稿');
+  }
   const textHashes = input.texts.map(textHash);
   const sameAsPrevious = previous && Array.isArray(previous.text_hashes) &&
     previous.text_hashes.length === textHashes.length &&
@@ -254,7 +274,8 @@ export function checkDraft(input, context, asOf) {
     draft_id: draftId,
     revision: input.revision,
     parent_revision: input.parent_revision,
-    card_id: input.card_id,
+    card_id: cardId,
+    personal_context_hash: personalContextHash,
     original_text: input.original_text,
     original_ref: input.original_ref,
     format: input.format,
@@ -273,6 +294,7 @@ export function checkDraft(input, context, asOf) {
     evidence_status: evidenceStatus,
     validity,
     errors,
+    personalization_context: personalizationContext,
   };
   validate('DraftCheckResult', result);
   return result;
