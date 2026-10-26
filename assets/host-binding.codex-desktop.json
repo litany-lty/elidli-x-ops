@@ -37,6 +37,14 @@
     "text_string",
     "call_tool_result"
   ],
+  "account_collection": {
+    "visible_analytics_read": "unverified",
+    "analytics_export": "unverified",
+    "history_read": "unverified",
+    "official_api_read": "unverified",
+    "current_account_identity": null,
+    "last_verified_receipt_ref": null
+  },
   "node_execution": "Run Node 24 from the configured skill directory: node scripts/x-ops.mjs",
   "working_directory": ".",
   "persistence": {

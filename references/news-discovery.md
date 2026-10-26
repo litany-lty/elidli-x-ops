@@ -46,6 +46,10 @@
 选择顺序：事实与时效门槛 → 目标读者价值 → 相对旧内容的新增信息 → 作者能增加的解释／方法／限制 → 在条件接近时参考有范围的热度。
 高相关、热度未知的一手更新可以入选；高热但无关的事件可以舍弃。
 
+V2 `init` 会冻结当前 `consumer_context`。宿主只能根据其中实际返回的内容分析、声音样本、建议状态、活跃试验计划和已关闭试验提出账号个性化角度。活跃试验用于避免同时改变变量或偏离当前计划，不能表述成已证明有效。TopicCard 的 `personalization.context_hash` 必须等于该冻结上下文，`evidence_refs` 必须指向其 `refs`，并说明这些材料如何支持该角度；通过后记录为 `account_evidence`。没有个人证据仍可提供编辑角度，但必须记录为 `editorial_hypothesis`，不能借普通相关性声称“历史数据证明适合账号”。
+
+新闻运行期间个人依据发生变化时，不能让旧 context 静默通过 finalize；重新开始后续运行或明确沿用旧 cutoff 下的判断。目标来源只有用户确认时才标 `user_confirmed`，默认值和临时目标保持 `temporary_assumption`。
+
 ## 运行控制器
 
 正式顺序：`init → plan → reserve → 宿主调用 → ingest → assess → finalize`。

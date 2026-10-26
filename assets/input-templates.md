@@ -2,7 +2,7 @@
 
 这些模板展示输入形态；替换占位内容后再运行，不能把示例当真实账号或新闻。
 
-目录：CLI 外壳；规范账号 JSON；原稿 DraftInput；CSV ColumnMapping；新闻任务；运行时 ID 与任务关联。
+目录：CLI 外壳；规范账号 JSON；V2 数据导入；原稿 DraftInput；CSV ColumnMapping；新闻任务；运行时 ID 与任务关联。
 
 ## 规范账号 JSON
 
@@ -49,6 +49,7 @@ CSV payload 为 `{format:"csv",csv_path:"绝对CSV路径",mapping:ColumnMapping,
   "revision": 1,
   "parent_revision": null,
   "card_id": null,
+  "personal_context_hash": null,
   "original_text": "用户原文",
   "original_ref": "source-user-material",
   "format": "short_post",
@@ -65,6 +66,76 @@ CSV payload 为 `{format:"csv",csv_path:"绝对CSV路径",mapping:ColumnMapping,
   "semantic_review": null
 }
 ```
+
+新闻卡产生的草稿后续改稿时，继续使用代码返回的 `draft_id`，`revision` 加一并把 `parent_revision` 指向当前最新版。可以省略本次输入中的卡片值（使用 `card_id:null`），代码会继承父版本的精确 `card_id`；不能改绑另一张卡。
+
+## V2 数据导入
+
+以下结构只展示虚构材料的预览请求。`material_path` 必须是实际受限材料路径，`source_ref` 必须对应已经登记的原始材料；示例值不代表任何真实账号或已验证的 Analytics 格式。
+
+```json
+{
+  "schema_version": 1,
+  "run_id": null,
+  "expected_revision": null,
+  "payload": {
+    "contract_version": 2,
+    "operation": "preview",
+    "material_path": "/private/path/to/synthetic-example.csv",
+    "material_kind": "analytics_csv",
+    "source_ref": "source-synthetic-export",
+    "declared_context": {
+      "account_identity_ref": "x-handle:fixture_example",
+      "measurement_context": {
+        "observed_at": null,
+        "selected_period": {"start": null, "end_exclusive": null},
+        "source_timezone": null,
+        "basis": "user_export"
+      },
+      "mapping": {},
+      "constants": {},
+      "imported_at": "2026-10-26T04:00:00Z"
+    }
+  }
+}
+```
+
+先读取 `preview_id`、`preview_hash`、账号依据、缺列、未知定义和 adapter 状态。只有 `recognized` 且身份、期间和必要映射正确时才提交 `commit`；提交使用最新状态 revision，并带回同一材料 hash 与 preview hash。真实 CSV 样本未经验证时，adapter 必须保持 `unverified` 或 `mapping_required`，不能因为合成样本可解析就改成已验证。
+
+V2 教练流程按 `coach-step prepare → ingest content_analysis/evidence_scope → ingest coaching_proposal → ingest semantic_review → finalize` 推进。每次都复用返回的正式 `run_id`、最新 state revision、当前 `bundle_hash` 和 `proposal_hash`。正文、证据包或提案发生实质变化后，旧语义复核不能继续使用。
+
+## 账号采集回执
+
+真实宿主成功读取 Analytics、正常导出、历史帖子或官方 API 后，保存未改写的原始结果，再以 `record` 登记对应能力。下面是 fixture 结构示例；hash、位置和路径必须从实际原始结果计算。
+
+```json
+{
+  "schema_version": 1,
+  "run_id": null,
+  "expected_revision": 2,
+  "payload": {
+    "contract_version": 2,
+    "operation": "collection_receipt",
+    "data": {
+      "receipt_id": "collection-receipt-synthetic",
+      "binding_id": "actual-host-binding-id",
+      "capability": "analytics_export",
+      "status": "succeeded",
+      "account_identity_ref": "x-handle:fixture_example",
+      "tool_name": "actual-tool-name",
+      "host_call_ref": "actual-call-ref",
+      "actual_result_ref": "/absolute/private/path/synthetic-result.json",
+      "actual_result_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "identity_locator": {"start": 0, "end": 15, "exact_text": "fixture_example"},
+      "material_locator": {"start": 20, "end": 29, "exact_text": "synthetic"},
+      "captured_at": "2026-10-26T04:00:00Z",
+      "data_mode": "fixture"
+    }
+  }
+}
+```
+
+fixture 回执不会把真实能力标为 verified。登录墙、错号或失败使用对应状态并保留原始返回；不能把它们登记为成功或零数据。
 
 ## CSV ColumnMapping
 

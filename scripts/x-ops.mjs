@@ -9,9 +9,12 @@ import { checkDraft } from './lib/draft.mjs';
 import { buildReview } from './lib/review.mjs';
 import { initializeNews, advanceNews, finalizeRun } from './lib/news.mjs';
 import { loadState, commitState, initializeState, registerSources, putImmutable, saveDraft, savePersistenceReceipt, persistenceStatus, findSourceVersion } from './lib/state.mjs';
+import { dispatchV2, coachingRunResult } from './lib/v2-dispatch.mjs';
+import { verifyCollectionReceipt } from './lib/collection.mjs';
+import { buildConsumerContext, goalSnapshotFromState } from './lib/consumer-context.mjs';
 
 const runtimeDir=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const commands=['doctor','config','account-analyze','draft-check','news-step','record','review'];
+const commands=['doctor','config','account-analyze','draft-check','news-step','record','review','data-import','coach-step','state-migrate'];
 const fail=(code,path,message)=>{throw new ContractError(code,path,message,false);};
 const stage=(name,passed,refs=[],reason=null)=>({stage:name,required:true,status:passed?'passed':'failed',evidence_refs:refs,reason});
 const same=(left,right)=>canonicalHash(left)===canonicalHash(right);
@@ -41,7 +44,11 @@ async function doctor(payload,stateDir,state) {
     }
   }
   if(state&&await persistenceStatus(stateDir,state)==='saved')capabilities.persistence='verified';
-  return {runtime_version:process.version,dependency_versions:versions,schema_valid:true,state_access:stateAccess,binding_id:payload.binding.binding_id,capabilities,evidence_refs:refs,limitations:Object.entries(capabilities).filter(([,value])=>value!=='verified').map(([name])=>`${name} has no current successful probe receipt`)};
+  const accountCollection=Object.fromEntries(['visible_analytics_read','analytics_export','history_read','official_api_read'].map(name=>[name,{declared:payload.binding.account_collection?.[name]??'unverified',actual:'unverified'}]));
+  for(const receipt of Object.values(state?.collection_receipts??{}).sort((a,b)=>a.captured_at.localeCompare(b.captured_at)||a.receipt_id.localeCompare(b.receipt_id)))if(receipt.binding_id===payload.binding.binding_id&&receipt.data_mode==='live') {
+    try {await verifyCollectionReceipt(receipt,state.account);accountCollection[receipt.capability].actual=receipt.status==='succeeded'?'verified':receipt.status;refs.push(receipt.receipt_id);}catch {accountCollection[receipt.capability].actual='unverified';}
+  }
+  return {runtime_version:process.version,dependency_versions:versions,schema_valid:true,state_access:stateAccess,binding_id:payload.binding.binding_id,capabilities,account_collection:accountCollection,current_account_identity:state?.account??null,evidence_refs:refs,limitations:[...Object.entries(capabilities).filter(([,value])=>value!=='verified').map(([name])=>`${name} has no current successful probe receipt`),...Object.entries(accountCollection).filter(([,value])=>value.actual!=='verified').map(([name,value])=>`${name}: ${value.actual}`)]};
 }
 
 function makeRun(context,runId,stageResults,refs,hasFindings,extra={}) {
@@ -51,8 +58,31 @@ function makeRun(context,runId,stageResults,refs,hasFindings,extra={}) {
 
 function collectAccountMaterial(state,input) {
   assertAccount(state,input.account);registerSources(state,input.source_refs);
-  for(const post of input.posts)putImmutable(state.posts,post.post_key,post);
+  for(const post of input.posts)saveLegacyPost(state,post);
   for(const snapshot of input.snapshots)putImmutable(state.snapshots,snapshot.snapshot_id,snapshot);
+}
+
+function saveLegacyPost(state,post) {
+  const previous=state.posts[post.post_key];
+  if(previous&&same({...previous,source_ref:null},{...post,source_ref:null})) {
+    // The legacy projection retains its original source; V2 keeps the extra evidence.
+    const entity=state.post_entities?.[state.post_aliases?.[post.post_key]??post.post_key];
+    if(entity)entity.evidence_refs=[...new Set([...entity.evidence_refs,post.source_ref])];
+    return;
+  }
+  putImmutable(state.posts,post.post_key,post);
+}
+
+function requestedCalculationsComplete(input,result) {
+  const outputs=input.requested_scope.requested_outputs,metrics=input.requested_scope.selection_policy.requested_metrics;
+  const groups=result.metric_groups.filter(g=>g.group_by==='all');
+  const valid=(metric,prefix)=>groups.some(g=>g.metric===metric&&g.window.startsWith(prefix)&&g.valid_count>0&&g.missing_count===0);
+  return outputs.every(output=>output==='content'||metrics.every(metric=>{
+    if(output==='latest')return valid(metric,'current_7:latest');
+    if(output==='age_matched')return input.requested_scope.selection_policy.age_windows.every(age=>valid(metric,`current_7:age:${age.target_hours}h`));
+    if(output==='comparison')return result.comparisons.some(c=>c.metric===metric&&c.group_by==='all'&&c.current_value!==null&&c.previous_value!==null);
+    return false;
+  }));
 }
 
 async function record(payload,request,stateDir,existing) {
@@ -79,7 +109,7 @@ async function record(payload,request,stateDir,existing) {
     }
     if(operation==='observations') {
       registerSources(state,data.source_refs);
-      for(const post of data.posts) {validate('PostRecord',post);if(post.author_handle.toLowerCase()!==state.account.handle.toLowerCase())fail('IDENTITY_MISMATCH','/author_handle','Observation post belongs to another account');putImmutable(state.posts,post.post_key,post);}
+      for(const post of data.posts) {validate('PostRecord',post);if(post.author_handle.toLowerCase()!==state.account.handle.toLowerCase()&&!(state.account.user_id&&post.account_id===state.account.user_id))fail('IDENTITY_MISMATCH','/author_handle','Observation post belongs to another account');saveLegacyPost(state,post);}
       for(const snapshot of data.snapshots) {validate('Snapshot',snapshot);if(!state.sources[snapshot.source_ref])fail('MISSING_EVIDENCE','/source_ref','Observation has no actual source');if(snapshot.entity_type==='post'&&!state.posts[snapshot.entity_id])fail('MISSING_EVIDENCE','/entity_id','Post observation has no linked post');if(snapshot.account_id&&state.account.user_id&&snapshot.account_id!==state.account.user_id)fail('IDENTITY_MISMATCH','/account_id','Observation belongs to another account');putImmutable(state.snapshots,snapshot.snapshot_id,snapshot);}
       response={record_refs:data.snapshots.map(s=>s.snapshot_id),run_result:null};return state;
     }
@@ -114,6 +144,7 @@ async function record(payload,request,stateDir,existing) {
       response={record_refs:[id],run_result:null};return state;
     }
     const context=payload.run_context;validate('RunContext',context);assertAccount(state,context.effective_config.config.account);
+    for(const ruleRef of context.rule_version_refs??[])if(!state.rule_versions_v2?.[ruleRef]&&!state.rule_versions[ruleRef])fail('INVALID_EVIDENCE_REF','/run_context/rule_version_refs','Referenced algorithm rule does not exist');
     const runId=request.run_id??newId('run');if(state.runs[runId])fail('STATE_CONFLICT','/run_id','Non-news completed runs are immutable');
     if(operation==='analysis') {
       if(context.intent!=='account_analysis')fail('INVALID_INPUT','/run_context/intent','Incorrect analysis intent');
@@ -129,8 +160,9 @@ async function record(payload,request,stateDir,existing) {
       for(const action of data.report.actions)if(!action.basis_refs.length||action.basis_refs.some(ref=>!evidenceIds.has(ref)))fail('MISSING_EVIDENCE','/actions/basis_refs','Actions must link actual account evidence');
       const coverage=input.requested_scope.mode==='sample'||['source_window_complete','user_declared_complete'].includes(result.coverage.status);
       const outputs=input.requested_scope.requested_outputs;
-      const numerical=!outputs.some(o=>o!=='content')||result.metric_groups.some(g=>g.valid_count>0);
-      const stages=[stage('identity',true,[state.account.profile_url]),stage('import',true,input.source_refs.map(s=>s.source_id)),stage('coverage',coverage,[],coverage?null:'Only a sample was obtained for a full request'),stage('requested_calculations',numerical,[],numerical?null:'Requested numerical observations are unavailable'),stage('analysis_report',data.report.findings.length>0,data.report.representative_posts),stage('persistence',false,[],'Actual persistence receipt is pending')];
+      const numerical=requestedCalculationsComplete(input,result);
+      const reportReady=data.report.findings.length>0&&data.report.actions.length>0&&data.report.actions.length<=3&&data.report.findings.every(f=>f.statement.trim()&&f.interpretation.trim())&&data.report.actions.every(a=>a.change.trim()&&a.next_check.trim());
+      const stages=[stage('identity',true,[state.account.profile_url]),stage('import',true,input.source_refs.map(s=>s.source_id)),stage('coverage',coverage,[],coverage?null:'Only a sample was obtained for a full request'),stage('requested_calculations',numerical,[],numerical?null:'One or more requested numerical outputs are incomplete'),stage('analysis_report',reportReady,data.report.representative_posts,reportReady?null:'Guidance needs a nonempty finding and one to three executable actions'),stage('persistence',false,[],'Actual persistence receipt is pending')];
       const runResult=makeRun(context,runId,stages,[runId],data.report.findings.length>0,{limitations:result.limitations});
       state.runs[runId]={run_id:runId,intent:context.intent,run_context:context,report:structuredClone(data.report),run_result:runResult};response={record_refs:[runId],run_result:runResult};return state;
     }
@@ -157,8 +189,12 @@ async function record(payload,request,stateDir,existing) {
       if(context.intent!=='review')fail('INVALID_INPUT','/run_context/intent','Incorrect review intent');
       const computed=buildReview(data.review_input,state),report=structuredClone(data.report);
       validate('ReviewResult',report);
+      if(computed.limitations.some(reason=>!report.limitations.includes(reason)))fail('INVALID_INPUT','/report/limitations','Computed limitations cannot be removed');
       for(const key of Object.keys(computed))if(!['finding_proposals','next_experiment','limitations','semantic_review_required'].includes(key)&&!same(computed[key],report[key]))fail('INVALID_INPUT',`/report/${key}`,'Review calculations must equal the production result');
       if(!report.finding_proposals.length||!report.next_experiment)fail('MISSING_EVIDENCE','/review_report','Review needs evidence-based findings and one next experiment');
+      const reviewEvidence=new Set([...Object.keys(state.posts),...Object.keys(state.snapshots),...Object.keys(state.sources),...Object.keys(state.publications),...Object.keys(state.adoptions)]);
+      for(const finding of report.finding_proposals)if(!finding.statement.trim()||!finding.interpretation.trim()||finding.evidence_refs.some(ref=>!reviewEvidence.has(ref)))fail('INVALID_EVIDENCE_REF','/finding_proposals','Review findings require nonempty statements and recoverable evidence');
+      if(report.next_experiment.basis_refs.some(ref=>!reviewEvidence.has(ref)))fail('INVALID_EVIDENCE_REF','/next_experiment/basis_refs','Experiment evidence must exist');
       const id=newId('review');state.reviews[id]={review_id:id,review_input:structuredClone(data.review_input),report};
       const stages=[stage('record_linkage',computed.publication_links?.length>0||data.review_input.post_ids.length>0),stage('requested_calculations',computed.descriptive_statistics.metric_groups.some(g=>g.valid_count>0)),stage('review_report',true,[id]),stage('persistence',false)];
       const result=makeRun(context,runId,stages,[id],true,{limitations:report.limitations});state.runs[runId]={run_id:runId,intent:context.intent,run_context:context,report,run_result:result};response={record_refs:[id],run_result:result};return state;
@@ -169,6 +205,7 @@ async function record(payload,request,stateDir,existing) {
 }
 
 function currentRunView(state,runId,persistence) {
+  if(state.coaching_runs?.[runId])return coachingRunResult(state,runId,persistence);
   const run=structuredClone(state.runs[runId]);if(!run)fail('MISSING_EVIDENCE','/run_id','Run does not exist');
   if(run.request&&run.binding)return finalizeRun(run,{state,persistence_status:persistence});
   const old=run.run_result;
@@ -180,6 +217,7 @@ function currentRunView(state,runId,persistence) {
 
 async function dispatch(command,request,stateDir) {
   const payload=request.payload;let state=await loadState(stateDir);
+  if(payload.contract_version===2)return dispatchV2(command,request,stateDir,state);
   if(command==='doctor')return {data:await doctor(payload,stateDir,state),state};
   if(command==='config') {
     const base=state?.config??createDefaultConfig();
@@ -214,8 +252,10 @@ async function dispatch(command,request,stateDir) {
     state=await commitState(stateDir,request.expected_revision,working=>{
       if(payload.operation==='init') {
         const run=initializeNews(payload.request,payload.effective_config,payload.binding,payload.request.requested_at);assertAccount(working,run.effective_config.config.account);
-        const superseded=new Set(Object.values(working.rule_versions).map(rule=>rule.supersedes).filter(Boolean));
-        run.rule_version_ids=Object.keys(working.rule_versions).filter(id=>!superseded.has(id));
+        run.consumer_context=buildConsumerContext(working,{intent:'news',goal_snapshot:goalSnapshotFromState(working,run.effective_config.config)});
+        const allRules={...working.rule_versions,...working.rule_versions_v2};
+        const superseded=new Set(Object.values(allRules).map(rule=>rule.supersedes).filter(Boolean));
+        run.rule_version_ids=Object.keys(allRules).filter(id=>!superseded.has(id));
         working.runs[run.run_id]=run;data={run};return working;
       }
       const run=working.runs[request.run_id];if(!run?.binding)fail('MISSING_EVIDENCE','/run_id','News run does not exist');
@@ -245,7 +285,7 @@ export async function main(argv=process.argv.slice(2)) {
     envelope={schema_version:1,command,run_id:request.run_id??runResult?.run_id??result.data?.run?.run_id??null,status,data:result.data,errors:result.data?.errors??[],evidence_refs:result.data?.record_refs??[],state_revision:result.state?.revision??0};
   } catch(error) {
     const code=error instanceof ContractError?error.code:error instanceof SyntaxError?'INVALID_INPUT':'IO_ERROR';
-    exitCode=['STATE_CONFLICT','BUDGET_EXHAUSTED','CAPABILITY_UNAVAILABLE','MISSING_EVIDENCE','PERSIST_FAILED'].includes(code)?4:code==='IO_ERROR'?5:2;
+    exitCode=['STATE_CONFLICT','BUDGET_EXHAUSTED','CAPABILITY_UNAVAILABLE','MISSING_EVIDENCE','PERSIST_FAILED','MIGRATION_REQUIRED','AUTH_REQUIRED','ADAPTER_UNVERIFIED'].includes(code)?4:code==='IO_ERROR'?5:2;
     envelope={schema_version:1,command,run_id:request?.run_id??null,status:exitCode===4?'blocked':'error',data:null,errors:[{code,path:error.path??'/',message:error.message,retryable:error.retryable??false}],evidence_refs:[],state_revision:null};
   }
   const output=JSON.stringify(envelope,null,2)+'\n';

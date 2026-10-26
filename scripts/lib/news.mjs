@@ -4,6 +4,7 @@ import { matchSource } from './config.mjs';
 import { ingestHostResult, normalizeUrl } from './host-results.mjs';
 import { findSourceVersion, saveSourceVersion, reviseClaimStatus, saveDraft } from './state.mjs';
 import { checkDraft } from './draft.mjs';
+import { buildConsumerContext, goalSnapshotFromState } from './consumer-context.mjs';
 
 const fail = (code,path,message) => { throw new ContractError(code,path,message,false); };
 const iso = value => Temporal.Instant.from(value).toString();
@@ -245,6 +246,12 @@ function finishNews(run,payload,context,asOf) {
   const cards=[];
   for(const proposal of payload.cards) {
     const card=structuredClone(proposal),event=state.events[card.event_id];validate('TopicCard',card);
+    if(card.personalization) {
+      const consumer=buildConsumerContext(state,{intent:'news',goal_snapshot:goalSnapshotFromState(state,run.effective_config.config)});
+      if(card.personalization.context_hash!==consumer.context_hash||card.personalization.context_hash!==run.consumer_context?.context_hash)fail('STALE_BUNDLE','/cards/personalization','Personalized angle needs the actual current account context');
+      if(!card.personalization.evidence_refs.length||card.personalization.evidence_refs.some(ref=>!consumer.refs.includes(ref)))fail('INVALID_EVIDENCE_REF','/cards/personalization/evidence_refs','Personalized angle requires actual account evidence');
+      card.personalization_basis='account_evidence';
+    } else card.personalization_basis='editorial_hypothesis';
     const inWindow=event?eventInWindow(event,run):null,decision=event?decisionForRun(run,event):null;
     if(!event || !run.event_ids.includes(event.event_id) || inWindow===null || (!inWindow&&!config.allow_out_of_window) || !decision?.relevant)fail('MISSING_EVIDENCE','/cards/event_id','Event fails time, source, relevance or scope gate');
     if(card.window_status!==(inWindow?'in_window':'out_of_window'))fail('INVALID_INPUT','/window_status','Card must describe this frozen run window');

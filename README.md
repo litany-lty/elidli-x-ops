@@ -46,7 +46,7 @@ node scripts/x-ops.mjs <command> \
 
 输入必须是包含 `schema_version`、`run_id`、`expected_revision` 和 `payload` 的 JSON 外壳。调用方应同时检查进程退出码与输出 `ResultEnvelope.status`；退出码为 0 不代表一次业务任务的所有阶段都已完整完成。
 
-可用的 7 个命令：
+可用命令：
 
 | 命令 | 用途 |
 | --- | --- |
@@ -57,6 +57,9 @@ node scripts/x-ops.mjs <command> \
 | `news-step` | 分阶段执行有预算、有票据的新闻发现流程 |
 | `record` | 保存初始化、材料、分析、草稿、采用、发布或回执记录 |
 | `review` | 关联真实发布版本与观测，生成复盘计算结果 |
+| `data-import` | 预览并提交 V2 Analytics、宿主观测或历史帖子材料 |
+| `coach-step` | 准备证据、接收内容分析与建议、绑定语义复核并交付报告 |
+| `state-migrate` | 预览或应用 V1 到 V2 的可恢复状态迁移 |
 
 各命令的请求对象和状态规则见 [`references/data-contracts.md`](references/data-contracts.md)。可复制的输入骨架见 [`assets/input-templates.md`](assets/input-templates.md)。
 
@@ -75,6 +78,14 @@ Agent 保留用户给出的事实、立场和声音，CLI 对完整文本执行�
 CLI 冻结主题、窗口、来源和预算，签发搜索／读取 ticket；宿主 Agent 持 ticket 执行真实网页搜索和读取，并把原始结果交回 CLI 归并、核验和记录。CLI 本身不直接联网，也不会用伪造结果冒充宿主调用。
 
 采用、发布和观测记录可在以上流程之后进入 `review`，但“生成草稿”“用户采用”和“真实发布”始终是三个不同事实。
+
+### 4. 持续数据运营指导
+
+V2 把材料、导入批次、稳定数据系列、帖子实体、正文版本与观测分开保存。它可以连续追加不同周的导出，把归档正文与 Analytics 指标关联到同一帖子，并分别计算账号期间、发布队列和同帖龄结果。
+
+宿主在冻结证据包后阅读实际历史内容，提交有文本位置依据的内容分析，再生成最多三项优先动作和一个主要试验。建议、采用、发布、成熟观测与复盘按状态推进；数据不足时保持 partial 或 inconclusive，不把预想结果写成效果。
+
+完整流程和边界见 [`references/v2-data-coaching.md`](references/v2-data-coaching.md)。
 
 ## 宿主绑定
 
@@ -108,6 +119,8 @@ node scripts/x-ops.mjs doctor \
 
 不要把账号状态、原始回执、凭据或真实账号材料提交到 Git。不要直接编辑 `account-state.json` 绕过 revision 与引用校验。
 
+V1 状态在首次 V2 写入前先运行 `state-migrate preview`。应用迁移会在账号私有目录保存原始字节备份与 hash；迁移完成后需要为新状态重新取得持久化回执。不要把备份放进仓库。
+
 ## 测试
 
 ```bash
@@ -115,6 +128,8 @@ npm test
 ```
 
 公开测试只使用合成 fixtures，验证 CLI、数据合同和确定性计算，不访问真实账号、不发布内容、不调用付费服务，也不证明任一宿主的真实联网链路已经通过。宿主搜索、读取和持久化能力需要在各自安装环境中单独验证。
+
+V2 的任务、问题和 48 个确定性案例对应关系见 [`references/v2-acceptance.md`](references/v2-acceptance.md)。该表定位实现与断言，不替代发布时的测试退出码或真实账号 Gate C 记录。
 
 ## 安全与范围
 

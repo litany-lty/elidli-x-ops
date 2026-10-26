@@ -6,6 +6,14 @@ import { Temporal } from '@js-temporal/polyfill';
 
 const schemaUrl = new URL('../../schemas/contracts.schema.json', import.meta.url);
 const schema = JSON.parse(readFileSync(fileURLToPath(schemaUrl), 'utf8'));
+// V2 payloads keep the existing transport envelope and share one strict registry.
+for (const name of ['data-v2.schema.json', 'coaching-v2.schema.json', 'review-v2.schema.json', 'consumer-v2.schema.json', 'runtime-v2.schema.json']) {
+  const extension = JSON.parse(readFileSync(new URL(`../../schemas/${name}`, import.meta.url), 'utf8'));
+  for (const [key, definition] of Object.entries(extension.definitions)) {
+    if (schema.definitions[key]) throw new Error(`Duplicate contract: ${key}`);
+    schema.definitions[key] = definition;
+  }
+}
 const ajv = new Ajv({ strict: true, allErrors: true, coerceTypes: false, removeAdditional: false, useDefaults: false });
 ajv.addFormat('instant', {
   type: 'string',
@@ -31,7 +39,10 @@ const errorCodes = new Set([
   'INVALID_INPUT', 'SCHEMA_VERSION', 'CONFIG_CONFLICT', 'MAPPING_REQUIRED',
   'IDENTITY_MISMATCH', 'NUMERIC_RANGE', 'BUDGET_EXHAUSTED',
   'CAPABILITY_UNAVAILABLE', 'UNSUPPORTED_RESPONSE', 'RECEIPT_CONFLICT',
-  'MISSING_EVIDENCE', 'STALE_DRAFT', 'STATE_CONFLICT', 'PERSIST_FAILED'
+  'MISSING_EVIDENCE', 'STALE_DRAFT', 'STATE_CONFLICT', 'PERSIST_FAILED',
+  'METRIC_DEFINITION_UNRESOLVED', 'ACCOUNT_MISMATCH', 'OBSERVATION_CONFLICT',
+  'STALE_BUNDLE', 'INVALID_EVIDENCE_REF', 'REQUESTED_OUTPUT_INCOMPLETE',
+  'ADAPTER_UNVERIFIED', 'MIGRATION_REQUIRED', 'AUTH_REQUIRED'
 ]);
 
 export class ContractError extends Error {
@@ -65,6 +76,10 @@ function validatorFor(typeName) {
 ajv.addSchema(schema);
 
 export function validate(typeName, value) {
+  if (value?.contract_version === 2) {
+    const commands = {'coach-stepPayload':'CoachStepPayloadV2','data-importPayload':'DataImportPayloadV2','state-migratePayload':'StateMigratePayloadV2','account-analyzePayload':'AccountAnalyzePayloadV2','reviewPayload':'ReviewPayloadV2','recordPayload':'RecordPayloadV2'};
+    typeName = commands[typeName] ?? typeName;
+  }
   if (['news-stepPayload','NewsStepPayload'].includes(typeName) && value && typeof value === 'object') {
     const newsTypes={init:'NewsInitPayload',plan:'NewsPlanPayload',reserve:'NewsReservePayload',ingest:'NewsIngestPayload',assess:'NewsAssessPayload',finalize:'NewsFinalizePayload'};
     if(newsTypes[value.operation])typeName=newsTypes[value.operation];

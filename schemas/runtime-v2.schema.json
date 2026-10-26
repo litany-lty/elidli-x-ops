@@ -1,0 +1,469 @@
+{
+  "$id": "https://x-ops.local/runtime-v2.schema.json",
+  "definitions": {
+    "DataImportPayloadV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "material_path",
+        "material_kind",
+        "source_ref",
+        "declared_context"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 2
+        },
+        "operation": {
+          "enum": [
+            "preview",
+            "commit"
+          ]
+        },
+        "material_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_kind": {
+          "enum": [
+            "canonical_json",
+            "analytics_csv",
+            "host_observations",
+            "archive_posts"
+          ]
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "declared_context": {
+          "$ref": "#/definitions/ImportContextV2"
+        },
+        "preview_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "MigrationPreviewV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "preview_id",
+        "source_hash",
+        "source_revision",
+        "target_version",
+        "counts",
+        "limitations",
+        "preview_hash"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 2
+        },
+        "preview_id": {
+          "type": "string"
+        },
+        "source_hash": {
+          "type": "string"
+        },
+        "source_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_version": {
+          "const": 2
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "limitations": {
+          "$ref": "#/definitions/StringArray"
+        },
+        "preview_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "StateMigratePayloadV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 2
+        },
+        "operation": {
+          "enum": [
+            "preview",
+            "apply"
+          ]
+        },
+        "preview": {
+          "$ref": "#/definitions/MigrationPreviewV2"
+        },
+        "backup_directory": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "operation": {
+                "const": "apply"
+              }
+            },
+            "required": [
+              "operation"
+            ]
+          },
+          "then": {
+            "required": [
+              "preview",
+              "backup_directory"
+            ],
+            "properties": {
+              "preview": {
+                "$ref": "#/definitions/MigrationPreviewV2"
+              },
+              "backup_directory": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "CoachingRunScopeV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "requested_deliverables"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 2
+        },
+        "requested_deliverables": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "ResultSpanV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end",
+        "exact_text"
+      ],
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "exact_text": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "CollectionReceiptV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "binding_id",
+        "capability",
+        "status",
+        "account_identity_ref",
+        "tool_name",
+        "host_call_ref",
+        "actual_result_ref",
+        "actual_result_sha256",
+        "identity_locator",
+        "material_locator",
+        "captured_at",
+        "data_mode"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "binding_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability": {
+          "enum": [
+            "visible_analytics_read",
+            "analytics_export",
+            "history_read",
+            "official_api_read"
+          ]
+        },
+        "status": {
+          "enum": [
+            "succeeded",
+            "auth_required",
+            "account_mismatch",
+            "fetch_failed"
+          ]
+        },
+        "account_identity_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "host_call_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actual_result_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actual_result_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "identity_locator": {
+          "$ref": "#/definitions/ResultSpanV2"
+        },
+        "material_locator": {
+          "$ref": "#/definitions/ResultSpanV2"
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "instant"
+        },
+        "data_mode": {
+          "enum": [
+            "live",
+            "fixture"
+          ]
+        }
+      }
+    },
+    "RecordCollectionPayloadV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "data"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 2
+        },
+        "operation": {
+          "const": "collection_receipt"
+        },
+        "data": {
+          "$ref": "#/definitions/CollectionReceiptV2"
+        }
+      }
+    },
+    "ImportContextV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "account_identity_ref",
+        "measurement_context"
+      ],
+      "properties": {
+        "account_identity_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_context": {
+          "$ref": "#/definitions/MeasurementContextV2"
+        },
+        "adapter_hint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapping": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "constants": {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "source_series_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reinterprets_batch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "imported_at": {
+          "type": "string",
+          "format": "instant"
+        },
+        "account_entity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "account_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "current_source_date": {
+          "type": "string",
+          "format": "calendar-date"
+        }
+      }
+    },
+    "AccountAnalyzePayloadV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "request",
+        "as_of"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 2
+        },
+        "request": {
+          "$ref": "#/definitions/AnalysisRequestV2"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "instant"
+        }
+      }
+    },
+    "RecordRulePayloadV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "data"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 2
+        },
+        "operation": {
+          "const": "rule_version"
+        },
+        "data": {
+          "$ref": "#/definitions/RuleVersionV2"
+        }
+      }
+    },
+    "RecordExperimentPayloadV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "data",
+        "actual_evidence"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 2
+        },
+        "operation": {
+          "const": "experiment"
+        },
+        "data": {
+          "$ref": "#/definitions/ExperimentTransitionV2"
+        },
+        "actual_evidence": {
+          "$ref": "#/definitions/ExperimentTransitionEvidenceV2"
+        }
+      }
+    },
+    "RecordActionPayloadV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "data"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 2
+        },
+        "operation": {
+          "const": "action_decision"
+        },
+        "data": {
+          "$ref": "#/definitions/ActionDecisionV2"
+        }
+      }
+    },
+    "RecordPayloadV2": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/RecordRulePayloadV2"
+        },
+        {
+          "$ref": "#/definitions/RecordExperimentPayloadV2"
+        },
+        {
+          "$ref": "#/definitions/RecordActionPayloadV2"
+        },
+        {
+          "$ref": "#/definitions/RecordCollectionPayloadV2"
+        }
+      ]
+    }
+  }
+}
