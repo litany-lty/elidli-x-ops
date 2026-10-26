@@ -29,6 +29,8 @@ npm ci
 $x-ops 分析这个 X 账号近 28 天的公开内容与实际可见表现
 $x-ops 优化下面这条推文，保留我的事实与立场
 $x-ops 查找今天适合这个账号发布的 AI 新闻选题
+$x-ops 把这段原稿做成中文工具对比，三张信息卡，语气克制
+$x-ops 只把第二张换成流程图，其他内容保持不变
 ```
 
 不同宿主的技能目录和重载方式不同；本仓库不假设固定的个人目录。
@@ -60,6 +62,7 @@ node scripts/x-ops.mjs <command> \
 | `data-import` | 预览并提交 V2 Analytics、宿主观测或历史帖子材料 |
 | `coach-step` | 准备证据、接收内容分析与建议、绑定语义复核并交付报告 |
 | `state-migrate` | 预览或应用 V1 到 V2 的可恢复状态迁移 |
+| `content-step` | 准备、制作、组装、审核、局部修改、恢复和交付真实图文稿件 |
 
 各命令的请求对象和状态规则见 [`references/data-contracts.md`](references/data-contracts.md)。可复制的输入骨架见 [`assets/input-templates.md`](assets/input-templates.md)。
 
@@ -86,6 +89,16 @@ V2 把材料、导入批次、稳定数据系列、帖子实体、正文版本�
 宿主在冻结证据包后阅读实际历史内容，提交有文本位置依据的内容分析，再生成最多三项优先动作和一个主要试验。建议、采用、发布、成熟观测与复盘按状态推进；数据不足时保持 partial 或 inconclusive，不把预想结果写成效果。
 
 完整流程和边界见 [`references/v2-data-coaching.md`](references/v2-data-coaching.md)。
+
+### 5. 图文制作与定制
+
+宿主把自然语言需求解析成可恢复的 ContentBrief，分别记录发布结构、编辑任务、图片用途和视觉风格，再冻结内置或账号私有的 JSON recipe。仓库提供观点、教程、对比、新闻解读、案例复盘和清单六种内置配方；配方只是数据，不能执行代码、扩大权限或关闭事实审核。
+
+`content-step` 按 `prepare → ingest → compose → review → finalize` 推进。实际图片和预览由宿主能力制作，CLI 从真实文件计算 hash、格式和尺寸，保存实际回执，再组成不可变 ContentPack。图片提示词、任务 ID 或临时 URL不会被当作成品。
+
+局部修改通过 `revise` 精确定位文字或媒体 slot；`restore` 引用真实历史 pack 并追加 revision。未变化的文字和图片按精确 hash 复用。稿件 readiness 与任务执行、采用、发布分别显示；缺一张图时已完成文字和其他资产仍可恢复，但整包保持 incomplete。
+
+详细合同、自然语言示例和恢复流程见 [`references/content-workflow.md`](references/content-workflow.md)。
 
 ## 宿主绑定
 
@@ -119,7 +132,7 @@ node scripts/x-ops.mjs doctor \
 
 不要把账号状态、原始回执、凭据或真实账号材料提交到 Git。不要直接编辑 `account-state.json` 绕过 revision 与引用校验。
 
-V1 状态在首次 V2 写入前先运行 `state-migrate preview`。应用迁移会在账号私有目录保存原始字节备份与 hash；迁移完成后需要为新状态重新取得持久化回执。不要把备份放进仓库。
+V1/V2 状态在首次 NEXT-2.1 写入前先运行 `state-migrate preview`。应用迁移会在账号私有目录保存原始字节备份与 hash；state 3 写入完成后需要重新加载并取得当前状态的持久化回执。不要把备份或实际媒体放进仓库。
 
 ## 测试
 
@@ -142,3 +155,5 @@ V2 的任务、问题和 48 个确定性案例对应关系见 [`references/v2-ac
 ## 许可证
 
 本项目以 [MIT License](LICENSE) 发布。第三方依赖仍分别适用其原许可证，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+NEXT-2.1 的完整范围、52项场景与真实使用边界见[交付与验收](references/next-acceptance.md)。最终精确提交的工程门禁以本仓库 Actions 为准。

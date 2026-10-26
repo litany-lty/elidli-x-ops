@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "recipe_id": "checklist",
+  "recipe_version": "1.0.0",
+  "name": "清单",
+  "applicable_goals": [
+    "relevant_reach",
+    "discussion",
+    "followers",
+    "clicks",
+    "custom"
+  ],
+  "required_materials": [
+    "明确判断条件与使用顺序"
+  ],
+  "editorial_structure": [
+    "使用场景",
+    "检查项",
+    "使用顺序",
+    "停止条件"
+  ],
+  "visual_roles": [
+    "information_card",
+    "process"
+  ],
+  "default_deliverables": [
+    "text",
+    "sources"
+  ],
+  "quality_checks": [
+    "事实与用户材料一致",
+    "保留用户立场与必要限定",
+    "未读或未知内容明确标注",
+    "行动与观察条件具体"
+  ],
+  "editable_preferences": [
+    "language",
+    "tone",
+    "visual_style",
+    "image_count",
+    "information_density"
+  ]
+}

@@ -1,7 +1,8 @@
 import { canonicalHash, newId, ContractError } from './contracts.mjs';
 import { analyzeAccountV2 } from './account.mjs';
-import { prepareContentAnalysis, validateContentAnalysis, isContentAnalysisCurrent } from './post-content.mjs';
+import { prepareContentAnalysis, validateContentAnalysis, isContentAnalysisCurrent, prepareContentAnalysisV3, validateContentAnalysisV3, activeContentReceiptV3 } from './post-content.mjs';
 import { priorActionOutcome, validateExperimentPlan } from './experiments.mjs';
+import { selectMetricObservations } from './observation-selection.mjs';
 
 const fail = (code, path, message) => { throw new ContractError(code, path, message, false); };
 const values = value => Object.values(value ?? {});
@@ -100,8 +101,12 @@ function currentContentRefs(state, requestedRefs, analysisVersion) {
   const requested = new Set(requestedRefs);
   const current = values(state.content_analyses).filter(item => {
     const version = state.post_versions?.[item.post_version_ref];
-    if (!(requested.has(item.post_version_ref) && version && item.analysis_version === analysisVersion && isContentAnalysisCurrent(item, version, analysisVersion, state.post_versions))) return false;
-    try { validateContentAnalysis(item, state, state.content_review_receipts?.[item.semantic_review_receipt_ref]); return true; }
+    if (!(requested.has(item.post_version_ref) && version && item.analysis_version === analysisVersion)) return false;
+    try {
+      if(item.contract_version===3)validateContentAnalysisV3(item,state,activeContentReceiptV3(state,item));
+      else {if(!isContentAnalysisCurrent(item,version,analysisVersion,state.post_versions))return false;validateContentAnalysis(item,state,state.content_review_receipts?.[item.semantic_review_receipt_ref]);}
+      return true;
+    }
     catch { return false; }
   }).sort((left, right) => String(right.reviewed_at).localeCompare(String(left.reviewed_at)) || left.analysis_id.localeCompare(right.analysis_id));
   const selected = new Map();
@@ -157,13 +162,24 @@ function materialScope(state, refs) {
   return refs.map(ref => [ref, resolveMaterial(state, ref)]);
 }
 
+/** Build purpose-bound evidence; background/excluded refs never become target metric results. */
+export function buildEvidenceRolesV3(state,{target,baseline=null,background_refs=[],as_of}={}) {
+  const targetSelection=selectMetricObservations(state,{...target,as_of,role:'target'});
+  const baselineSelection=baseline?selectMetricObservations(state,{...baseline,as_of,role:'baseline'}):null;
+  const index={};
+  for(const selection of [targetSelection,baselineSelection].filter(Boolean))for(const selected of selection.selected)addEvidence(index,selected.observation_ref,objectHashEntry('observation',{observation_ref:selected.observation_ref,role:selection.role,selection_hash:selection.selection_hash},selected,{availability:'observed',definition_id:selected.metric_definition_id,evidence_role:selection.role}));
+  for(const ref of background_refs){const material=resolveMaterial(state,ref);if(!material)fail('INVALID_EVIDENCE_REF','/background_refs',`Background material is missing: ${ref}`);addEvidence(index,ref,objectHashEntry('source_material',{ref,role:'background'},material,{evidence_role:'background'}));}
+  for(const excluded of targetSelection.excluded)addEvidence(index,`excluded:${excluded.observation_ref}:${excluded.reason}`,objectHashEntry('observation',{observation_ref:excluded.observation_ref,role:'excluded'},excluded,{availability:'excluded',definition_id:null,evidence_role:'excluded'}));
+  return{contract_version:3,target_selection:targetSelection,baseline_selection:baselineSelection,evidence_index:index,evidence_roles_hash:canonicalHash({target:targetSelection.selection_hash,baseline:baselineSelection?.selection_hash??null,background_refs:[...background_refs].sort()})};
+}
+
 export function prepareCoaching(state, request, options = {}) {
   if (!request || request.contract_version !== 2) fail('INVALID_INPUT', '/contract_version', 'Coaching request requires contract_version 2');
   if (!accountMatches(state.account, request.account_identity)) fail('ACCOUNT_MISMATCH', '/account_identity', 'Coaching account does not match state');
   const analysisResults = analyzeAccountV2(canonicalInput(state, request), request.analysis_request);
   const requestedPostRefs = request.requested_post_version_refs ?? [];
   const contentAnalysisRefs = currentContentRefs(state, requestedPostRefs, request.content_analysis_version);
-  const content = prepareContentAnalysis(values(state.post_versions).filter(item => requestedPostRefs.includes(item.post_version_id ?? item.version_id)), {
+  const content = state.schema_version===3?prepareContentAnalysisV3(state,requestedPostRefs,{analysis_version:request.content_analysis_version,max_items:options.max_new_items??request.content_budget.max_items}):prepareContentAnalysis(values(state.post_versions).filter(item => requestedPostRefs.includes(item.post_version_id ?? item.version_id)), {
     requested_post_version_refs: requestedPostRefs,
     analysis_version: request.content_analysis_version,
     max_items: options.max_new_items ?? request.content_budget.max_items
@@ -243,11 +259,25 @@ function actionIsConcrete(action) {
   return !/^(多互动|提高内容质量|保持活跃|多追热点|多发热点|发优质内容)[。！!]?$/u.test(text);
 }
 
-function ensureNoAlgorithmFantasy(value) {
-  const text = JSON.stringify(value);
-  if (/推荐分|爆款概率|保底曝光|必然.*曝光|固定.*加.*分|限流.*(确定|证明)|likes?\s*[×x*]\s*\d/i.test(text)) {
-    fail('INVALID_INPUT', '/proposal', 'The proposal invents a ranking score, guarantee, or unsupported causal conclusion');
+export function algorithmReviewFlags(value,{rejectHard=false}={}) {
+  const source=typeof value==='string'?value:JSON.stringify(value);
+  const sentences=source.split(/(?<=[。！？!?；;])|\n+/u).map(text=>text.trim()).filter(Boolean),flags=[];
+  for(const text of sentences){
+    const negated=/(不能|不可|不要|不应|无法|不保证|并非|不是|没有证据|待核查|引用|反驳|uncertain|cannot|not guarantee|should not)/i.test(text);
+    let kind=null;
+    if(/推荐分|爆款概率|likes?\s*[×x*]\s*\d|点赞.*(换算|加).*分/i.test(text))kind='ranking_formula';
+    else if(/保底曝光|保证.*曝光|必然.*曝光|保证.*增长|guarantee/i.test(text))kind='effect_guarantee';
+    else if(/限流.*(确定|证明)/i.test(text))kind='causal_restriction';
+    if(!kind)continue;
+    const flag={flag_id:`algorithm-flag-${canonicalHash({kind,text}).slice(0,20)}`,kind,text,classification_required:true,severity:negated?'review':'hard_error'};flags.push(flag);
+    if(rejectHard&&!negated)fail('INVALID_INPUT','/proposal','The proposal contains an unsupported ranking or effect assertion');
   }
+  return flags;
+}
+
+function ensureNoAlgorithmFantasy(value) {
+  // Honest rebuttals and uncertainty must reach semantic review; only positive unsupported assertions hard fail.
+  return algorithmReviewFlags(value,{rejectHard:true});
 }
 
 export function validateCoachingProposal(proposal, bundle, state) {
@@ -377,12 +407,12 @@ function contentRunStatus(work) {
 }
 
 export function advanceCoaching(state, payload, runId = null) {
-  if (!state || state.schema_version !== 2) fail('MIGRATION_REQUIRED', '/state/schema_version', 'Coaching requires a v2 state');
+  if (!state || ![2,3].includes(state.schema_version)) fail('MIGRATION_REQUIRED', '/state/schema_version', 'Coaching requires a v2 or v3 state');
   for (const key of ['content_analyses', 'content_review_receipts', 'coaching_runs', 'evidence_bundles', 'diagnoses', 'actions', 'experiments', 'experiment_reviews', 'rule_versions_v2']) state[key] ??= {};
   if (payload.operation === 'prepare') {
     const id = runId ?? newId('coach_run');
     if (state.coaching_runs[id]) fail('STATE_CONFLICT', '/run_id', 'Coaching run already exists');
-    const run = { contract_version: 2, run_id: id, status: 'prepared', request: clone(payload.request), bundle_versions: [], active_bundle_id: null, active_bundle_hash: null, content_work_items: null, accepted_content_refs: [], accepted_content_count: 0, proposal: null, semantic_review: null, report_ref: null, created_at: payload.as_of, updated_at: payload.as_of };
+    const run = { contract_version: state.schema_version===3?3:2, run_id: id, status: 'prepared', request: clone(payload.request), bundle_versions: [], active_bundle_id: null, active_bundle_hash: null, content_work_items: null, accepted_content_refs: [], accepted_content_count: 0, proposal: null, semantic_review: null, report_ref: null, created_at: payload.as_of, updated_at: payload.as_of };
     state.coaching_runs[id] = run;
     const prepared = rebuildBundle(state, run);
     run.status = contentRunStatus(prepared.content_work_items);
@@ -393,8 +423,8 @@ export function advanceCoaching(state, payload, runId = null) {
   if (run.status === 'delivered') fail('STATE_CONFLICT', '/run_id', 'Delivered runs are immutable');
   if (payload.operation === 'ingest' && payload.kind === 'content_analysis') {
     if (run.accepted_content_count >= run.request.content_budget.max_items) fail('BUDGET_EXHAUSTED', '/content_budget', 'This run has used its total new-content analysis budget');
-    const analysis = validateContentAnalysis(payload.data.analysis, state, payload.data.semantic_receipt);
-    const item = run.content_work_items.work_items.find(candidate => candidate.post_version_ref === analysis.post_version_ref && candidate.content_hash === analysis.content_hash && candidate.context_hash === analysis.context_hash);
+    const analysis = state.schema_version===3?validateContentAnalysisV3(payload.data.analysis,state,payload.data.semantic_receipt):validateContentAnalysis(payload.data.analysis, state, payload.data.semantic_receipt);
+    const item = run.content_work_items.work_items.find(candidate => candidate.post_version_ref === analysis.post_version_ref && candidate.content_hash === analysis.content_hash && (state.schema_version===3?candidate.context_selection_hash===analysis.context_selection_hash:candidate.context_hash===analysis.context_hash));
     if (!item) fail('STALE_BUNDLE', '/post_version_ref', 'Content analysis does not answer an active work item');
     storeImmutable(state.content_review_receipts, payload.data.semantic_receipt.review_id, payload.data.semantic_receipt, '/content_review_receipts');
     storeImmutable(state.content_analyses, analysis.analysis_id, analysis, '/content_analyses');

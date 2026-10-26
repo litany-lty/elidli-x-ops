@@ -2,7 +2,7 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { canonicalHash, textHash, validate, summarizeRun, ContractError } from './contracts.mjs';
 import { loadState, commitState, persistenceStatus } from './state.mjs';
-import { inspectImport, normalizeImport, mergeImport } from './imports.mjs';
+import { inspectImport, normalizeImport, mergeImport, decodeImportMaterial } from './imports.mjs';
 import { analyzeAccountV2 } from './account.mjs';
 import { advanceCoaching, validateRuleVersionV2 } from './coaching.mjs';
 import { applyExperimentTransition, applyActionDecision } from './experiments.mjs';
@@ -16,7 +16,7 @@ function selectedRefs(value) {
   if(!value||typeof value!=='object')return[];
   return [...(value.selected_observation_refs??[]),...Object.values(value).flatMap(item=>typeof item==='object'?selectedRefs(item):[])];
 }
-export const canonicalStateInput = (state,cutoff) => ({contract_version:2,account:state.account,analysis_cutoff:cutoff,post_entities:values(state.post_entities),post_versions:values(state.post_versions),post_aliases:state.post_aliases,snapshots:values(state.snapshots_v2),source_series:values(state.source_series),coverage:values(state.import_batches).map(b=>b.coverage)});
+export const canonicalStateInput = (state,cutoff) => ({contract_version:2,account:state.account,analysis_cutoff:cutoff,post_entities:values(state.post_entities),post_versions:values(state.post_versions),post_aliases:state.post_aliases,snapshots:values(state.snapshots_v2),source_series:values(state.source_series),coverage:values(state.import_batches).map(b=>b.coverage),post_metadata_facts:state.post_metadata_facts??{},collection_receipts:state.collection_receipts??{}});
 
 export function coachingRunResult(state,runId,persistence='unverified') {
   const run=state.coaching_runs[runId];
@@ -35,7 +35,7 @@ export function coachingRunResult(state,runId,persistence='unverified') {
 async function importData(payload,request,stateDir,state) {
   const bytes=await readFile(payload.material_path,'utf8');
   // JSON parsing never executes the optional archive JS wrapper.
-  const content=payload.material_kind==='canonical_json'||payload.material_kind==='host_observations'?JSON.parse(bytes):bytes;
+  const {content}=decodeImportMaterial(payload.material_kind,Buffer.from(bytes));
   const material={kind:payload.material_kind,content,source_ref:payload.source_ref,raw_text:bytes,sha256:textHash(bytes)};
   const preview=inspectImport(material,payload.declared_context);
   if(payload.operation==='preview')return{state,data:{import_preview:preview}};
@@ -59,7 +59,7 @@ export async function dispatchV2(command,request,stateDir,state) {
   if(command==='state-migrate')return migrateState(stateDir,payload,request.expected_revision);
   if(command==='data-import')return importData(payload,request,stateDir,state);
   if(!state)fail('MISSING_EVIDENCE','/state','Initialize the target account first');
-  if(state.schema_version!==2)fail('MIGRATION_REQUIRED','/state/schema_version','Preview and apply migration before V2 analysis');
+  if(state.schema_version<2)fail('MIGRATION_REQUIRED','/state/schema_version','Preview and apply migration before V2 analysis');
   if(command==='account-analyze') {
     const result=analyzeAccountV2(canonicalStateInput(state,payload.as_of),payload.request);
     const deliverables=Object.keys(result.deliverable_status);

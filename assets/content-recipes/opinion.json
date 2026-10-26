@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "recipe_id": "opinion",
+  "recipe_version": "1.0.0",
+  "name": "观点",
+  "applicable_goals": [
+    "relevant_reach",
+    "discussion",
+    "followers",
+    "clicks",
+    "custom"
+  ],
+  "required_materials": [
+    "用户真实判断与支撑材料"
+  ],
+  "editorial_structure": [
+    "主张",
+    "依据",
+    "边界或启示"
+  ],
+  "visual_roles": [
+    "none",
+    "information_card",
+    "illustration"
+  ],
+  "default_deliverables": [
+    "text",
+    "sources"
+  ],
+  "quality_checks": [
+    "事实与用户材料一致",
+    "保留用户立场与必要限定",
+    "未读或未知内容明确标注",
+    "行动与观察条件具体"
+  ],
+  "editable_preferences": [
+    "language",
+    "tone",
+    "visual_style",
+    "image_count",
+    "information_density"
+  ]
+}

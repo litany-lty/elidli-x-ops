@@ -1,9 +1,13 @@
+import { createHash } from 'node:crypto';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve, relative } from 'node:path';
 import { canonicalHash, textHash, validate, ContractError } from './contracts.mjs';
-import { validateState, commitState, v2Collections } from './state.mjs';
+import { validateState, commitState, v2Collections, v3Collections } from './state.mjs';
 import { legacyImportFromState, mergeImport } from './imports.mjs';
 
+import { buildExperimentPlanView } from './review.mjs';
+
+const byteHash=value=>createHash('sha256').update(value).digest('hex');
 const fail = (code,path,message) => { throw new ContractError(code,path,message); };
 
 export function planMigration(v1State) {
@@ -56,13 +60,62 @@ export async function migrateState(dir,payload,expectedRevision) {
   const rel = relative(resolve(dir),backupDir);
   if (rel.startsWith('..') || rel === '') fail('INVALID_INPUT','/backup_directory','Use a backup subdirectory inside the private account state directory');
   await mkdir(backupDir,{recursive:true,mode:0o700});
-  const backupPath = join(backupDir,`v1-${textHash(raw)}.json`);
+  const backupPath = join(backupDir,`v1-${byteHash(raw)}.json`);
   try { await writeFile(backupPath,raw,{flag:'wx',mode:0o600}); }
-  catch (error) { if(error.code!=='EEXIST')throw error; if(textHash(await readFile(backupPath,'utf8'))!==textHash(raw))fail('RECEIPT_CONFLICT','/backup','Existing backup differs'); }
+  catch (error) { if(error.code!=='EEXIST')throw error; if(byteHash(await readFile(backupPath,'utf8'))!==byteHash(raw))fail('RECEIPT_CONFLICT','/backup','Existing backup differs'); }
   const next = await commitState(dir,expectedRevision,current=>{
     const migrated=applyMigration(current,payload.preview);
-    for(const artifact of Object.values(migrated.import_artifacts))if(artifact.path===`migration:${preview.preview_id}`) {artifact.path=backupPath;artifact.artifact_sha256=textHash(raw);}
+    for(const artifact of Object.values(migrated.import_artifacts))if(artifact.path===`migration:${preview.preview_id}`) {artifact.path=backupPath;artifact.artifact_sha256=byteHash(raw);}
     return migrated;
   },{migration:true});
-  return {state:next,data:{migration_receipt:{...next.migration_receipts[preview.preview_id],backup_path:backupPath,backup_sha256:textHash(raw)},idempotent:false,persistence_status:'unverified'}};
+  return {state:next,data:{migration_receipt:{...next.migration_receipts[preview.preview_id],backup_path:backupPath,backup_sha256:byteHash(raw)},idempotent:false,persistence_status:'unverified'}};
+}
+
+export function planMigrationV3(state) {
+  validateState(state);
+  if(![1,2].includes(state.schema_version))fail('SCHEMA_VERSION','/schema_version','State 3 needs no conversion');
+  const preview={contract_version:3,preview_id:`migration3:${canonicalHash(state)}`,source_hash:canonicalHash(state),source_revision:state.revision,source_version:state.schema_version,target_version:3,rule_version:'state3@1',counts:Object.fromEntries(Object.entries(state).filter(([,v])=>v&&typeof v==='object'&&!Array.isArray(v)).map(([k,v])=>[k,Object.keys(v).length])),limitations:['历史 ID 和对象保持不变；旧批准不自动取得 state 3 就绪状态。'],preview_hash:''};
+  preview.preview_hash=canonicalHash({...preview,preview_hash:undefined});return validate('MigrationPreviewV3',preview);
+}
+
+export function applyMigrationV3(state,preview) {
+  if(canonicalHash(planMigrationV3(state))!==canonicalHash(preview))fail('STATE_CONFLICT','/preview','Migration source changed');
+  const original=structuredClone(state);
+  let next=state.schema_version===1?applyMigration(state,planMigration(state)):structuredClone(state);
+  next.schema_version=3;
+  for(const key of v3Collections)next[key]??={};
+  for(const [key,value] of Object.entries(original))if(value&&typeof value==='object'&&key!=='migration_receipts'&&canonicalHash(value)!==canonicalHash(next[key]))fail('STATE_CONFLICT',`/${key}`,'Legacy objects must not change during migration');
+  for(const experiment of Object.values(next.experiments??{})) {
+    const view=buildExperimentPlanView(next,experiment);
+    next.experiment_plan_views[view.plan_view_id]=view;
+  }
+  next.migration_receipts[preview.preview_id]={migration_id:preview.preview_id,preview_hash:preview.preview_hash,source_hash:preview.source_hash,source_revision:preview.source_revision,target_revision:preview.source_revision+1,target_version:3};
+  return validateState(next);
+}
+
+export async function migrateStateV3(dir,payload,expectedRevision,{verifyReadback=null}={}) {
+  const file=join(dir,'account-state.json'),raw=await readFile(file,'utf8'),state=JSON.parse(raw);
+  if(state.schema_version===3){
+    const receipt=Object.values(state.migration_receipts).find(r=>r.target_version===3&&(!payload.preview||r.preview_hash===payload.preview.preview_hash));
+    if(!receipt)fail('STATE_CONFLICT','/preview','No matching state 3 migration receipt');
+    const loaded=validateState(JSON.parse(await readFile(file,'utf8')));
+    let verified=true;try{if(!receipt.backup_path||byteHash(await readFile(receipt.backup_path))!==receipt.backup_sha256||canonicalHash(JSON.parse(await readFile(receipt.inventory_path,'utf8')))!==receipt.inventory_hash)verified=false;}catch{verified=false;}
+    return {state:loaded,data:{migration_status:verified?'verified':'committed_unverified',migration_receipt:receipt,idempotent:true,persistence_status:verified?'saved':'unverified'}};
+  }
+  const preview=planMigrationV3(state);
+  if(payload.operation==='preview')return{state,data:{migration_preview:preview}};
+  if(payload.operation!=='apply'||!payload.preview||!payload.backup_directory)fail('INVALID_INPUT','/payload','Apply needs frozen preview and private backup directory');
+  if(canonicalHash(preview)!==canonicalHash(payload.preview))fail('STATE_CONFLICT','/preview','Frozen preview is stale');
+  const backupDir=resolve(payload.backup_directory),rel=relative(resolve(dir),backupDir);
+  if(rel.startsWith('..')||!rel)fail('INVALID_INPUT','/backup_directory','Backup must be inside private account state');
+  await mkdir(backupDir,{recursive:true,mode:0o700});
+  const backupPath=join(backupDir,`state${state.schema_version}-${byteHash(raw)}.json`);
+  const inventory={state_sha256:byteHash(raw),artifacts:[...Object.values(state.import_artifacts??{}).map(a=>({ref:a.path,sha256:a.artifact_sha256})),...Object.values(state.media_assets??{}).flatMap(e=>Object.values(e.versions).map(a=>({ref:a.artifact_ref,sha256:a.byte_sha256}))) ]};
+  for(const entry of inventory.artifacts){if(!entry.ref.startsWith('/'))continue;const bytes=await readFile(entry.ref);if(byteHash(bytes)!==entry.sha256)fail('PERSIST_FAILED','/inventory','Dependency bytes changed before migration');}
+  for(const [path,data] of [[backupPath,raw],[`${backupPath}.inventory.json`,JSON.stringify(inventory,null,2)]]){
+    try{await writeFile(path,data,{flag:'wx',mode:0o600});}catch(error){if(error.code!=='EEXIST'||byteHash(await readFile(path))!==byteHash(data))throw error;}
+  }
+  const next=await commitState(dir,expectedRevision,current=>{const migrated=applyMigrationV3(current,payload.preview);Object.assign(migrated.migration_receipts[preview.preview_id],{backup_path:backupPath,backup_sha256:byteHash(raw),inventory_path:`${backupPath}.inventory.json`,inventory_hash:canonicalHash(inventory)});return migrated;},{migration:true});
+  try{if(verifyReadback)await verifyReadback(next);const readback=validateState(JSON.parse(await readFile(file,'utf8')));if(canonicalHash(next)!==canonicalHash(readback))throw Error('Readback mismatch');return{state:readback,data:{migration_status:'verified',migration_receipt:{...next.migration_receipts[preview.preview_id],backup_path:backupPath,backup_sha256:byteHash(raw),inventory_hash:canonicalHash(inventory)},idempotent:false,persistence_status:'saved'}};}
+  catch{return{state:next,data:{migration_status:'committed_unverified',migration_receipt:next.migration_receipts[preview.preview_id],persistence_status:'unverified',next_actions:[{kind:'migrate',target_ref:preview.preview_id,required_inputs:[],can_resume:true,requires_user_input:false,reason:'转换已提交，仅续做回读验证',operation:'resume_verify'}]}};}
 }

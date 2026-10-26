@@ -9,12 +9,14 @@ import { checkDraft } from './lib/draft.mjs';
 import { buildReview } from './lib/review.mjs';
 import { initializeNews, advanceNews, finalizeRun } from './lib/news.mjs';
 import { loadState, commitState, initializeState, registerSources, putImmutable, saveDraft, savePersistenceReceipt, persistenceStatus, findSourceVersion } from './lib/state.mjs';
+import { dispatchV3, verifyHostMediaReceipt } from './lib/v3-dispatch.mjs';
+import { evaluateDraftReadiness } from './lib/draft.mjs';
 import { dispatchV2, coachingRunResult } from './lib/v2-dispatch.mjs';
 import { verifyCollectionReceipt } from './lib/collection.mjs';
 import { buildConsumerContext, goalSnapshotFromState } from './lib/consumer-context.mjs';
 
 const runtimeDir=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const commands=['doctor','config','account-analyze','draft-check','news-step','record','review','data-import','coach-step','state-migrate'];
+const commands=['doctor','config','account-analyze','draft-check','news-step','record','review','data-import','coach-step','state-migrate','content-step'];
 const fail=(code,path,message)=>{throw new ContractError(code,path,message,false);};
 const stage=(name,passed,refs=[],reason=null)=>({stage:name,required:true,status:passed?'passed':'failed',evidence_refs:refs,reason});
 const same=(left,right)=>canonicalHash(left)===canonicalHash(right);
@@ -48,7 +50,12 @@ async function doctor(payload,stateDir,state) {
   for(const receipt of Object.values(state?.collection_receipts??{}).sort((a,b)=>a.captured_at.localeCompare(b.captured_at)||a.receipt_id.localeCompare(b.receipt_id)))if(receipt.binding_id===payload.binding.binding_id&&receipt.data_mode==='live') {
     try {await verifyCollectionReceipt(receipt,state.account);accountCollection[receipt.capability].actual=receipt.status==='succeeded'?'verified':receipt.status;refs.push(receipt.receipt_id);}catch {accountCollection[receipt.capability].actual='unverified';}
   }
-  return {runtime_version:process.version,dependency_versions:versions,schema_valid:true,state_access:stateAccess,binding_id:payload.binding.binding_id,capabilities,account_collection:accountCollection,current_account_identity:state?.account??null,evidence_refs:refs,limitations:[...Object.entries(capabilities).filter(([,value])=>value!=='verified').map(([name])=>`${name} has no current successful probe receipt`),...Object.entries(accountCollection).filter(([,value])=>value.actual!=='verified').map(([name,value])=>`${name}: ${value.actual}`)]};
+  const mediaCapabilities=Object.fromEntries(['image_view','image_generate','image_edit','data_render','preview_render','artifact_persistence'].map(name=>[name,{declared:payload.binding.media_capabilities?.[name]?.declared??'unverified',actual:'unverified'}]));
+  const mediaOperation={image_view:['review_asset','review_pack'],image_generate:['generate_image'],image_edit:['edit_image'],data_render:['render_data'],preview_render:['build_preview'],artifact_persistence:['artifact_persistence']};
+  for(const [name,entry] of Object.entries(mediaCapabilities))for(const receipt of Object.values(state?.host_media_receipts??{}))if(receipt.binding_id===payload.binding.binding_id&&receipt.data_mode==='live'&&receipt.status==='succeeded'&&mediaOperation[name].includes(receipt.operation)){
+    try{await verifyHostMediaReceipt(receipt);entry.actual='verified';refs.push(receipt.receipt_id);}catch{entry.actual='unverified';}
+  }
+  return {runtime_version:process.version,dependency_versions:versions,schema_valid:true,state_access:stateAccess,binding_id:payload.binding.binding_id,capabilities,media_capabilities:mediaCapabilities,account_collection:accountCollection,current_account_identity:state?.account??null,evidence_refs:refs,limitations:[...Object.entries(capabilities).filter(([,value])=>value!=='verified').map(([name])=>`${name} has no current successful probe receipt`),...Object.entries(accountCollection).filter(([,value])=>value.actual!=='verified').map(([name,value])=>`${name}: ${value.actual}`)]};
 }
 
 function makeRun(context,runId,stageResults,refs,hasFindings,extra={}) {
@@ -116,11 +123,13 @@ async function record(payload,request,stateDir,existing) {
     if(operation==='adoption') {
       validate('AdoptionRecord',data);
       const draft=state.drafts[data.draft_id]?.revisions[data.revision];
-      if(!draft||draft.validity!=='ready')fail('STALE_DRAFT','/revision','Only a currently valid exact draft revision can be adopted');
+      if(!draft||(state.schema_version===3?evaluateDraftReadiness({draft_id:data.draft_id,revision:data.revision},null,state).readiness!=='ready':draft.validity!=='ready'))fail('STALE_DRAFT','/revision','Only a currently valid exact draft revision can be adopted');
       if(!data.basis)fail('MISSING_EVIDENCE','/basis','Adoption requires the user selection evidence');
+      if(state.schema_version===3)fail('INVALID_INPUT','/contract_version','Use state 3 adoption payload with exact review and pack attribution');
       putImmutable(state.adoptions,data.adoption_id,data);response={record_refs:[data.adoption_id],run_result:null};return state;
     }
     if(operation==='publication') {
+      if(state.schema_version===3)fail('INVALID_INPUT','/contract_version','Use state 3 publication attribution');
       validate('PublicationRecord',data);
       if(data.confirmed_by==='fixture'&&(data.data_mode!=='fixture'||!state.account.handle.startsWith('fixture_')))fail('INVALID_INPUT','/data_mode','Fixture publication is permitted only in an isolated fixture account');
       if(data.data_mode==='live'&&data.confirmed_by==='fixture')fail('INVALID_INPUT','/confirmed_by','Fixture is not live publication evidence');
@@ -167,6 +176,7 @@ async function record(payload,request,stateDir,existing) {
       state.runs[runId]={run_id:runId,intent:context.intent,run_context:context,report:structuredClone(data.report),run_result:runResult};response={record_refs:[runId],run_result:runResult};return state;
     }
     if(operation==='draft') {
+      if(state.schema_version===3)fail('INVALID_INPUT','/contract_version','Use record draft_review to save exact text and audit separately');
       if(context.intent!=='content_optimization')fail('INVALID_INPUT','/run_context/intent','Incorrect draft intent');
       const mode=typeof context.requested_scope==='string'?context.requested_scope:context.requested_scope.mode;
       const stages=[],refs=[];
@@ -217,6 +227,7 @@ function currentRunView(state,runId,persistence) {
 
 async function dispatch(command,request,stateDir) {
   const payload=request.payload;let state=await loadState(stateDir);
+  if(payload.contract_version===3)return dispatchV3(command,request,stateDir,state);
   if(payload.contract_version===2)return dispatchV2(command,request,stateDir,state);
   if(command==='doctor')return {data:await doctor(payload,stateDir,state),state};
   if(command==='config') {
@@ -280,17 +291,21 @@ export async function main(argv=process.argv.slice(2)) {
     request=JSON.parse(await readFile(options['--input'],'utf8'));validate('RequestEnvelope',request);validate(`${command}Payload`,request.payload);
     const result=await dispatch(command,request,options['--state-dir']);
     const runResult=result.data?.run_result;
-    const status=runResult?.execution_status==='blocked'?'blocked':runResult?.execution_status==='partial'?'partial':'ok';
+    const status=(runResult?.execution_status??result.data?.run?.execution_status)==='blocked'?'blocked':(runResult?.execution_status??result.data?.run?.execution_status)==='partial'?'partial':'ok';
     exitCode=status==='partial'?3:status==='blocked'?4:0;
     envelope={schema_version:1,command,run_id:request.run_id??runResult?.run_id??result.data?.run?.run_id??null,status,data:result.data,errors:result.data?.errors??[],evidence_refs:result.data?.record_refs??[],state_revision:result.state?.revision??0};
   } catch(error) {
     const code=error instanceof ContractError?error.code:error instanceof SyntaxError?'INVALID_INPUT':'IO_ERROR';
     exitCode=['STATE_CONFLICT','BUDGET_EXHAUSTED','CAPABILITY_UNAVAILABLE','MISSING_EVIDENCE','PERSIST_FAILED','MIGRATION_REQUIRED','AUTH_REQUIRED','ADAPTER_UNVERIFIED'].includes(code)?4:code==='IO_ERROR'?5:2;
-    envelope={schema_version:1,command,run_id:request?.run_id??null,status:exitCode===4?'blocked':'error',data:null,errors:[{code,path:error.path??'/',message:error.message,retryable:error.retryable??false}],evidence_refs:[],state_revision:null};
+    const recovery={STALE_BUNDLE:['recheck','prepare'],STALE_DRAFT:['recheck','draft-check'],STATE_CONFLICT:['resume','resume'],CAPABILITY_UNAVAILABLE:['collect','resume'],AUTH_REQUIRED:['collect','resume'],MISSING_EVIDENCE:['provide_material','resume'],PERSIST_FAILED:['retry','resume'],MIGRATION_REQUIRED:['migrate','state-migrate'],BUDGET_EXHAUSTED:['provide_material','resume']}[code];
+    const recoveryData=request?.payload?.contract_version===3&&recovery?{user_summary:error.message,next_actions:[{kind:recovery[0],target_ref:request.payload.run_id??request.run_id??'account',required_inputs:[error.path??'/'],can_resume:true,requires_user_input:['AUTH_REQUIRED','MISSING_EVIDENCE','BUDGET_EXHAUSTED'].includes(code),reason:error.message,operation:recovery[1]}]}:null;
+    envelope={schema_version:1,command,run_id:request?.run_id??null,status:exitCode===4?'blocked':'error',data:recoveryData,errors:[{code,path:error.path??'/',message:error.message,retryable:error.retryable??false}],evidence_refs:[],state_revision:null};
   }
-  const output=JSON.stringify(envelope,null,2)+'\n';
-  if(options['--output'])try {await mkdir(dirname(options['--output']),{recursive:true});await writeFile(options['--output'],output,{mode:0o600});}catch(error){process.stderr.write(`Output write failed: ${error.code??'IO_ERROR'}\n`);exitCode=5;}
-  process.stdout.write(output);return exitCode;
+  if(options['--output'])try {await mkdir(dirname(options['--output']),{recursive:true});await writeFile(options['--output'],JSON.stringify(envelope,null,2)+'\n',{mode:0o600});}catch(error){
+    process.stderr.write(`Output write failed: ${error.code??'IO_ERROR'}\n`);exitCode=5;
+    envelope={...envelope,status:'error',data:{...(envelope.data??{}),persistence_status:'unverified',user_summary:'状态可能已提交，但结果文件未保存；读取当前 revision 后续做回读验证。',next_actions:[{kind:'resume',target_ref:envelope.run_id??'account',required_inputs:['writable output path'],can_resume:true,requires_user_input:false,reason:'结果文件写入失败；保留已提交状态',operation:'resume'}]},errors:[...envelope.errors,{code:'PERSIST_FAILED',path:'/output',message:'Result output could not be persisted',retryable:true}]};
+  }
+  process.stdout.write(JSON.stringify(envelope,null,2)+'\n');return exitCode;
 }
 
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))process.exitCode=await main();

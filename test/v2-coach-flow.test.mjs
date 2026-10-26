@@ -10,13 +10,14 @@ import { runtimeUrl } from './helpers/runtime.mjs';
 const { createDefaultConfig } = await import(runtimeUrl('scripts/lib/config.mjs'));
 const { initializeState, loadState, persistenceStatus } = await import(runtimeUrl('scripts/lib/state.mjs'));
 const { canonicalHash, textHash } = await import(runtimeUrl('scripts/lib/contracts.mjs'));
+const { analysisProposalHash } = await import(runtimeUrl('scripts/lib/post-content.mjs'));
 const { coachingRunResult } = await import(runtimeUrl('scripts/lib/v2-dispatch.mjs'));
 const T = '2026-10-26T04:00:00Z';
 const account = { handle: 'fixture_coach_cli', profile_url: 'https://x.com/fixture_coach_cli', user_id: null, identity_basis: 'user_provided' };
 
 async function isolated() {
   const dir = await mkdtemp(join(tmpdir(), 'xops-v2-coach-'));
-  const state = initializeState(createDefaultConfig(account), 2); state.revision = 1;
+  const state = initializeState(createDefaultConfig(account), 3); state.revision = 1;
   await writeFile(join(dir, 'account-state.json'), `${JSON.stringify(state)}\n`);
   return dir;
 }
@@ -31,9 +32,9 @@ async function invoke(command, payload, dir, runId = null) {
 
 function analysis(work) {
   const text = '先说明一个具体问题，再给出三个可核查步骤。';
-  return { contract_version: 2, analysis_id: 'content-cli-1', post_key: 'x:201', post_version_ref: work.post_version_ref, content_hash: work.content_hash, context_hash: work.context_hash, analysis_version: 'reader-v1', model_or_host_ref: 'host-content-review-1', reviewed_at: '2026-10-26T04:10:00Z', context_coverage: { full_text: true, parent: 'not_applicable', quote: 'not_applicable', thread: 'not_applicable', media: 'not_seen', linked_source: 'not_applicable' }, primary_topic: 'workflow', secondary_topics: [], intended_reader: '需要具体步骤的读者', reader_problem: '不知道怎样开始', post_purpose: 'explain', hook: { type: 'problem', exact_span: { start: 0, end: 10, text: text.slice(0, 10) }, promise: '给出步骤' }, delivery_evidence: [{ claim: '给出三个步骤', span: { start: 12, end: 21, text: text.slice(12, 21) } }], original_contribution: '整理可核查步骤', proof_type: 'reasoning', cta_type: 'none', media_dependency: 'unknown', context_dependency: 'standalone', strengths: ['问题具体'], issues: [], feature_evidence_spans: [{ start: 0, end: 10, text: text.slice(0, 10) }], uncertainties: ['media not_seen'], semantic_review_receipt_ref: 'content-semantic-1' };
+  return { contract_version: 3, analysis_id: 'content-cli-1', post_key: 'x:201', post_version_ref: work.post_version_ref, content_hash: work.content_hash, context_selection_hash: work.context_selection_hash, analysis_version: 'reader-v1', model_or_host_ref: 'host-content-review-1', reviewed_at: '2026-10-26T04:10:00Z', context_coverage: { full_text: true, parent: 'not_applicable', quote: 'not_applicable', thread: 'not_applicable', media: 'not_seen', linked_source: 'not_applicable' }, primary_topic: 'workflow', secondary_topics: [], intended_reader: '需要具体步骤的读者', reader_problem: '不知道怎样开始', post_purpose: 'explain', hook: { type: 'problem', exact_span: { start: 0, end: 10, text: text.slice(0, 10) }, promise: '给出步骤' }, delivery_evidence: [{ claim: '给出三个步骤', span: { start: 12, end: 21, text: text.slice(12, 21) } }], original_contribution: '整理可核查步骤', proof_type: 'reasoning', cta_type: 'none', media_dependency: 'unknown', context_dependency: 'standalone', strengths: ['问题具体'], issues: [], feature_evidence_spans: [{ start: 0, end: 10, text: text.slice(0, 10) }], uncertainties: ['media not_seen'] };
 }
-function contentReceipt(item) { return { review_id: item.semantic_review_receipt_ref, post_version_ref: item.post_version_ref, content_hash: item.content_hash, context_hash: item.context_hash, analysis_version: item.analysis_version, reviewer: 'independent-content-review', reviewed_at: '2026-10-26T04:11:00Z', decision: 'approved' }; }
+function contentReceipt(item) { return { contract_version:3,review_id:'content-semantic-1',post_version_ref:item.post_version_ref,content_hash:item.content_hash,context_selection_hash:item.context_selection_hash,analysis_version:item.analysis_version,analysis_proposal_hash:analysisProposalHash(item),reviewer:'independent-content-review',method:'actual-text-review',reviewed_at:'2026-10-26T04:11:00Z',decision:'approved',supersedes_receipt_ref:null}; }
 
 function coachingProposal(bundle) {
   const metric = Object.keys(bundle.evidence_index).find(ref => ref.startsWith('metric-result:account_period'));
@@ -52,16 +53,16 @@ test('normal CLI coaching flow stays partial before receipt and restores complet
   const imported = await loadState(dir), versionRef = imported.post_entities['x:201'].current_version_ref;
   const request = { contract_version: 2, account_identity: account, requested_scope: { mode: 'full' }, requested_deliverables: ['account_period', 'historical_content', 'next_actions'], analysis_cutoff: T, analysis_request: { requested_outputs: ['account_period'], periods: [{ period_id: 'current', start: '2026-10-19T04:00:00Z', end_exclusive: T, timezone: 'UTC', completeness: 'complete' }], age_windows: [], requested_metric_definition_ids: ['account.impressions'], target_post_keys: ['x:201'], cohort: null, selection_policy: { version: 'policy-v1' } }, goal_snapshot: { primary_goal: 'relevant_reach', goal_notes: null, source: 'user_confirmed' }, constraint_snapshot: { time_budget: 'one post', content_preferences: [], rejected_tactics: [] }, selection_policy_version: 'policy-v1', requested_post_version_refs: [versionRef], available_material_refs: [], rule_version_refs: [], content_analysis_version: 'reader-v1', content_budget: { max_items: 1 }, unresolved_questions: [] };
   const runId = 'coach-cli-flow';
-  let response = await invoke('coach-step', { contract_version: 2, operation: 'prepare', request, as_of: T }, dir, runId);
+  let response = await invoke('coach-step', { contract_version: 3, operation: 'prepare', request, as_of: T }, dir, runId);
   assert.equal(response.exit_code, 3); const work = response.envelope.data.content_work_items.work_items[0];
   const analyzed = analysis(work);
-  response = await invoke('coach-step', { contract_version: 2, operation: 'ingest', kind: 'content_analysis', run_id: runId, data: { analysis: analyzed, semantic_receipt: contentReceipt(analyzed) }, as_of: '2026-10-26T04:10:00Z' }, dir, runId);
+  response = await invoke('coach-step', { contract_version: 3, operation: 'ingest', kind: 'content_analysis', run_id: runId, data: { analysis: analyzed, semantic_receipt: contentReceipt(analyzed) }, as_of: '2026-10-26T04:10:00Z' }, dir, runId);
   const proposal = coachingProposal(response.envelope.data.bundle);
-  response = await invoke('coach-step', { contract_version: 2, operation: 'ingest', kind: 'coaching_proposal', run_id: runId, data: proposal, as_of: '2026-10-26T04:20:00Z' }, dir, runId);
+  response = await invoke('coach-step', { contract_version: 3, operation: 'ingest', kind: 'coaching_proposal', run_id: runId, data: proposal, as_of: '2026-10-26T04:20:00Z' }, dir, runId);
   const proposalHash = response.envelope.data.proposal_hash;
   const semantic = { review_id: 'semantic-cli-1', reviewer: 'independent-host-pass', bundle_hash: proposal.bundle_hash, proposal_hash: proposalHash, analysis_version: 'semantic-v1', reviewed_at: '2026-10-26T04:30:00Z', decision: 'approved', checks: { evidence_supported: true, alternatives_preserved: true, causality_bounded: true, voice_preserved: true, actions_executable: true, metrics_available: true }, issues: [] };
-  response = await invoke('coach-step', { contract_version: 2, operation: 'ingest', kind: 'semantic_review', run_id: runId, data: semantic, as_of: '2026-10-26T04:30:00Z' }, dir, runId);
-  response = await invoke('coach-step', { contract_version: 2, operation: 'finalize', run_id: runId, proposal_hash: proposalHash, as_of: '2026-10-26T04:40:00Z' }, dir, runId);
+  response = await invoke('coach-step', { contract_version: 3, operation: 'ingest', kind: 'semantic_review', run_id: runId, data: semantic, as_of: '2026-10-26T04:30:00Z' }, dir, runId);
+  response = await invoke('coach-step', { contract_version: 3, operation: 'finalize', run_id: runId, proposal_hash: proposalHash, as_of: '2026-10-26T04:40:00Z' }, dir, runId);
   assert.equal(response.exit_code, 3); assert.deepEqual(response.envelope.data.coaching_report.deliverable_status, { account_period: 'complete', historical_content: 'complete', next_actions: 'complete' });
   let saved = await loadState(dir); const statePath = join(dir, 'account-state.json'), readback = join(dir, 'readback.json'), stateHash = canonicalHash(saved);
   await writeFile(readback, JSON.stringify({ artifact_id: statePath, state_revision: saved.revision, state_hash: stateHash }));
@@ -76,7 +77,7 @@ test('normal CLI coaching flow stays partial before receipt and restores complet
 test('empty requested history and unavailable Analytics never become complete through 0 equals 0', async () => {
   const dir = await isolated(), runId = 'coach-empty';
   const request = { contract_version: 2, account_identity: account, requested_scope: { mode: 'full' }, requested_deliverables: ['account_period', 'historical_content', 'next_actions'], analysis_cutoff: T, analysis_request: { requested_outputs: ['account_period'], periods: [], age_windows: [], requested_metric_definition_ids: ['account.impressions'], target_post_keys: [], cohort: null, selection_policy: { version: 'policy-v1' } }, goal_snapshot: { primary_goal: 'relevant_reach', goal_notes: null, source: 'temporary_assumption' }, constraint_snapshot: { time_budget: null, content_preferences: [], rejected_tactics: [] }, selection_policy_version: 'policy-v1', requested_post_version_refs: [], available_material_refs: [], rule_version_refs: [], content_analysis_version: 'reader-v1', content_budget: { max_items: 0 }, unresolved_questions: ['尚未取得私有数据'] };
-  const prepared = await invoke('coach-step', { contract_version: 2, operation: 'prepare', request, as_of: T }, dir, runId);
+  const prepared = await invoke('coach-step', { contract_version: 3, operation: 'prepare', request, as_of: T }, dir, runId);
   assert.equal(prepared.exit_code, 3); assert.equal(prepared.envelope.data.bundle.deliverable_status.account_period, 'unavailable');
   assert.equal(prepared.envelope.data.bundle.post_version_refs.length, 0);
   assert.notEqual(prepared.envelope.data.run_result.execution_status, 'complete');

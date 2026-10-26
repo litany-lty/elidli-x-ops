@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "recipe_id": "tutorial",
+  "recipe_version": "1.0.0",
+  "name": "教程",
+  "applicable_goals": [
+    "relevant_reach",
+    "discussion",
+    "followers",
+    "clicks",
+    "custom"
+  ],
+  "required_materials": [
+    "可执行步骤与实际版本环境"
+  ],
+  "editorial_structure": [
+    "前提",
+    "步骤",
+    "结果",
+    "常见误区"
+  ],
+  "visual_roles": [
+    "information_card",
+    "process",
+    "annotated_screenshot"
+  ],
+  "default_deliverables": [
+    "text",
+    "sources"
+  ],
+  "quality_checks": [
+    "事实与用户材料一致",
+    "保留用户立场与必要限定",
+    "未读或未知内容明确标注",
+    "行动与观察条件具体"
+  ],
+  "editable_preferences": [
+    "language",
+    "tone",
+    "visual_style",
+    "image_count",
+    "information_density"
+  ]
+}

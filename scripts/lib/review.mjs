@@ -1,5 +1,7 @@
 import { canonicalHash, ContractError, summarizeRun, validate } from './contracts.mjs';
 import { analyzeAccount, analyzeAccountV2 } from './account.mjs';
+import { selectMetricObservations, computeComparison } from './observation-selection.mjs';
+import { metricDefinition } from './metrics.mjs';
 
 function fail(code, path, message) {
   throw new ContractError(code, path, message, false);
@@ -326,4 +328,87 @@ export function reviewV2RunResult(input, result, state, runId = null) {
     has_progress: true,
     has_findings: true,
   });
+}
+
+export function normalizeExperimentPlanV3(plan,state={}, {allowIncomplete=false}={}) {
+  if(!plan?.experiment_id)fail('INVALID_INPUT','/experiment_id','Experiment ID is required');
+  if(plan.contract_version===3)return structuredClone(plan);
+  const old=plan.age_window_or_period;
+  let window=null,limitations=[];
+  if(old?.kind==='age_window'){
+    const match=/^(\d+(?:\.\d+)?)h$/.exec(String(old.value));
+    if(match)window={kind:'age_window',target_hours:Number(match[1]),tolerance_hours:old.tolerance_hours??2};
+  } else if(old?.kind==='period'&&old.start&&old.end_exclusive&&old.timezone&&old.aggregation_basis==='event_period') window={kind:'period',start:old.start,end_exclusive:old.end_exclusive,timezone:old.timezone,aggregation_basis:'event_period'};
+  if(!window){window={kind:'age_window',target_hours:1,tolerance_hours:0};limitations.push('Original V2 window needs plan details before review');}
+  const status=limitations.length?'needs_plan_details':plan.status;
+  const sourceSemanticHash=experimentSemanticHash(plan);
+  const view={contract_version:3,plan_view_id:`plan-view-${canonicalHash({id:plan.experiment_id,plan_hash:canonicalHash(plan),source_semantic_hash:sourceSemanticHash,version:'experiment-plan-view-v3-semantic'}).slice(0,24)}`,source_experiment_id:plan.experiment_id,source_plan_hash:canonicalHash(plan),source_semantic_hash:sourceSemanticHash,interpretation_version:'experiment-plan-view-v3',status,target_entity_keys:[],baseline_entity_keys:[],metric_requirements:[{definition_id:plan.planned_primary_metric.definition_id,role:'primary'},...(plan.guardrails??[]).map(item=>({definition_id:item.definition_id,role:'guardrail'}))],window,linked_publication_ids:[...(plan.linked_publication_ids??[])],limitations};
+  if(limitations.length&&!allowIncomplete)throw new ContractError('INVALID_INPUT','/age_window_or_period','Experiment window needs plan details',false);
+  if(state.publications)for(const id of view.linked_publication_ids){const pub=state.publications[id];if(pub)view.target_entity_keys.push(canonicalPostKey(state,`x:${pub.post_id}`)??`x:${pub.post_id}`);}
+  return view;
+}
+
+/** Migration helper: preserve every active V2 plan, marking ambiguous windows for user repair. */
+export function buildExperimentPlanView(state,experiment){return normalizeExperimentPlanV3(experiment,state,{allowIncomplete:true});}
+
+export function experimentSemanticHash(experiment){
+  const semantic=structuredClone(experiment);
+  for(const field of ['status','status_history','review_ref','linked_publication_ids','maturity_evidence_refs','coverage_receipt_ref'])delete semantic[field];
+  return canonicalHash(semantic);
+}
+
+function validatePlanSource(state,planView){
+  if(!planView.source_semantic_hash)fail('MIGRATION_REQUIRED','/source_semantic_hash','Legacy plan view is read-only; create and save a semantic V3 plan view');
+  const experiment=state.experiments?.[planView.source_experiment_id];
+  if(!experiment)fail('MISSING_EVIDENCE','/source_experiment_id','Source experiment is missing');
+  if(planView.source_semantic_hash!==experimentSemanticHash(experiment))fail('STALE_BUNDLE','/source_semantic_hash','Experiment semantics changed; create a new plan view and recompute');
+  const actual=[...(experiment.linked_publication_ids??[])].sort(),frozen=[...planView.linked_publication_ids].sort();
+  if(canonicalHash(actual)!==canonicalHash(frozen))fail('STALE_BUNDLE','/linked_publication_ids','Selected publications changed; create a new plan view and recompute');
+  return experiment;
+}
+
+/** Validate a repaired or migrated public plan view before it is persisted. */
+export function validateExperimentPlanViewV3(state,planView){
+  validate('ExperimentPlanViewV3',planView);
+  const experiment=validatePlanSource(state,planView);
+  if(planView.status==='needs_plan_details')fail('REQUESTED_OUTPUT_INCOMPLETE','/status','Plan details must be repaired before saving a usable view');
+  if(planView.status!==experiment.status)fail('STATE_CONFLICT','/status','Plan view status must match the source experiment');
+  const sourcePublications=new Set(experiment.linked_publication_ids??[]);
+  for(const id of planView.linked_publication_ids){if(!sourcePublications.has(id)||!state.publications?.[id])fail('INVALID_EVIDENCE_REF','/linked_publication_ids','Plan view publication is missing or not linked to the source experiment');}
+  if(planView.window.kind==='period'&&Date.parse(planView.window.end_exclusive)<=Date.parse(planView.window.start))fail('INVALID_INPUT','/window/end_exclusive','Period end must be after its start');
+  return structuredClone(planView);
+}
+
+function selectedMetric(selection,definitionId){
+  const rows=selection.selected.filter(item=>item.metric_definition_id===definitionId),value=rows.length?rows.reduce((sum,item)=>sum+item.value,0):null;
+  return {value,unit:rows[0]?.unit??null,refs:rows.map(item=>item.observation_ref)};
+}
+
+export function buildReviewComputation(state,planView,{as_of,baseline_entity_keys=planView.baseline_entity_keys,coverage_receipt_refs=[]}={}) {
+  if(planView?.contract_version!==3||planView.status==='needs_plan_details')fail('INVALID_INPUT','/plan_view','A complete V3 plan view is required');
+  validatePlanSource(state,planView);
+  const requirements=planView.metric_requirements.map(item=>({definition_id:item.definition_id}));
+  const entityTypes=new Set(requirements.map(item=>metricDefinition(item.definition_id)?.allowed_entity_types?.[0]).filter(Boolean));
+  if(entityTypes.size!==1)fail('INVALID_INPUT','/metric_requirements','A review computation cannot mix entity levels');
+  const entityType=[...entityTypes][0];
+  if(entityType==='account'&&planView.window.kind!=='period')fail('INVALID_INPUT','/window','Account metrics require an exact event period');
+  const accountKeys=[state.account?.user_id,state.account?.handle?`handle:${state.account.handle}`:null,state.account?.handle].filter(Boolean),observedAccountKeys=new Set(Object.values(state.snapshots_v2??{}).filter(item=>item.entity_type==='account').map(item=>item.entity_id));
+  const targetKeys=entityType==='account'?[accountKeys.find(key=>observedAccountKeys.has(key))??accountKeys[0]].filter(Boolean):planView.target_entity_keys;
+  const scope={entity_type:entityType,entity_keys:targetKeys,metric_definition_ids:requirements.map(item=>item.definition_id),aggregation_basis:entityType==='account'?'event_period':undefined};
+  const target=selectMetricObservations(state,{scope,window:planView.window,metric_requirements:requirements,as_of,role:'target',selection_policy_version:'review-computation-v3'});
+  const baseline=baseline_entity_keys?.length?selectMetricObservations(state,{scope:{...scope,entity_keys:baseline_entity_keys},window:planView.window,metric_requirements:requirements,as_of,role:'baseline',selection_policy_version:'review-computation-v3'}):null;
+  const metric_results=planView.metric_requirements.map(requirement=>{const current=selectedMetric(target,requirement.definition_id),prior=baseline?selectedMetric(baseline,requirement.definition_id):{value:null,unit:null,refs:[]};return{definition_id:requirement.definition_id,role:requirement.role,target_value:current.value,baseline_value:prior.value,difference:current.value!==null&&prior.value!==null?current.value-prior.value:null,unit:current.unit??prior.unit,target_observation_refs:current.refs,baseline_observation_refs:prior.refs};});
+  const comparison=baseline?computeComparison(target,baseline,{method:'descriptive'}):null;
+  const publication_bindings=planView.linked_publication_ids.map(id=>{const publication=state.publications?.[id];return{publication_id:id,post_key:publication?canonicalPostKey(state,`x:${publication.post_id}`)??`x:${publication.post_id}`:'missing',content_match:publication?.attribution??publication?.content_match??'unverified'};});
+  const limitations=[...planView.limitations,...target.limitations,...(baseline?.limitations??[]),...(coverage_receipt_refs.length?[]:['No actual coverage receipt was supplied']),...publication_bindings.filter(item=>item.content_match!=='exact').map(item=>`Publication ${item.publication_id} is ${item.content_match}; exact draft effect cannot be attributed`),...(comparison?.reasons??[])];
+  const base={contract_version:3,computation_id:'',plan_view_ref:planView.plan_view_id,plan_hash:canonicalHash(planView),computed_at:as_of,target_selection:target,baseline_selection:baseline,method:{version:'review-computation-v3',kind:baseline?'descriptive_comparison':'target_only'},metric_results,comparability:comparison?.comparability??(target.completeness==='complete'?'partially_compatible':'insufficient'),publication_bindings,limitations};
+  const computation_hash=canonicalHash(base);return{...base,computation_id:`review-computation-${computation_hash.slice(0,24)}`,computation_hash};
+}
+
+export function validateReviewInterpretation(computation,interpretation,receipt) {
+  if(computation?.contract_version!==3)fail('INVALID_INPUT','/computation','V3 review computation is required');
+  const proposalHash=canonicalHash(interpretation);
+  if(!receipt||receipt.contract_version!==3||receipt.computation_ref!==computation.computation_id||receipt.computation_hash!==computation.computation_hash||receipt.interpretation_proposal_hash!==proposalHash||receipt.decision!=='approved')fail('MISSING_EVIDENCE','/interpretation_receipt','Review interpretation must bind the exact deterministic computation and proposal');
+  for(const claimed of interpretation.metric_results??[]){const actual=computation.metric_results.find(item=>item.definition_id===claimed.definition_id&&item.role===claimed.role);if(!actual||canonicalHash(actual)!==canonicalHash(claimed))fail('INVALID_INPUT','/metric_results','Review cannot refill deterministic metric results');}
+  return{interpretation:structuredClone(interpretation),interpretation_proposal_hash:proposalHash,receipt:structuredClone(receipt)};
 }

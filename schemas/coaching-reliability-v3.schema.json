@@ -1,0 +1,1453 @@
+{
+  "$id": "https://x-ops.local/schemas/coaching-reliability-v3.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ContentHookV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "exact_span",
+        "promise"
+      ],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "exact_span": {
+          "$ref": "#/definitions/V2TextSpan"
+        },
+        "promise": {
+          "type": "string"
+        }
+      }
+    },
+    "ContentDeliveryEvidenceV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim",
+        "span"
+      ],
+      "properties": {
+        "claim": {
+          "type": "string"
+        },
+        "span": {
+          "$ref": "#/definitions/V2TextSpan"
+        }
+      }
+    },
+    "PostContentAnalysisV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "analysis_id",
+        "post_key",
+        "post_version_ref",
+        "content_hash",
+        "context_selection_hash",
+        "analysis_version",
+        "model_or_host_ref",
+        "reviewed_at",
+        "context_coverage",
+        "primary_topic",
+        "secondary_topics",
+        "intended_reader",
+        "reader_problem",
+        "post_purpose",
+        "hook",
+        "delivery_evidence",
+        "original_contribution",
+        "proof_type",
+        "cta_type",
+        "media_dependency",
+        "context_dependency",
+        "strengths",
+        "issues",
+        "feature_evidence_spans",
+        "uncertainties"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "analysis_id": {
+          "type": "string"
+        },
+        "post_key": {
+          "type": "string"
+        },
+        "post_version_ref": {
+          "type": "string"
+        },
+        "content_hash": {
+          "type": "string"
+        },
+        "context_selection_hash": {
+          "type": "string"
+        },
+        "analysis_version": {
+          "type": "string"
+        },
+        "model_or_host_ref": {
+          "type": "string"
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "instant"
+        },
+        "context_coverage": {
+          "$ref": "#/definitions/ContentContextCoverageV2"
+        },
+        "primary_topic": {
+          "type": "string"
+        },
+        "secondary_topics": {
+          "$ref": "#/definitions/V2Strings"
+        },
+        "intended_reader": {
+          "type": "string"
+        },
+        "reader_problem": {
+          "type": "string"
+        },
+        "post_purpose": {
+          "type": "string"
+        },
+        "hook": {
+          "$ref": "#/definitions/ContentHookV2"
+        },
+        "delivery_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContentDeliveryEvidenceV2"
+          }
+        },
+        "original_contribution": {
+          "type": "string"
+        },
+        "proof_type": {
+          "type": "string"
+        },
+        "cta_type": {
+          "type": "string"
+        },
+        "media_dependency": {
+          "type": "string"
+        },
+        "context_dependency": {
+          "type": "string"
+        },
+        "strengths": {
+          "$ref": "#/definitions/V2Strings"
+        },
+        "issues": {
+          "$ref": "#/definitions/V2Strings"
+        },
+        "feature_evidence_spans": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/V2TextSpan"
+          }
+        },
+        "uncertainties": {
+          "$ref": "#/definitions/V2Strings"
+        }
+      }
+    },
+    "ContentSemanticReceiptV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "review_id",
+        "post_version_ref",
+        "content_hash",
+        "context_selection_hash",
+        "analysis_version",
+        "analysis_proposal_hash",
+        "reviewer",
+        "method",
+        "reviewed_at",
+        "decision",
+        "supersedes_receipt_ref"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "review_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "post_version_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_hash": {
+          "type": "string",
+          "minLength": 1
+        },
+        "context_selection_hash": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_proposal_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "instant"
+        },
+        "decision": {
+          "enum": [
+            "approved",
+            "revision_required"
+          ]
+        },
+        "supersedes_receipt_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ReviewMetricRequirementV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "definition_id",
+        "role"
+      ],
+      "properties": {
+        "definition_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "primary",
+            "guardrail"
+          ]
+        }
+      }
+    },
+    "ExperimentWindowV3": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "target_hours",
+            "tolerance_hours"
+          ],
+          "properties": {
+            "kind": {
+              "const": "age_window"
+            },
+            "target_hours": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "tolerance_hours": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "start",
+            "end_exclusive",
+            "timezone",
+            "aggregation_basis"
+          ],
+          "properties": {
+            "kind": {
+              "const": "period"
+            },
+            "start": {
+              "type": "string",
+              "format": "instant"
+            },
+            "end_exclusive": {
+              "type": "string",
+              "format": "instant"
+            },
+            "timezone": {
+              "type": "string",
+              "format": "iana-timezone"
+            },
+            "aggregation_basis": {
+              "const": "event_period"
+            }
+          }
+        }
+      ]
+    },
+    "ExperimentPlanViewV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "plan_view_id",
+        "source_experiment_id",
+        "source_plan_hash",
+        "source_semantic_hash",
+        "interpretation_version",
+        "status",
+        "target_entity_keys",
+        "baseline_entity_keys",
+        "metric_requirements",
+        "window",
+        "linked_publication_ids",
+        "limitations"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "plan_view_id": {
+          "type": "string"
+        },
+        "source_experiment_id": {
+          "type": "string"
+        },
+        "source_plan_hash": {
+          "type": "string"
+        },
+        "source_semantic_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "interpretation_version": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "proposed",
+            "accepted",
+            "running",
+            "ready_for_review",
+            "closed",
+            "needs_plan_details"
+          ]
+        },
+        "target_entity_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "baseline_entity_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "metric_requirements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/ReviewMetricRequirementV3"
+          }
+        },
+        "window": {
+          "$ref": "#/definitions/ExperimentWindowV3"
+        },
+        "linked_publication_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ExperimentPlanViewLegacyV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "plan_view_id",
+        "source_experiment_id",
+        "source_plan_hash",
+        "interpretation_version",
+        "status",
+        "target_entity_keys",
+        "baseline_entity_keys",
+        "metric_requirements",
+        "window",
+        "linked_publication_ids",
+        "limitations"
+      ],
+      "properties": {
+        "contract_version": { "const": 3 },
+        "plan_view_id": { "type": "string" },
+        "source_experiment_id": { "type": "string" },
+        "source_plan_hash": { "type": "string" },
+        "interpretation_version": { "type": "string" },
+        "status": { "enum": ["proposed", "accepted", "running", "ready_for_review", "closed", "needs_plan_details"] },
+        "target_entity_keys": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "baseline_entity_keys": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "metric_requirements": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/ReviewMetricRequirementV3" } },
+        "window": { "$ref": "#/definitions/ExperimentWindowV3" },
+        "linked_publication_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "limitations": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "ReviewComputationV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "computation_id",
+        "plan_view_ref",
+        "plan_hash",
+        "computed_at",
+        "target_selection",
+        "baseline_selection",
+        "method",
+        "metric_results",
+        "comparability",
+        "publication_bindings",
+        "limitations",
+        "computation_hash"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "computation_id": {
+          "type": "string"
+        },
+        "plan_view_ref": {
+          "type": "string"
+        },
+        "plan_hash": {
+          "type": "string"
+        },
+        "computed_at": {
+          "type": "string",
+          "format": "instant"
+        },
+        "target_selection": {
+          "$ref": "#/definitions/ObservationSelectionV3"
+        },
+        "baseline_selection": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ObservationSelectionV3"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "method": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "version",
+            "kind"
+          ],
+          "properties": {
+            "version": {
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "descriptive_comparison",
+                "target_only"
+              ]
+            }
+          }
+        },
+        "metric_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "definition_id",
+              "role",
+              "target_value",
+              "baseline_value",
+              "difference",
+              "unit",
+              "target_observation_refs",
+              "baseline_observation_refs"
+            ],
+            "properties": {
+              "definition_id": {
+                "type": "string"
+              },
+              "role": {
+                "enum": [
+                  "primary",
+                  "guardrail"
+                ]
+              },
+              "target_value": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "baseline_value": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "difference": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "unit": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "target_observation_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "baseline_observation_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "comparability": {
+          "enum": [
+            "compatible",
+            "partially_compatible",
+            "incompatible",
+            "insufficient"
+          ]
+        },
+        "publication_bindings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "publication_id",
+              "post_key",
+              "content_match"
+            ],
+            "properties": {
+              "publication_id": {
+                "type": "string"
+              },
+              "post_key": {
+                "type": "string"
+              },
+              "content_match": {
+                "enum": [
+                  "exact",
+                  "modified",
+                  "unverified"
+                ]
+              }
+            }
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "computation_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "ReviewInterpretationReceiptV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "receipt_id",
+        "computation_ref",
+        "computation_hash",
+        "interpretation_proposal_hash",
+        "reviewer",
+        "reviewed_at",
+        "decision",
+        "classifications"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "receipt_id": {
+          "type": "string"
+        },
+        "computation_ref": {
+          "type": "string"
+        },
+        "computation_hash": {
+          "type": "string"
+        },
+        "interpretation_proposal_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "reviewer": {
+          "type": "string"
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "instant"
+        },
+        "decision": {
+          "enum": [
+            "approved",
+            "revision_required"
+          ]
+        },
+        "classifications": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "assertion",
+              "quotation_to_check",
+              "rebuttal",
+              "uncertainty"
+            ]
+          }
+        }
+      }
+    },
+    "AlgorithmReviewFlagV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "flag_id",
+        "kind",
+        "text",
+        "classification_required",
+        "severity"
+      ],
+      "properties": {
+        "flag_id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "ranking_formula",
+            "effect_guarantee",
+            "causal_restriction"
+          ]
+        },
+        "text": {
+          "type": "string"
+        },
+        "classification_required": {
+          "const": true
+        },
+        "severity": {
+          "enum": [
+            "review",
+            "hard_error"
+          ]
+        }
+      }
+    },
+    "CoachPreparePayloadV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "request",
+        "as_of"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "operation": {
+          "const": "prepare"
+        },
+        "request": {
+          "$ref": "#/definitions/CoachRequestV2"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "instant"
+        }
+      }
+    },
+    "CoachContentIngestPayloadV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "kind",
+        "run_id",
+        "data",
+        "as_of"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "operation": {
+          "const": "ingest"
+        },
+        "kind": {
+          "const": "content_analysis"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "analysis",
+            "semantic_receipt"
+          ],
+          "properties": {
+            "analysis": {
+              "$ref": "#/definitions/PostContentAnalysisV3"
+            },
+            "semantic_receipt": {
+              "$ref": "#/definitions/ContentSemanticReceiptV3"
+            }
+          }
+        },
+        "as_of": {
+          "type": "string",
+          "format": "instant"
+        }
+      }
+    },
+    "CoachEvidenceIngestPayloadV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "kind",
+        "run_id",
+        "data",
+        "as_of"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "operation": {
+          "const": "ingest"
+        },
+        "kind": {
+          "const": "evidence_scope"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/definitions/EvidenceScopeV2"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "instant"
+        }
+      }
+    },
+    "CoachProposalIngestPayloadV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "kind",
+        "run_id",
+        "data",
+        "as_of"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "operation": {
+          "const": "ingest"
+        },
+        "kind": {
+          "const": "coaching_proposal"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/definitions/CoachingProposalV2"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "instant"
+        }
+      }
+    },
+    "CoachReviewIngestPayloadV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "kind",
+        "run_id",
+        "data",
+        "as_of"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "operation": {
+          "const": "ingest"
+        },
+        "kind": {
+          "const": "semantic_review"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "data": {
+          "$ref": "#/definitions/SemanticReviewV2"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "instant"
+        }
+      }
+    },
+    "CoachStepPayloadV3": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/CoachPreparePayloadV3"
+        },
+        {
+          "$ref": "#/definitions/CoachContentIngestPayloadV3"
+        },
+        {
+          "$ref": "#/definitions/CoachEvidenceIngestPayloadV3"
+        },
+        {
+          "$ref": "#/definitions/CoachProposalIngestPayloadV3"
+        },
+        {
+          "$ref": "#/definitions/CoachReviewIngestPayloadV3"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contract_version",
+            "operation",
+            "run_id",
+            "proposal_hash",
+            "as_of"
+          ],
+          "properties": {
+            "contract_version": {
+              "const": 3
+            },
+            "operation": {
+              "const": "finalize"
+            },
+            "run_id": {
+              "type": "string"
+            },
+            "proposal_hash": {
+              "type": "string"
+            },
+            "as_of": {
+              "type": "string",
+              "format": "instant"
+            }
+          }
+        }
+      ]
+    },
+    "ReviewComputePayloadV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "plan_view_ref",
+        "as_of",
+        "coverage_receipt_refs",
+        "baseline_entity_keys"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "operation": {
+          "const": "compute"
+        },
+        "plan_view_ref": {
+          "type": "string"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "instant"
+        },
+        "coverage_receipt_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "baseline_entity_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ExperimentTransitionEventV3": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "event_id",
+            "experiment_id",
+            "plan_view_ref",
+            "computation_ref",
+            "coverage_receipt_refs",
+            "at"
+          ],
+          "properties": {
+            "type": {
+              "const": "check_maturity"
+            },
+            "event_id": {
+              "type": "string"
+            },
+            "experiment_id": {
+              "type": "string"
+            },
+            "plan_view_ref": {
+              "type": "string"
+            },
+            "computation_ref": {
+              "type": "string"
+            },
+            "coverage_receipt_refs": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            },
+            "at": {
+              "type": "string",
+              "format": "instant"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "event_id",
+            "review_id",
+            "experiment_id",
+            "plan_view_ref",
+            "computation_ref",
+            "coverage_receipt_refs",
+            "interpretation",
+            "interpretation_receipt",
+            "at"
+          ],
+          "properties": {
+            "type": {
+              "const": "close"
+            },
+            "event_id": {
+              "type": "string"
+            },
+            "review_id": {
+              "type": "string"
+            },
+            "experiment_id": {
+              "type": "string"
+            },
+            "plan_view_ref": {
+              "type": "string"
+            },
+            "computation_ref": {
+              "type": "string"
+            },
+            "coverage_receipt_refs": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            },
+            "interpretation": {
+              "$ref": "#/definitions/ReviewInterpretationV3"
+            },
+            "interpretation_receipt": {
+              "$ref": "#/definitions/ReviewInterpretationReceiptV3"
+            },
+            "at": {
+              "type": "string",
+              "format": "instant"
+            }
+          }
+        }
+      ]
+    },
+    "ReviewInterpretationV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conclusion",
+        "reason",
+        "metric_results"
+      ],
+      "properties": {
+        "conclusion": {
+          "enum": [
+            "continue",
+            "revise",
+            "stop",
+            "inconclusive"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "metric_results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReviewMetricResultV3"
+          }
+        }
+      }
+    },
+    "ReviewMetricResultV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "definition_id",
+        "role",
+        "target_value",
+        "baseline_value",
+        "difference",
+        "unit",
+        "target_observation_refs",
+        "baseline_observation_refs"
+      ],
+      "properties": {
+        "definition_id": {
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "primary",
+            "guardrail"
+          ]
+        },
+        "target_value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "baseline_value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "difference": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_observation_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "baseline_observation_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ExperimentReviewV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "review_id",
+        "experiment_id",
+        "plan_view_ref",
+        "computation_ref",
+        "computation_hash",
+        "interpretation",
+        "interpretation_proposal_hash",
+        "interpretation_receipt_ref",
+        "result_trust",
+        "applicable_scope_hash",
+        "closed_at",
+        "interpretation_receipt"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "review_id": {
+          "type": "string"
+        },
+        "experiment_id": {
+          "type": "string"
+        },
+        "plan_view_ref": {
+          "type": "string"
+        },
+        "computation_ref": {
+          "type": "string"
+        },
+        "computation_hash": {
+          "type": "string"
+        },
+        "interpretation": {
+          "$ref": "#/definitions/ReviewInterpretationV3"
+        },
+        "interpretation_proposal_hash": {
+          "type": "string"
+        },
+        "interpretation_receipt_ref": {
+          "type": "string"
+        },
+        "result_trust": {
+          "const": "verified"
+        },
+        "applicable_scope_hash": {
+          "type": "string"
+        },
+        "closed_at": {
+          "type": "string",
+          "format": "instant"
+        },
+        "interpretation_receipt": {
+          "$ref": "#/definitions/ReviewInterpretationReceiptV3"
+        }
+      }
+    },
+    "ExperimentTransitionPayloadV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "event"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "operation": {
+          "const": "experiment_v3"
+        },
+        "event": {
+          "$ref": "#/definitions/ExperimentTransitionEventV3"
+        }
+      }
+    },
+    "CoachContentWorkItemV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_item_id",
+        "post_key",
+        "post_version_ref",
+        "content_hash",
+        "context_selection_hash",
+        "context_selection",
+        "actual_material_refs"
+      ],
+      "properties": {
+        "work_item_id": {
+          "type": "string"
+        },
+        "post_key": {
+          "type": "string"
+        },
+        "post_version_ref": {
+          "type": "string"
+        },
+        "content_hash": {
+          "type": "string"
+        },
+        "context_selection_hash": {
+          "type": "string"
+        },
+        "context_selection": {
+          "$ref": "#/definitions/ContextSelectionV3"
+        },
+        "actual_material_refs": {
+          "$ref": "#/definitions/V2Strings"
+        }
+      }
+    },
+    "ContentWorkItemsV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "work_items",
+        "reused_analysis_refs",
+        "unread_post_version_refs",
+        "coverage"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "work_items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CoachContentWorkItemV3"
+          }
+        },
+        "reused_analysis_refs": {
+          "$ref": "#/definitions/V2Strings"
+        },
+        "unread_post_version_refs": {
+          "$ref": "#/definitions/V2Strings"
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requested_n",
+            "reusable_n",
+            "selected_n",
+            "unread_n"
+          ],
+          "properties": {
+            "requested_n": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reusable_n": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "selected_n": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unread_n": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "CoachingRunV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "run_id",
+        "status",
+        "request",
+        "bundle_versions",
+        "active_bundle_id",
+        "active_bundle_hash",
+        "content_work_items",
+        "accepted_content_refs",
+        "accepted_content_count",
+        "proposal",
+        "semantic_review",
+        "report_ref",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "prepared",
+            "awaiting_content",
+            "evidence_ready",
+            "proposal_validated",
+            "semantic_reviewed",
+            "delivered"
+          ]
+        },
+        "request": {
+          "$ref": "#/definitions/CoachRequestV2"
+        },
+        "bundle_versions": {
+          "$ref": "#/definitions/V2Strings"
+        },
+        "active_bundle_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "active_bundle_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content_work_items": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ContentWorkItemsV3"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "accepted_content_refs": {
+          "$ref": "#/definitions/V2Strings"
+        },
+        "accepted_content_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "proposal": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ValidatedProposalV2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "semantic_review": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/SemanticReviewV2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "report_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "instant"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "instant"
+        }
+      }
+    },
+    "ReviewResultV3": {
+      "$ref": "#/definitions/ExperimentReviewV3"
+    },
+    "RecordPlanViewPayloadV3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "data",
+        "as_of"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 3
+        },
+        "operation": {
+          "const": "experiment_plan_view"
+        },
+        "data": {
+          "$ref": "#/definitions/ExperimentPlanViewV3"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "instant"
+        }
+      }
+    }
+  }
+}

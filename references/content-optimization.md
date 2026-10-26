@@ -12,9 +12,9 @@
 没有账号档案时保留原文声音，说明临时受众假设后继续。
 不得添加客户反馈、收益、规模、性能、个人实测或团队成果。
 
-V2 状态存在时，`draft-check` 会返回当前 `personalization_context`：其中包含与当前正文版本一致的内容分析、有可恢复来源且经用户确认的声音样本、当前建议及状态、活跃试验计划和已关闭的试验复盘。宿主先读取 `items` 的实际内容，再说明哪些修改有个人证据；proposed/active plan 不能写成有效果，没有相应 item 时只能标为编辑假设。动作来自不同目标或缺少原目标绑定时，保留 item 的适用限制，不直接沿用。
+NEXT-2.1 写入使用 state 3。普通纯编辑明确设置 `personalization_mode=none`，无需全账号数据或新闻搜索。使用个人历史时选择 `evidence_bound`，通过 `resolvePersonalContextSelection` 冻结实际相关条目、用途与 hash；不能用全局历史 hash 代替相关依据，也不能把 proposed/active 计划当效果。
 
-第一次检查可令 `personal_context_hash=null`，读取代码返回的当前 hash 后，把它绑定到最终全文的复核输入。后续 revision 继承该 hash；个人材料、目标或试验结果变化后旧 hash 会被拒绝，必须重新读取上下文和复核。上下文中的“意向读者”等仍是编辑判断，不能改写成用户明确事实。
+只使用当前有效正文与已审内容分析。缺父帖或图片时明确 not_seen；已读取的外部父帖用 SourceVersion 绑定，不能混成本账号帖子。只有本次选中的证据更正会使相关审核失效，无关历史新增不应迫使普通编辑重做。
 
 ## 编辑顺序
 
@@ -29,12 +29,16 @@ V2 状态存在时，`draft-check` 会返回当前 `personalization_context`：�
 默认给一条推荐稿；第二稿必须是案例过程、结论方法等实质不同角度，并说明适用读者。
 用户只要建议时使用 suggestions_only，不生成 DraftRecord 冒充出稿。
 
-## 两阶段检查
+## 两阶段检查与保存
 
-首次 `draft-check` 对最终全文生成 hash 和 twitter-text 加权长度，通常返回 unverified。
-Agent 对完全相同的 texts 核对事实、原意、声音和新增主张，再提交 DraftSemanticReview。
-复核必须包含当前 `text_hashes`、实际使用的 `claim_ids` 与 `kept_user_fact_ids`。
-代码再次检查后，语义 approve、事实可用、长度有效才得到 ready。
+1. 运行 `draft-check`，payload 的 `contract_version=3`，提供最终 DraftInput、明确的 personalization_mode/selection、supersedes_receipt_ref 和 as_of。首次可不提供实际复核回执；结果为 needs_review，并返回生成的 draft_id、文本 hash、加权长度和审核 subject_hash。
+2. 宿主实际核对原文、全文、事实映射与个人依据。保留严格 DraftSemanticReview；实际结果 JSON 为 `{subject_hash, decision: "approve", review: DraftSemanticReview}`。
+3. 用 `record` 的 `contract_version=3, operation=host_media_receipt` 登记 `operation=review_draft` 的成功实际回执和文件 SHA。CLI 读取并归档实际结果文件，不接受任意文件冒充该审核。
+4. 使用首次生成的同一 draft_id，再运行 draft-check 并提供 actual_review_receipt_ref。审核须绑定该 draft_ref、原始材料、全文、有效事实映射和个人依据。正文、事实与长度均合格才 ready。
+5. 用 `record` 的 `contract_version=3, operation=draft_review` 保存 `{draft, review_receipt}`。CLI 重新计算后保存不可变文字版本与追加的审核侧车。不能直接改 account-state.json。
 
-任何文字、URL、编号或 mention 变化都生成新 revision；旧复核和长度不能沿用。
-面向用户交付最多 3 个主要问题、推荐稿、必要的可选稿、修改理由、待核实项和长度状态。
+正文不变、依据更新时沿用同一 draft revision，通过 supersedes_receipt_ref 追加审核，不为了刷新审核改字。当前事实映射以有效 DraftReviewReceiptV3 为准，旧 DraftRecord.fact_mapping 只是创建历史。
+
+文字、URL、编号或 mention 改变时追加新 revision，parent_revision 必须紧邻最新文字头。恢复历史后继续改稿时，edit_base_ref 记录实际历史文字来源，不重写旧对象。每个新审核都重新核对相关证据。
+
+面向用户交付最多 3 个主要问题、推荐稿、必要的可选稿、修改理由、待核实项和长度状态。ready 不等于用户采用、发布或效果已验证；采用须引用当前审核，精确的真实发布归因还需要实际回读正文。

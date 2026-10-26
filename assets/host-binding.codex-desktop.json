@@ -1,6 +1,6 @@
 {
   "binding_id": "codex-desktop-web-local-v1",
-  "binding_version": "1.0.0",
+  "binding_version": "2.1.0",
   "host_name": "Codex desktop",
   "data_mode": "live",
   "search": {
@@ -52,5 +52,55 @@
     "save_method": "atomic account-state.json in a durable account directory; inspect actual host write/read result and record its revision/hash receipt",
     "restore_method": "fresh process or Agent reads account-state.json and persistence-receipt.json from that directory",
     "persistent": true
+  },
+  "media_capabilities": {
+    "image_view": {
+      "declared": "unverified",
+      "binding_version": "2.1.0",
+      "formats": [
+        "image/png"
+      ],
+      "last_success_receipt_ref": null
+    },
+    "image_generate": {
+      "declared": "unverified",
+      "binding_version": "2.1.0",
+      "formats": [
+        "image/png"
+      ],
+      "last_success_receipt_ref": null
+    },
+    "image_edit": {
+      "declared": "unverified",
+      "binding_version": "2.1.0",
+      "formats": [
+        "image/png"
+      ],
+      "last_success_receipt_ref": null
+    },
+    "data_render": {
+      "declared": "unverified",
+      "binding_version": "2.1.0",
+      "formats": [
+        "image/png"
+      ],
+      "last_success_receipt_ref": null
+    },
+    "preview_render": {
+      "declared": "unverified",
+      "binding_version": "2.1.0",
+      "formats": [
+        "local_file"
+      ],
+      "last_success_receipt_ref": null
+    },
+    "artifact_persistence": {
+      "declared": "unverified",
+      "binding_version": "2.1.0",
+      "formats": [
+        "local_file"
+      ],
+      "last_success_receipt_ref": null
+    }
   }
 }

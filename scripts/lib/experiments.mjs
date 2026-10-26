@@ -1,4 +1,5 @@
 import { canonicalHash, ContractError } from './contracts.mjs';
+import { buildReviewComputation, validateReviewInterpretation } from './review.mjs';
 
 const fail = (code, path, message) => { throw new ContractError(code, path, message, false); };
 const values = value => Object.values(value ?? {});
@@ -89,7 +90,9 @@ export function validateExperimentPlan(plan, state = {}) {
   if (!plan.planned_review_condition?.trim() || !plan.stop_condition?.trim()) fail('INVALID_INPUT', '/planned_review_condition', 'Review and stop conditions are required');
   if (plan.status !== 'proposed' || plan.status_history.length !== 1 || plan.status_history[0].status !== 'proposed') fail('INVALID_INPUT', '/status', 'A new experiment starts as proposed');
   if (state.actions && !state.actions[plan.originating_action_id]) fail('MISSING_EVIDENCE', '/originating_action_id', 'Experiment action does not exist');
-  if (/guarantee|保证|保底|必然|互刷|固定.*点赞/i.test(`${plan.hypothesis} ${plan.success_interpretation}`)) fail('INVALID_INPUT', '/hypothesis', 'Experiment cannot guarantee reach or require engagement manipulation');
+  const claimText=`${plan.hypothesis} ${plan.success_interpretation}`;
+  const manipulation=/互刷|固定.*点赞/i.test(claimText),guarantee=/guarantee|保证|保底|必然/i.test(claimText),honestBoundary=/(不保证|不能保证|不保底|并非必然|无法保证|not guarantee|cannot guarantee)/i.test(claimText);
+  if (manipulation||(guarantee&&!honestBoundary)) fail('INVALID_INPUT', '/hypothesis', 'Experiment cannot guarantee reach or require engagement manipulation');
   return structuredClone(plan);
 }
 
@@ -182,4 +185,27 @@ export function priorActionOutcome(state, action) {
     if (adverse) return { repeated: true, outcome: adverse.conclusion, evidence_refs: [...priorEvidence, adverse.review_id, ...(adverse.evidence_refs ?? [])] };
   }
   return { repeated: false, outcome: null, evidence_refs: [] };
+}
+
+/** Close/review a V3-compatible plan only from a stored deterministic computation. */
+export function applyExperimentTransitionV3(state,event) {
+  if(!['check_maturity','close'].includes(event?.type))fail('INVALID_INPUT','/type','V3 transition supports maturity and close');
+  const next=structuredClone(state),experiment=next.experiments?.[event.experiment_id],plan=next.experiment_plan_views?.[event.plan_view_ref],stored=next.review_computations?.[event.computation_ref];
+  if(!experiment||!plan||!stored)fail('MISSING_EVIDENCE','/event','Experiment, V3 plan view and review computation are required');
+  if(plan.source_experiment_id!==experiment.experiment_id||stored.plan_view_ref!==plan.plan_view_id)fail('INVALID_EVIDENCE_REF','/event','Plan and computation belong to another experiment');
+  // Re-evaluate the frozen cutoff. Later inapplicable observations must not stale an approved computation.
+  const recomputed=buildReviewComputation(next,plan,{as_of:stored.computed_at,coverage_receipt_refs:stored.coverage_receipt_refs??event.coverage_receipt_refs??[]});
+  if(recomputed.computation_hash!==stored.computation_hash)fail('STALE_BUNDLE','/computation_ref','Relevant observations or publication bindings changed; recompute and review again');
+  const primary=stored.metric_results.find(item=>item.role==='primary'),mature=primary?.target_value!==null&&stored.target_selection.completeness==='complete';
+  if(event.type==='check_maturity'){
+    if(experiment.status!=='running')fail('STATE_CONFLICT','/status','Only a running experiment may become ready');
+    if(!mature)fail('REQUESTED_OUTPUT_INCOMPLETE','/computation_ref','Planned primary metric coverage is not mature');
+    appendStatus(experiment,'ready_for_review',{...event,basis_refs:[stored.computation_id]});return next;
+  }
+  if(!['running','ready_for_review'].includes(experiment.status))fail('STATE_CONFLICT','/status','Only an executed experiment may close');
+  if(!mature&&event.interpretation?.conclusion!=='inconclusive')fail('REQUESTED_OUTPUT_INCOMPLETE','/interpretation/conclusion','Missing mature observations can close only as inconclusive');
+  const validated=validateReviewInterpretation(stored,event.interpretation,event.interpretation_receipt);
+  next.experiment_reviews??={};const review={contract_version:3,review_id:event.review_id,experiment_id:experiment.experiment_id,plan_view_ref:plan.plan_view_id,computation_ref:stored.computation_id,computation_hash:stored.computation_hash,interpretation:validated.interpretation,interpretation_proposal_hash:validated.interpretation_proposal_hash,interpretation_receipt_ref:validated.receipt.receipt_id,interpretation_receipt:structuredClone(validated.receipt),result_trust:'verified',applicable_scope_hash:stored.target_selection.selection_hash,closed_at:event.at};
+  const old=next.experiment_reviews[review.review_id];if(old&&canonicalHash(old)!==canonicalHash(review))fail('STATE_CONFLICT','/review_id','Review ID identifies different content');
+  next.experiment_reviews[review.review_id]=review;experiment.review_ref=review.review_id;appendStatus(experiment,'closed',{...event,basis_refs:[stored.computation_id,validated.receipt.receipt_id]});return next;
 }

@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "recipe_id": "case_review",
+  "recipe_version": "1.0.0",
+  "name": "案例复盘",
+  "applicable_goals": [
+    "relevant_reach",
+    "discussion",
+    "followers",
+    "clicks",
+    "custom"
+  ],
+  "required_materials": [
+    "真实案例与可核结果"
+  ],
+  "editorial_structure": [
+    "背景",
+    "做法",
+    "结果",
+    "局限"
+  ],
+  "visual_roles": [
+    "chart",
+    "process",
+    "information_card"
+  ],
+  "default_deliverables": [
+    "text",
+    "sources"
+  ],
+  "quality_checks": [
+    "事实与用户材料一致",
+    "保留用户立场与必要限定",
+    "未读或未知内容明确标注",
+    "行动与观察条件具体"
+  ],
+  "editable_preferences": [
+    "language",
+    "tone",
+    "visual_style",
+    "image_count",
+    "information_density"
+  ]
+}

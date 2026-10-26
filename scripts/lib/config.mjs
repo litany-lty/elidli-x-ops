@@ -54,6 +54,7 @@ function applyPatch(base, patch) {
       return current[segment];
     }, next);
     const key = segments.at(-1);
+    if(operation.op==='set'&&segments.length===2&&segments[0]==='content'&&['recipe_defaults','visual_preferences','recipe_locations','delivery_preferences'].includes(key)&&!Object.hasOwn(target,key))target[key]=key==='recipe_locations'?[]:{};
     if (!target || !Object.hasOwn(target, key)) throw new ContractError('INVALID_INPUT', `/operations/${index}/path`, `unknown patch path: ${operation.path}`);
     const current = target[key];
     if (operation.op === 'set') target[key] = structuredClone(operation.value);

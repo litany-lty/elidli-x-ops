@@ -1,6 +1,6 @@
 # V2 数据运营指导流程
 
-本流程用于“结合账号数据和历史推文，告诉我接下来最该做什么”以及后续复盘。运输外壳继续使用 `schema_version: 1`；V2 数据与教练对象使用 `contract_version: 2`，账号状态使用 `state.schema_version: 2`。
+本流程用于“结合账号数据和历史推文，告诉我接下来最该做什么”以及后续复盘。运输外壳继续使用 `schema_version: 1`；规范数据与统计仍使用 `contract_version: 2`；NEXT-2.1 的新教练/内容审核使用 contract 3，账号写入要求 `state.schema_version: 3`。旧 V2 对象作为历史保留。
 
 ## 1. 先确认真实能力与材料
 
@@ -45,8 +45,8 @@
 
 ```text
 data {
-  analysis: PostContentAnalysisV2
-  semantic_receipt: ContentSemanticReceiptV2
+  analysis: PostContentAnalysisV3
+  semantic_receipt: ContentSemanticReceiptV3
 }
 ```
 
@@ -95,7 +95,7 @@ action → experiment → adoption → draft_id + revision → publication → p
 
 旧状态先运行 `state-migrate preview`。应用迁移前在账号私有目录保存原始字节备份与 hash；转换后一次原子提交。中途失败不改变旧状态；相同迁移重复 apply 返回原结果，不再次提高 revision。
 
-普通 V2 写入遇到 V1 状态返回 `MIGRATION_REQUIRED`。旧报告继续按 V1 合同保留，不在迁移时编造期间、系列或定义。
+普通业务写入遇到 state 1/2 返回 `MIGRATION_REQUIRED`；用 contract 3 state-migrate preview/apply 原子升级到 state 3。旧报告继续按 V1 合同保留，不在迁移时编造期间、系列或定义。
 
 新增命令继续返回统一 `ResultEnvelope` 与规范 `run_result`：完整为 `ok/0`，有可用产物但仍缺阶段为 `partial/3`，核心阻塞且无可用产物为 `blocked/4`。宿主应按 `next_steps` 继续 prepare、ingest 或 finalize，不能把预期的 partial 当作进程故障。
 
@@ -104,3 +104,11 @@ action → experiment → adoption → draft_id + revision → publication → p
 先给当前主要问题或待验证假设，再给支持它的关键数字与代表帖。随后按 P1–P3 给具体动作，并给一个主要试验、观察指标、复查条件和停止条件。最后简短列出数据覆盖、未读材料、无法验证的能力和什么新证据会改变建议。
 
 “专业运营指导流程已具备并跑通”只有在工程验收、语义质量验收及真实授权账号材料链路均通过后才能声明。真实材料尚未提供时，工程和合成验收可以完成，但真实账号门禁必须保持未验证。
+
+## NEXT-2.1 继续执行
+
+coach-step 使用 contract 3，实际分析和审核绑定 context_selection_hash 与 analysis_proposal_hash；历史 V2 审核不能批准修改后的 V3 主张。外部父帖从成功读取的 SourceVersion 解析，不伪造本账号实体。
+
+旧进行中计划迁移为 ExperimentPlanViewV3；明确24h可继续，未知期间通过 record experiment_plan_view 补齐。review contract 3 compute 保存 ReviewComputationV3；record experiment_v3 的 check_maturity/close 复用同一计算，并复算相关观测。关闭解释不能自由填写统计结果，独立语义回执连同计算一起保留；旧closed或计划本身不构成可信效果。
+
+文字审核与发布精确归因见[改稿流程](content-optimization.md)，图文制作见[图文流程](content-workflow.md)。

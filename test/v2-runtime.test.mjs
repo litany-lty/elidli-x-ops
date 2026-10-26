@@ -18,7 +18,7 @@ test('all V2 command validators compile with strict schemas',()=>{
     assert.throws(()=>validate(name,null),error=>error instanceof ContractError,`${name} must reject null without a schema compilation error`);
   }
 });
-async function isolated(version=2) {
+async function isolated(version=3) {
   const dir=await mkdtemp(join(tmpdir(),'xops-v2-runtime-'));
   const state=initializeState(createDefaultConfig(account),version);state.revision=1;
   await writeFile(join(dir,'account-state.json'),JSON.stringify(state)+'\n');return{dir,state};

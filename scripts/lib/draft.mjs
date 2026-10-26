@@ -3,11 +3,12 @@ import { Temporal } from '@js-temporal/polyfill';
 import twitterText from 'twitter-text';
 import {
   ContractError,
+  canonicalHash,
   newId,
   textHash,
   validate,
 } from './contracts.mjs';
-import { buildConsumerContext, goalSnapshotFromState } from './consumer-context.mjs';
+import { buildConsumerContext, goalSnapshotFromState, validatePersonalContextSelection } from './consumer-context.mjs';
 
 const require = createRequire(import.meta.url);
 const { version: parserVersion } = require('twitter-text/package.json');
@@ -231,6 +232,8 @@ export function checkDraft(input, context, asOf) {
   }
 
   const { draftId, previous, mode } = getDraftHistory(input, context.state ?? {});
+  if(input.edit_base_ref){const base=context.state?.drafts?.[input.edit_base_ref.draft_id]?.revisions[input.edit_base_ref.revision];if(!base||input.edit_base_ref.draft_id!==draftId)fail('STALE_DRAFT','/edit_base_ref','Edit base must identify real history of this draft');}
+  if(mode==='recheck'&&['original_text','original_ref','format'].some(key=>input[key]!==previous[key]))fail('STALE_DRAFT','/draft_input','Recheck changes audit evidence, not the saved original material');
   if (previous?.card_id && input.card_id && input.card_id !== previous.card_id) {
     fail('STALE_DRAFT', '/payload/draft_input/card_id', '草稿修订必须保留原新闻卡关联；不能改绑到另一张卡');
   }
@@ -286,6 +289,7 @@ export function checkDraft(input, context, asOf) {
     text_hashes: textHashes,
     validity,
   };
+  if(input.edit_base_ref!==undefined)draft.edit_base_ref=structuredClone(input.edit_base_ref);
   validate('DraftRecord', draft);
   const result = {
     draft,
@@ -298,4 +302,88 @@ export function checkDraft(input, context, asOf) {
   };
   validate('DraftCheckResult', result);
   return result;
+}
+
+// Text revisions remain immutable. New evidence and approval are append-only sidecars.
+function mappingEvidenceVersions(state, mapping) {
+  const refs = new Set(mapping.flatMap(item => [...item.claim_ids, ...item.user_fact_ids]));
+  for (const id of [...refs]) {
+    const claim = state.claims[id];
+    for (const source of claim?.source_version_ids ?? []) refs.add(source);
+    const fact = state.user_facts[id];
+    if (fact) refs.add(fact.source_ref);
+  }
+  return [...refs].sort().map(ref => {
+    const value = state.claims[ref] ?? state.user_facts[ref] ?? sourceVersion(state, ref) ?? state.sources[ref];
+    return { ref, hash: canonicalHash(value ?? null) };
+  });
+}
+
+export function draftEvidenceMappingHash(state, mapping) {
+  return canonicalHash({fact_mapping:mapping,evidence_versions:mappingEvidenceVersions(state,mapping)});
+}
+
+function effectiveReview(state, ref, selected = null) {
+  const receipts = Object.values(state.draft_review_receipts ?? {}).filter(item => item.draft_ref.draft_id === ref.draft_id && item.draft_ref.revision === ref.revision);
+  const superseded = new Set(receipts.map(item => item.supersedes_receipt_ref).filter(Boolean));
+  const leaves = receipts.filter(item => !superseded.has(item.receipt_id));
+  if (selected) return leaves.find(item => item.receipt_id === selected) ?? null;
+  return leaves.length === 1 ? leaves[0] : null;
+}
+
+export function checkDraftV3(payload, context) {
+  validate('DraftCheckPayloadV3', payload);
+  const input = {...payload.draft_input, personal_context_hash:null};
+  const checked = checkDraft(input, context, payload.as_of);
+  if(checked.draft.card_id&&!Object.values(context.state.runs??{}).some(run=>run.cards?.some(card=>card.card_id===checked.draft.card_id)))fail('MISSING_EVIDENCE','/card_id','News card must be an actual saved version');
+  const state = context.state;
+  const selection = payload.personal_context_selection;
+  if (payload.personalization_mode === 'none' && selection !== null) fail('INVALID_INPUT','/personal_context_selection','纯编辑不应声称使用账号依据');
+  const personalErrors = [];
+  if (payload.personalization_mode === 'evidence_bound') {
+    if (!selection?.selected.length) personalErrors.push('personal_context_selection');
+    else validatePersonalContextSelection(state, selection);
+  }
+  const previous = effectiveReview(state,{draft_id:checked.draft.draft_id,revision:checked.draft.revision});
+  if (payload.supersedes_receipt_ref && !state.draft_review_receipts[payload.supersedes_receipt_ref]) fail('MISSING_EVIDENCE','/supersedes_receipt_ref','找不到待替代审核');
+  const receipt = {
+    contract_version:3,receipt_id:'',draft_ref:{draft_id:checked.draft.draft_id,revision:checked.draft.revision},
+    text_hashes:checked.draft.text_hashes,fact_mapping:structuredClone(input.fact_mapping),
+    evidence_mapping_hash:draftEvidenceMappingHash(state,input.fact_mapping),evidence_versions:mappingEvidenceVersions(state,input.fact_mapping),
+    personalization_mode:payload.personalization_mode,personal_context_selection:selection,
+    personal_context_selection_hash:selection?.selection_hash ?? null,validator_version:'draft-check@3',
+    semantic_review:input.semantic_review,reviewer:input.semantic_review?.reviewer ?? 'awaiting-review',reviewed_at:payload.as_of,
+    decision:checked.validity === 'ready' && !personalErrors.length ? 'approved' : checked.evidence_status === 'supported' ? 'needs_review':'incomplete',
+    supersedes_receipt_ref:payload.supersedes_receipt_ref,
+  };
+  receipt.subject_hash=canonicalHash({draft_ref:receipt.draft_ref,original_text:input.original_text,original_ref:input.original_ref,format:input.format,card_id:checked.draft.card_id,edit_base_ref:input.edit_base_ref??null,text_hashes:receipt.text_hashes,evidence_mapping_hash:receipt.evidence_mapping_hash,personalization_mode:receipt.personalization_mode,personal_context_selection_hash:receipt.personal_context_selection_hash});
+  receipt.actual_review_receipt_ref=payload.actual_review_receipt_ref??null;
+  const actualReview=state.host_media_receipts?.[receipt.actual_review_receipt_ref];
+  if(!actualReview||actualReview.operation!=='review_draft'||actualReview.status!=='succeeded'||actualReview.subject_hash!==receipt.subject_hash)receipt.decision=receipt.decision==='incomplete'?'incomplete':'needs_review';
+  receipt.receipt_id=`draft-review:${canonicalHash({...receipt,receipt_id:undefined})}`;
+  if(!state.draft_review_receipts[receipt.receipt_id]&&previous&&payload.supersedes_receipt_ref!==previous.receipt_id)fail('STALE_DRAFT','/supersedes_receipt_ref','重新审核须明确替代当前回执');
+  validate('DraftReviewReceiptV3',receipt);
+  return {...checked,review_receipt:receipt,readiness:receipt.decision==='approved'?'ready':receipt.decision,unmet_requirements:personalErrors};
+}
+
+export function evaluateDraftReadiness(ref, selectedReviewRef, state) {
+  const draft=state.drafts?.[ref.draft_id]?.revisions?.[ref.revision];
+  const receipt=effectiveReview(state,ref,selectedReviewRef);
+  const unmet=[];
+  if(!draft)unmet.push('draft');
+  if(!receipt)unmet.push('draft_review');
+  if(draft&&receipt){
+    if(canonicalHash(draft.texts.map(textHash))!==canonicalHash(receipt.text_hashes))unmet.push('text_hashes');
+    if(draftEvidenceMappingHash(state,receipt.fact_mapping)!==receipt.evidence_mapping_hash)unmet.push('evidence_mapping');
+    if(checkEvidence({...draft,fact_mapping:receipt.fact_mapping},state).issues.length)unmet.push('evidence');
+    if(draft.texts.some(text=>!parseTweet(text).valid))unmet.push('length');
+    const subject=canonicalHash({draft_ref:receipt.draft_ref,original_text:draft.original_text,original_ref:draft.original_ref,format:draft.format,card_id:draft.card_id,edit_base_ref:draft.edit_base_ref??null,text_hashes:receipt.text_hashes,evidence_mapping_hash:receipt.evidence_mapping_hash,personalization_mode:receipt.personalization_mode,personal_context_selection_hash:receipt.personal_context_selection_hash});
+    if(subject!==receipt.subject_hash)unmet.push('draft_review_subject');
+    if(receipt.decision!=='approved')unmet.push('semantic_review');
+    const actual=state.host_media_receipts?.[receipt.actual_review_receipt_ref];if(!actual||actual.status!=='succeeded'||actual.operation!=='review_draft'||actual.subject_hash!==receipt.subject_hash)unmet.push('actual_draft_review');
+    if(receipt.personalization_mode==='evidence_bound'){
+      try{if(!receipt.personal_context_selection?.selected.length)throw Error();validatePersonalContextSelection(state,receipt.personal_context_selection);}catch{unmet.push('personal_context_selection');}
+    }
+  }
+  return {review_receipt_ref:receipt?.receipt_id??null,readiness:!draft?'incomplete':unmet.length?'needs_review':'ready',evidence_mapping_hash:receipt?.evidence_mapping_hash??null,personal_context_selection_hash:receipt?.personal_context_selection_hash??null,text_hashes:draft?.text_hashes??[],unmet_requirements:unmet};
 }

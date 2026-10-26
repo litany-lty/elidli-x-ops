@@ -7,7 +7,7 @@ import { Temporal } from '@js-temporal/polyfill';
 const schemaUrl = new URL('../../schemas/contracts.schema.json', import.meta.url);
 const schema = JSON.parse(readFileSync(fileURLToPath(schemaUrl), 'utf8'));
 // V2 payloads keep the existing transport envelope and share one strict registry.
-for (const name of ['data-v2.schema.json', 'coaching-v2.schema.json', 'review-v2.schema.json', 'consumer-v2.schema.json', 'runtime-v2.schema.json']) {
+for (const name of ['data-v2.schema.json', 'coaching-v2.schema.json', 'review-v2.schema.json', 'consumer-v2.schema.json', 'runtime-v2.schema.json', 'data-reliability-v3.schema.json', 'coaching-reliability-v3.schema.json', 'content-v3.schema.json', 'reliability-v3.schema.json']) {
   const extension = JSON.parse(readFileSync(new URL(`../../schemas/${name}`, import.meta.url), 'utf8'));
   for (const [key, definition] of Object.entries(extension.definitions)) {
     if (schema.definitions[key]) throw new Error(`Duplicate contract: ${key}`);
@@ -76,6 +76,9 @@ function validatorFor(typeName) {
 ajv.addSchema(schema);
 
 export function validate(typeName, value) {
+  if (value?.contract_version === 3) {
+    typeName = ({'draft-checkPayload':'DraftCheckPayloadV3','recordPayload':'RecordPayloadV3','state-migratePayload':'StateMigratePayloadV3','content-stepPayload':'ContentStepPayloadV3','coach-stepPayload':'CoachStepPayloadV3','reviewPayload':'ReviewComputePayloadV3'})[typeName] ?? typeName;
+  }
   if (value?.contract_version === 2) {
     const commands = {'coach-stepPayload':'CoachStepPayloadV2','data-importPayload':'DataImportPayloadV2','state-migratePayload':'StateMigratePayloadV2','account-analyzePayload':'AccountAnalyzePayloadV2','reviewPayload':'ReviewPayloadV2','recordPayload':'RecordPayloadV2'};
     typeName = commands[typeName] ?? typeName;
@@ -87,6 +90,10 @@ export function validate(typeName, value) {
   if (typeName === 'recordPayload' && value && typeof value === 'object') {
     const recordTypes={initialize:'RecordInitializePayload',user_material:'RecordUserMaterialPayload',analysis:'RecordAnalysisPayload',draft:'RecordDraftPayload',adoption:'RecordAdoptionPayload',publication:'RecordPublicationPayload',observations:'RecordObservationsPayload',review:'RecordReviewPayload',rule_version:'RecordRulePayload',persistence_receipt:'RecordPersistencePayload'};
     if(recordTypes[value.operation])typeName=recordTypes[value.operation];
+  }
+  if(typeName==='ContentStepPayloadV3') {
+    const types={prepare:'ContentPreparePayloadV3',compose:'ContentComposePayloadV3',review:'ContentReviewPayloadV3',finalize:'ContentFinalizePayloadV3',revise:'ContentRevisePayloadV3',restore:'ContentRestorePayloadV3',resume:'ContentResumePayloadV3'};
+    typeName=value?.operation==='ingest'?({draft_ref:'ContentDraftIngestPayloadV3',media_asset:'ContentAssetIngestPayloadV3',preview:'ContentPreviewIngestPayloadV3'})[value.result_kind]??typeName:types[value?.operation]??typeName;
   }
   const validator = validatorFor(typeName);
   if (!validator(value)) {
@@ -143,7 +150,7 @@ function validatePatchSemantics(patch) {
 function patchPaths() {
   return new Set([
     '/account/handle','/account/profile_url','/account/user_id','/account/identity_basis','/timezone','/output_language',
-    '/content/audience','/content/audience_regions','/content/primary_goal','/content/goal_notes','/content/topics','/content/voice_samples','/content/style_notes','/content/allowed_formats',
+    '/content/recipe_defaults','/content/visual_preferences','/content/recipe_locations','/content/delivery_preferences','/content/audience','/content/audience_regions','/content/primary_goal','/content/goal_notes','/content/topics','/content/voice_samples','/content/style_notes','/content/allowed_formats',
     '/news/core_topics','/news/exploration_topics','/news/excluded_topics','/news/entities','/news/source_languages','/news/event_regions','/news/preferred_sources','/news/restricted_sources','/news/excluded_sources','/news/content_types','/news/window','/news/allow_out_of_window','/news/rumor_policy','/news/max_queries','/news/verification_queries_reserved','/news/max_source_reads','/news/verification_reads_reserved','/news/max_candidate_urls','/news/max_events_to_verify','/news/max_discovery_rounds','/news/soft_budget_seconds','/news/max_topic_cards','/news/max_draft_variants','/news/new_paid_api_budget_usd',
     '/history/dedupe_scope','/history/previously_recommended'
   ]);

@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "recipe_id": "comparison",
+  "recipe_version": "1.0.0",
+  "name": "工具对比",
+  "applicable_goals": [
+    "relevant_reach",
+    "discussion",
+    "followers",
+    "clicks",
+    "custom"
+  ],
+  "required_materials": [
+    "统一条件、来源日期和已知未知"
+  ],
+  "editorial_structure": [
+    "比较维度",
+    "关键差异",
+    "适合谁",
+    "取舍与限制"
+  ],
+  "visual_roles": [
+    "information_card",
+    "chart"
+  ],
+  "default_deliverables": [
+    "text",
+    "sources"
+  ],
+  "quality_checks": [
+    "事实与用户材料一致",
+    "保留用户立场与必要限定",
+    "未读或未知内容明确标注",
+    "行动与观察条件具体"
+  ],
+  "editable_preferences": [
+    "language",
+    "tone",
+    "visual_style",
+    "image_count",
+    "information_density"
+  ]
+}
