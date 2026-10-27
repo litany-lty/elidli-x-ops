@@ -5,8 +5,8 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {createHash} from 'node:crypto';
-import { canonicalHash } from '../scripts/lib/contracts.mjs';
-import { inspectKnowledgeCheckoutV5, proposeKnowledgeUpdateV5, verifyKnowledgeSourceMaterialsV5 } from '../scripts/lib/knowledge-updates.mjs';
+import { canonicalHash, validate } from '../scripts/lib/contracts.mjs';
+import { activateKnowledgeUpdateV5, inspectKnowledgeCheckoutV5, proposeKnowledgeUpdateV5, verifyKnowledgeSourceMaterialsV5 } from '../scripts/lib/knowledge-updates.mjs';
 const git=(cwd,args)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
 
 test('review: knowledge check rejects uncommitted source bytes at an otherwise current HEAD',()=>{
@@ -32,4 +32,33 @@ test('review: candidate source cannot be approved from matching HEAD strings alo
   const candidate={catalog:{catalog_id:'candidate',catalog_content_hash:'b'.repeat(64),upstream:{commit:head}},dependencies:[{dependency_id:'score',path:'score.rs',material_hash:'d'.repeat(64),evidence_material_path:'evidence.txt',evidence_content_hash:'e'.repeat(64),source_visibility:'public',wiring_status:'wired_reviewed'}],rules:{},facts:{},artifacts:{}};
   const base={contract_version:5,check_id:'check',repo:'fixture/source',checked_at:'2026-10-27T05:00:00Z',observed_head:head,remote_head:head,status:'changed',files:[],error:null},check={...base,check_hash:canonicalHash(base)};
   assert.throws(()=>proposeKnowledgeUpdateV5(current,candidate,check),/source|file|binding|coverage/i);
+});
+
+test('review: checked upstream bytes override unchanged candidate metadata for impact',()=>{
+  const priorHead='a'.repeat(40),head='b'.repeat(40),priorHash='c'.repeat(64),actualHash='d'.repeat(64);
+  const dependency={dependency_id:'score',path:'score.rs',material_hash:priorHash,evidence_material_path:'evidence.txt',evidence_content_hash:'e'.repeat(64),source_visibility:'public',wiring_status:'wired_reviewed'};
+  const rule={rule_version_id:'rule-score',dependency_ids:['score'],review_status:'approved'};
+  const current={catalog:{catalog_id:'prior',catalog_content_hash:'f'.repeat(64),upstream:{commit:priorHead}},dependencies:[dependency],rules:{'rule-score':rule},facts:{},artifacts:{}};
+  const candidate={catalog:{catalog_id:'candidate',catalog_content_hash:'1'.repeat(64),upstream:{commit:head}},dependencies:[structuredClone(dependency)],rules:{'rule-score':structuredClone(rule)},facts:{},artifacts:{}};
+  const base={contract_version:5,check_id:'check',repo:'fixture/source',checked_at:'2026-10-27T05:00:00Z',prior_head:priorHead,observed_head:head,remote_head:head,status:'changed',files:[{path:'score.rs',status:'present',sha256:actualHash,git_blob_oid:'2'.repeat(40),commit:head}],error:null};
+  const check={...base,check_hash:canonicalHash(base)},proposal=proposeKnowledgeUpdateV5(current,candidate,check);
+  assert.doesNotThrow(()=>validate('KnowledgeUpdateProposalV5',proposal));
+  assert.deepEqual(proposal.dependency_diff.modified,['score']);
+  assert.deepEqual(proposal.affected_rule_version_refs,['rule-score']);
+  assert.deepEqual(proposal.gaps,['score']);
+  assert.deepEqual(proposal.impact_limitations,[{dependency_id:'score',path:'score.rs',reason:'candidate_metadata_stale'}]);
+  assert.deepEqual(proposal.source_bindings.map(({source_ref,file_sha256,material_hash})=>({source_ref,file_sha256,material_hash})),[{source_ref:'dependency:score',file_sha256:actualHash,material_hash:priorHash}]);
+});
+
+test('review: unchecked registered paths block activation instead of asserting no impact',()=>{
+  const priorHead='a'.repeat(40),head='b'.repeat(40),dependency={dependency_id:'score',path:'score.rs',material_hash:'c'.repeat(64),source_visibility:'public',wiring_status:'wired_reviewed'};
+  const current={catalog:{catalog_id:'prior',catalog_content_hash:'d'.repeat(64),upstream:{commit:priorHead}},dependencies:[dependency],rules:{},facts:{},artifacts:{}};
+  const candidate={catalog:{catalog_id:'candidate',catalog_content_hash:'e'.repeat(64),upstream:{commit:head}},dependencies:[structuredClone(dependency)],rules:{},facts:{},artifacts:{}};
+  const base={contract_version:5,check_id:'check',repo:'fixture/source',checked_at:'2026-10-27T05:00:00Z',prior_head:priorHead,observed_head:head,remote_head:head,status:'changed',files:[],error:null},check={...base,check_hash:canonicalHash(base)};
+  const proposal=proposeKnowledgeUpdateV5(current,candidate,check);
+  assert.deepEqual(proposal.impact_limitations,[{dependency_id:'score',path:'score.rs',reason:'not_checked_at_candidate_head'}]);
+  assert.deepEqual(proposal.dependency_diff.potentially_modified,['score']);
+  assert.deepEqual(proposal.gaps,['score']);
+  const review={decision:'approved',purpose:'review_knowledge',subject_hash:proposal.proposal_hash,actual_result_hash:proposal.proposal_hash};
+  assert.throws(()=>activateKnowledgeUpdateV5(current,candidate,proposal,{review_receipt:review,replay_results:[],check}),error=>error.code==='MISSING_EVIDENCE'&&error.path==='/gaps');
 });

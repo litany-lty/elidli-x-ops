@@ -62,15 +62,46 @@ export function dependencyDiffV5(currentDependencies, candidateDependencies) {
   return { added: added.sort(), modified: modified.sort(), removed: removed.sort(), moved: moved.sort((a, b) => a.dependency_id.localeCompare(b.dependency_id)) };
 }
 
-export function computeKnowledgeImpactV5(currentBundle, candidateBundle) {
-  const dependency_diff = dependencyDiffV5(currentBundle.dependencies, candidateBundle.dependencies);
-  const changed = new Set([...dependency_diff.added, ...dependency_diff.modified, ...dependency_diff.removed, ...dependency_diff.moved.map(item => item.dependency_id)]);
+function checkedDependencyImpactV5(currentBundle, candidateBundle, check) {
+  const priorDeps = byId(currentBundle.dependencies, 'dependency_id'), checked = new Map((check?.files ?? []).map(file => [file.path, file]));
+  const modified = [], potentially_modified = [], limitations = [];
+  if (check?.status !== 'changed' || check.observed_head === currentBundle.catalog?.upstream?.commit) return { modified, potentially_modified, limitations };
+  const historicalHeadMatches = Boolean(currentBundle.catalog?.upstream?.commit) && check.prior_head === currentBundle.catalog.upstream.commit;
+  for (const dep of candidateBundle.dependencies) {
+    const prior = priorDeps.get(dep.dependency_id);
+    if (!prior || canonicalHash(prior) !== canonicalHash(dep) || dep.source_visibility === 'external_unpublished') continue;
+    const file = checked.get(dep.path);
+    if (!file) {
+      potentially_modified.push(dep.dependency_id);
+      limitations.push({ dependency_id: dep.dependency_id, path: dep.path, reason: 'not_checked_at_candidate_head' });
+      continue;
+    }
+    if (!historicalHeadMatches) {
+      potentially_modified.push(dep.dependency_id);
+      limitations.push({ dependency_id: dep.dependency_id, path: dep.path, reason: 'historical_head_unverified' });
+    } else if (!prior.material_hash) {
+      potentially_modified.push(dep.dependency_id);
+      limitations.push({ dependency_id: dep.dependency_id, path: dep.path, reason: 'historical_source_pin_missing' });
+    } else if (file.status === 'deleted' || file.sha256 !== prior.material_hash) {
+      modified.push(dep.dependency_id);
+      limitations.push({ dependency_id: dep.dependency_id, path: dep.path, reason: 'candidate_metadata_stale' });
+    }
+  }
+  return { modified: [...new Set(modified)].sort(), potentially_modified: [...new Set(potentially_modified)].sort(), limitations: limitations.sort((a, b) => a.dependency_id.localeCompare(b.dependency_id)) };
+}
+
+export function computeKnowledgeImpactV5(currentBundle, candidateBundle, check = null) {
+  const sourceImpact = checkedDependencyImpactV5(currentBundle, candidateBundle, check);
+  const baseDiff = dependencyDiffV5(currentBundle.dependencies, candidateBundle.dependencies);
+  const dependency_diff = { ...baseDiff, modified: [...new Set([...baseDiff.modified, ...sourceImpact.modified])].sort() };
+  if (sourceImpact.potentially_modified.length) dependency_diff.potentially_modified = sourceImpact.potentially_modified;
+  const changed = new Set([...dependency_diff.added, ...dependency_diff.modified, ...(dependency_diff.potentially_modified ?? []), ...dependency_diff.removed, ...dependency_diff.moved.map(item => item.dependency_id)]);
   const allRules = new Set([...Object.keys(currentBundle.rules), ...Object.keys(candidateBundle.rules)]), affected = [];
   for (const ref of allRules) {
     const prior = currentBundle.rules[ref], next = candidateBundle.rules[ref];
     if (!prior || !next || canonicalHash(prior) !== canonicalHash(next) || [...(prior?.dependency_ids ?? []), ...(next?.dependency_ids ?? [])].some(id => changed.has(id))) affected.push(ref);
   }
-  return Object.freeze({ dependency_diff, affected_rule_version_refs: affected.sort() });
+  return Object.freeze({ dependency_diff, affected_rule_version_refs: affected.sort(), impact_limitations: sourceImpact.limitations });
 }
 
 /** Bind new research to actually inspected Git blobs; inherited facts retain their original pin. */
@@ -86,10 +117,13 @@ export function knowledgeSourceBindingsV5(currentBundle, candidateBundle, check)
     bindings.push({ source_ref, path, commit: file.commit, status: file.status, git_blob_oid: file.git_blob_oid, file_sha256: file.sha256, material_hash });
   };
   const priorDeps = byId(currentBundle.dependencies, 'dependency_id');
+  const stale = new Set(checkedDependencyImpactV5(currentBundle, candidateBundle, check).limitations.filter(item => item.reason !== 'not_checked_at_candidate_head').map(item => item.dependency_id));
   for (const dep of candidateBundle.dependencies) {
-    if (canonicalHash(priorDeps.get(dep.dependency_id) ?? null) === canonicalHash(dep) || dep.source_visibility === 'external_unpublished') continue;
-    if (!dep.material_hash) fail('/source_bindings', 'A public dependency needs its actual upstream file hash', 'MISSING_EVIDENCE');
-    bind(`dependency:${dep.dependency_id}`, dep.path, dep.material_hash, dep.evidence_content_hash);
+    const inherited = canonicalHash(priorDeps.get(dep.dependency_id) ?? null) === canonicalHash(dep);
+    if ((inherited && !stale.has(dep.dependency_id)) || dep.source_visibility === 'external_unpublished') continue;
+    if (!dep.material_hash && !inherited) fail('/source_bindings', 'A public dependency needs its actual upstream file hash', 'MISSING_EVIDENCE');
+    bind(`dependency:${dep.dependency_id}`, dep.path, inherited ? null : dep.material_hash, inherited ? dep.material_hash : dep.evidence_content_hash);
+    if (inherited) continue;
     for (const path of [...new Set(dep.caller_refs ?? [])].filter(path => /\.(?:rs|py|go|java|scala|ts|js|md)$/u.test(path))) if (path !== dep.path) bind(`caller:${dep.dependency_id}:${path}`, path);
   }
   for (const dep of currentBundle.dependencies) if (!candidateBundle.dependencies.some(item => item.dependency_id === dep.dependency_id) && dep.source_visibility !== 'external_unpublished') bind(`removed_dependency:${dep.dependency_id}`, dep.path);
@@ -147,8 +181,8 @@ export function proposeKnowledgeUpdateV5(currentBundle, savedCandidate, check) {
   if (!savedCandidate?.catalog || !savedCandidate?.dependencies || !savedCandidate?.rules) fail('/saved_candidate', 'A saved, reloadable candidate bundle is required', 'MISSING_EVIDENCE');
   if (check?.status !== 'changed' || check.observed_head !== check.remote_head || check.remote_head !== savedCandidate.catalog.upstream.commit) fail('/check', 'Changed check must bind candidate to actual remote HEAD', 'INVALID_EVIDENCE_REF');
   const source_bindings = knowledgeSourceBindingsV5(currentBundle, savedCandidate, check);
-  const impact = computeKnowledgeImpactV5(currentBundle, savedCandidate);
-  const gaps = savedCandidate.dependencies.filter(item => item.wiring_status === 'unreviewed' || item.source_visibility !== 'public').map(item => item.dependency_id).sort();
+  const impact = computeKnowledgeImpactV5(currentBundle, savedCandidate, check);
+  const gaps = [...new Set([...savedCandidate.dependencies.filter(item => item.wiring_status === 'unreviewed' || item.source_visibility !== 'public').map(item => item.dependency_id), ...impact.impact_limitations.map(item => item.dependency_id)])].sort();
   const candidate_bundle_hash = canonicalHash({ catalog: savedCandidate.catalog, dependencies: savedCandidate.dependencies, rules: savedCandidate.rules });
   const base = { contract_version: 5, proposal_id: `knowledge-proposal-${canonicalHash({ current: currentBundle.catalog.catalog_content_hash, candidate: savedCandidate.catalog.catalog_content_hash, check: check.check_hash }).slice(0, 24)}`, prior_catalog_ref: currentBundle.catalog.catalog_id, candidate_catalog_ref: savedCandidate.catalog.catalog_id, candidate_catalog_hash: savedCandidate.catalog.catalog_content_hash, candidate_bundle_hash, check_ref: check.check_id, check_hash: check.check_hash, source_binding_version: 'git-source-v1', source_bindings, ...impact, gaps };
   return Object.freeze({ ...base, proposal_hash: canonicalHash(base) });
@@ -162,18 +196,18 @@ export function activateKnowledgeUpdateV5(currentBundle, savedCandidate, proposa
   if (proposal.source_binding_version !== 'git-source-v1' || check?.check_hash !== proposal.check_hash || check.check_id !== proposal.check_ref || canonicalHash(knowledgeSourceBindingsV5(currentBundle, savedCandidate, check)) !== canonicalHash(proposal.source_bindings)) fail('/source_bindings', 'Activation requires current exact saved source bindings; re-check legacy candidates', 'MISSING_EVIDENCE');
   const pendingRules = Object.values(savedCandidate.rules).filter(rule => rule.review_status !== 'approved').map(rule => rule.rule_version_id);
   if (pendingRules.length) fail('/candidate_catalog/rules', `Candidate contains rules without approved status: ${pendingRules.join(', ')}`, 'MISSING_EVIDENCE');
-  const recomputed = computeKnowledgeImpactV5(currentBundle, savedCandidate);
+  const recomputed = computeKnowledgeImpactV5(currentBundle, savedCandidate, check);
   const candidateBundleHash = canonicalHash({ catalog: savedCandidate.catalog, dependencies: savedCandidate.dependencies, rules: savedCandidate.rules });
   const proposalBase = Object.fromEntries(Object.entries(proposal).filter(([key]) => key !== 'proposal_hash'));
   if (proposal.candidate_catalog_hash !== savedCandidate.catalog.catalog_content_hash || proposal.candidate_bundle_hash !== candidateBundleHash || proposal.proposal_hash !== canonicalHash(proposalBase)) fail('/proposal', 'Proposal is not the immutable saved candidate proposal', 'RECEIPT_CONFLICT');
-  if (canonicalHash(recomputed) !== canonicalHash({ dependency_diff: proposal.dependency_diff, affected_rule_version_refs: proposal.affected_rule_version_refs })) fail('/proposal', 'Saved candidate impact changed; activation requires a new proposal', 'RECEIPT_CONFLICT');
+  if (canonicalHash(recomputed) !== canonicalHash({ dependency_diff: proposal.dependency_diff, affected_rule_version_refs: proposal.affected_rule_version_refs, impact_limitations: proposal.impact_limitations ?? [] })) fail('/proposal', 'Saved candidate impact changed; activation requires a new proposal', 'RECEIPT_CONFLICT');
   if (!review_receipt || review_receipt.decision !== 'approved' || review_receipt.purpose !== 'review_knowledge' || review_receipt.subject_hash !== proposal.proposal_hash || review_receipt.actual_result_hash !== proposal.proposal_hash) fail('/review_receipt', 'Actual independent review of exact proposal is required', 'MISSING_EVIDENCE');
   const results = new Map((replay_results ?? []).map(result => [result.rule_version_ref, result]));
   for (const ref of recomputed.affected_rule_version_refs) {
     const result = results.get(ref), cases = result?.cases ?? [];
     if (!result || result.contract_version !== 5 || result.proposal_ref !== proposal.proposal_id || result.status !== 'passed' || result.subject_hash !== proposal.proposal_hash || result.replay_result_hash !== knowledgeReplayResultHashV5(result) || !result.review_ref || !['applicable', 'not_applicable', 'unknown'].every(expected => cases.some(item => item.expected === expected && item.actual === expected && item.status === 'passed'))) fail('/replay_results', `Affected rule lacks actual three-state replay evidence: ${ref}`, 'REQUESTED_OUTPUT_INCOMPLETE');
   }
-  const changed = new Set([...recomputed.dependency_diff.added, ...recomputed.dependency_diff.modified, ...recomputed.dependency_diff.moved.map(item => item.dependency_id)]);
+  const changed = new Set([...recomputed.dependency_diff.added, ...recomputed.dependency_diff.modified, ...(recomputed.dependency_diff.potentially_modified ?? []), ...recomputed.dependency_diff.moved.map(item => item.dependency_id)]);
   if (proposal.gaps.some(id => changed.has(id))) fail('/gaps', 'Affected unresolved dependencies cannot be activated', 'MISSING_EVIDENCE');
   const event = { contract_version: 5, event_id: `knowledge-event-${canonicalHash({ proposal: proposal.proposal_hash, review: review_receipt.receipt_id }).slice(0, 24)}`, event_type: 'activated', catalog_ref: savedCandidate.catalog.catalog_id, prior_catalog_ref: currentBundle.catalog.catalog_id, checked_at: nowIso(activated_at), observed_head_commit: savedCandidate.catalog.upstream.commit, affected_rule_version_refs: recomputed.affected_rule_version_refs, gaps: proposal.gaps, review_receipt_ref: review_receipt.receipt_id, replay_result_refs: replay_results.map(item => item.replay_id) };
   return Object.freeze({ catalog: savedCandidate.catalog, event, impact: recomputed });

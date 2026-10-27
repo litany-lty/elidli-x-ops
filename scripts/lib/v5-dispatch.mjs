@@ -40,6 +40,27 @@ export async function verifySemanticChecksV5(state,data,{verifyHostReviewV5}){
   for(const check of data.checks.filter(item=>item.check_type==='semantic')){const receipt=state.host_media_receipts?.[check.review_ref];if(!receipt||!['review_signals','review_edit_prescription','review_guidance'].includes(receipt.purpose))fail('MISSING_EVIDENCE','/checks/review_ref','Semantic applicability requires a saved actual semantic review');await verifyHostReviewV5(receipt,{expectedPurpose:receipt.purpose,expectedSubjectRef:data.subject_ref,expectedSubjectContentHash:data.actual_input_hash});if(receipt.decision!=='approved')fail('INVALID_EVIDENCE_REF','/checks/review_ref','A denied semantic review cannot support an applicable check');}
 }
 
+/** A user-directed edit is separate from algorithm applicability and needs its actual current request. */
+export function verifyRulePreferenceEvidenceV5(state,application,context){
+  const checks=new Map(application.checks.map(check=>[check.check_id,check])),events=Object.values(state.feedback_events??{}),accountRef=state.account.user_id??`handle:${state.account.handle}`,selected=new Set([...(context.signal_set.selected_evidence_refs??[]),...(context.operational_context?.content_evidence_refs??[])]),goal=context.goal?.primary_goal??context.goal;
+  for(const action of application.actions.filter(action=>action.disposition==='modify'&&action.basis_kind==='user_preference')){
+    const refs=action.supporting_check_refs.flatMap(ref=>checks.get(ref)?.inspected_refs??[]);
+    const supported=refs.some(ref=>{
+      const event=state.feedback_events?.[ref],scope=event?.scope;
+      if(event?.type!=='explicit_preference'||event.account_ref!==accountRef||Date.parse(event.recorded_at)>Date.parse(context.cutoff)||events.some(item=>item.retracts_ref===ref||item.supersedes_ref===ref))return false;
+      if(scope?.goal!==null&&scope?.goal!==undefined&&canonicalHash(scope.goal?.primary_goal??scope.goal)!==canonicalHash(goal))return false;
+      if(scope?.use&&scope.use!==context.use||scope?.formats?.length&&!scope.formats.includes(context.operational_context?.format)||scope?.surfaces?.length&&!scope.surfaces.includes(context.surface)||scope?.topics?.length&&!scope.topics.some(topic=>context.operational_context?.topic_refs?.includes(topic)))return false;
+      if(event.persistence==='temporary')return selected.has(ref);
+      return Object.values(state.preference_meta??{}).some(meta=>meta.feedback_head_ref===ref)||event.operations.some(operation=>{
+        if(operation.op!=='set')return false;
+        const value=operation.path.slice(1).split('/').map(part=>part.replace(/~1/g,'/').replace(/~0/g,'~')).reduce((value,key)=>value?.[key],state.config);
+        return value!==undefined&&canonicalHash(value)===canonicalHash(operation.value);
+      });
+    });
+    if(!supported)fail('MISSING_EVIDENCE','/actions/supporting_check_refs','User-preference modification requires a saved current explicit request selected for this task');
+  }
+}
+
 export async function currentGuidanceV5(state, subjectRef, { resolveSubjectV5, verifyHostReviewV5, intent = 'coach', use = null, goal = null } = {}) {
   if (use === 'plain_edit') return { readiness: 'ready', reasons: [], active_receipt_ref: null, subject: null };
   if (!resolveSubjectV5 || !verifyHostReviewV5) ({ resolveSubjectV5, verifyHostReviewV5 } = await runtimeDependencies({ resolveSubjectV5, verifyHostReviewV5 }));
@@ -58,7 +79,7 @@ export async function currentGuidanceV5(state, subjectRef, { resolveSubjectV5, v
     if (!application || !context || !output || application.actual_input_hash !== subject.content_hash) continue;
     const actual = state.host_media_receipts?.[receipt.actual_review_receipt_ref];
     if (!actual) continue;
-    try { await verifyHostReviewV5(actual, { expectedPurpose: 'review_guidance', expectedSubjectRef: subjectRef, expectedSubjectContentHash: subject.content_hash }); }
+    try { verifyRulePreferenceEvidenceV5(state,application,context);await verifyHostReviewV5(actual, { expectedPurpose: 'review_guidance', expectedSubjectRef: subjectRef, expectedSubjectContentHash: subject.content_hash }); }
     catch { continue; }
     candidates.push({ receipt, application, context, output, actual });
   }
@@ -121,6 +142,7 @@ async function recordV5(request, dir, state, deps) {
       const context = working.rule_contexts?.[data.context_ref]; if (!context) fail('MISSING_EVIDENCE', '/context_ref', 'V5 rule context is missing');
       const subject = await deps.resolveSubjectV5(working, data.subject_ref); if (subject.content_hash !== data.actual_input_hash) fail('STALE_BUNDLE', '/actual_input_hash', 'Rule application does not bind the current subject');
       await verifySemanticChecksV5(working,data,deps);
+      verifyRulePreferenceEvidenceV5(working,data,context);
       validateRuleApplicationV5(data, context, knowledgeBundleFromState(working)); putImmutable(working.rule_applications, data.application_id, data);
     } else if (payload.operation === 'guidance_output') {
       validateGuidanceOutputV5(data, working); for (const ref of data.deliverable_refs) await deps.resolveSubjectV5(working, ref); putImmutable(working.guidance_outputs, data.output_id, data);

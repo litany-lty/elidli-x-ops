@@ -1,6 +1,6 @@
 import {canonicalHash,ContractError} from './contracts.mjs';
 import {actionPlanContent} from './actions.mjs';
-import {resolveInspirationRef} from './inspiration.mjs';
+import {resolveInspirationDeliveryRef,resolveInspirationRef} from './inspiration.mjs';
 
 const fail=()=>{throw new ContractError('MISSING_EVIDENCE','/subject_ref','The exact saved subject does not exist');};
 
@@ -29,4 +29,7 @@ export function resolveSubject(state,ref){
   for(const collection of ['review_computations','experiment_reviews','topic_cards','analyses','runs','coaching_runs'])if(state[collection]?.[ref])return{...base,content_hash:canonicalHash(state[collection][ref]),source_refs:[ref]};
   return fail();
 }
-export const resolveSubjectV5=resolveSubject;
+export function resolveSubjectV5(state,ref){
+  if(ref?.startsWith('inspiration:'))resolveInspirationDeliveryRef(state,ref);
+  return resolveSubject(state,ref);
+}

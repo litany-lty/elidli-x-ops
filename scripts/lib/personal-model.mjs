@@ -82,12 +82,14 @@ export function proposePersonalPatternV5(state,input){
   const experiment=review&&state.experiments?.[review.experiment_id];
   const computation=review&&state.review_computations?.[review.computation_ref];
   const plan=review&&state.experiment_plan_views?.[review.plan_view_ref];
-  const strategy=state.strategy_definitions?.[input.strategy_version_ref];
+  const action=experiment&&state.actions?.[experiment.originating_action_id];
+  const originatingStrategyRef=action?.strategy_version_ref;
+  const strategy=state.strategy_definitions?.[originatingStrategyRef];
   if(review?.contract_version!==4||review.result_trust!=='verified'||experiment?.status!=='closed'||computation?.contract_version!==4||!plan)fail('MISSING_EVIDENCE','/experiment_review_ref','A closed verified review and its frozen computation are required');
-  if(!strategy)fail('MISSING_EVIDENCE','/strategy_version_ref','The saved strategy version is required');
+  if(!action||!originatingStrategyRef||!strategy)fail('MISSING_EVIDENCE','/experiment_review_ref','The originating action and its saved strategy version are required');
+  if(input.strategy_version_ref!==originatingStrategyRef)fail('INVALID_EVIDENCE_REF','/strategy_version_ref','Pattern strategy must match the experiment originating action strategy');
   const publicationRefs=unique(experiment.linked_publication_ids??[]);
   if(!publicationRefs.length||publicationRefs.some(ref=>!state.publications?.[ref]))fail('MISSING_EVIDENCE','/publication_refs','Actual stored publications are required');
-  const action=state.actions?.[experiment.originating_action_id];
   if(action&&['profile','data_collection'].includes(action.target))fail('INVALID_EVIDENCE_REF','/experiment_review_ref','Non-post actions do not enter the publication effect model');
   if(!reviewedWindowIsMature(state,plan,computation,publicationRefs))fail('WINDOW_PENDING','/experiment_review_ref','The frozen publication observation window is not mature');
   const evidenceSummary=experimentEvidenceSummary(state,experiment.experiment_id),actualPublicationCount=evidenceSummary.independent_publication_n,validN=evidenceSummary.independent_sample_n;
@@ -101,7 +103,7 @@ export function proposePersonalPatternV5(state,input){
   const base={
     contract_version:5,pattern_version_id:input.pattern_version_id,pattern_chain_id:input.pattern_chain_id,
     account_ref:accountRef(state),scope:patternScope,
-    strategy_version_ref:input.strategy_version_ref,algorithm_dependency_versions:strategyAlgorithmDependencies(state,strategy,experiment),metric_definition:structuredClone(plan.metric_requirements?.find(item=>item.role==='primary')??experiment.planned_primary_metric),
+    strategy_version_ref:originatingStrategyRef,algorithm_dependency_versions:strategyAlgorithmDependencies(state,strategy,experiment),metric_definition:structuredClone(plan.metric_requirements?.find(item=>item.role==='primary')??experiment.planned_primary_metric),
     observation_window:structuredClone(plan.window),publication_refs:publicationRefs,observation_refs:observationRefs,
     experiment_review_refs:[review.review_id],valid_n:validN,independent_publication_count:actualPublicationCount,
     coverage:structuredClone(computation.target_selection),comparability:structuredClone(computation.comparability),
@@ -157,7 +159,14 @@ function latestFailureEvents(state){
     if(event.contract_version!==5||!['quality_failure','execution_failure'].includes(event.type)||!event.dedupe_key)continue;
     if(event.resolved_by_ref&&!resolutionRefExists(state,event.resolved_by_ref))continue;
     const key=`${event.type}:${event.dedupe_key}`,previous=latest.get(key);
-    if(!previous||event.recorded_at>previous.recorded_at||(event.recorded_at===previous.recorded_at&&event.feedback_id>previous.feedback_id))latest.set(key,event);
+    if(!previous){latest.set(key,event);continue;}
+    if(event.recorded_at!==previous.recorded_at){if(event.recorded_at>previous.recorded_at)latest.set(key,event);continue;}
+    const eventRevision=event.committed_revision,previousRevision=previous.committed_revision;
+    if(Number.isSafeInteger(eventRevision)||Number.isSafeInteger(previousRevision)){
+      if(!Number.isSafeInteger(previousRevision)||(Number.isSafeInteger(eventRevision)&&eventRevision>previousRevision)){latest.set(key,event);continue;}
+      if(!Number.isSafeInteger(eventRevision)||eventRevision<previousRevision)continue;
+    }
+    if(event.resolved_by_ref||!previous.resolved_by_ref)latest.set(key,event);
   }
   return latest;
 }
@@ -175,11 +184,21 @@ export function applyExplicitPreferencePatch(state,patch,meta){
   config=applyConfigPatch(config,normalizedPatch);
   const base={contract_version:5,feedback_id:meta.feedback_id,type:'explicit_preference',account_ref:accountRef(next),source_quote:meta.source_quote,source_ref:meta.source_ref,scope:structuredClone(meta.scope),persistence:'long_term',operations:structuredClone(normalizedPatch.operations),supersedes_ref:meta.supersedes_ref??null,retracts_ref:meta.retracts_ref??null,committed_revision:(next.revision??0)+1,recorded_at:instant(meta.recorded_at,'/recorded_at')};
   const event=validate('FeedbackEventV5',{...base,event_hash:feedbackHash(base)});
-  next.config=config;updatePreferenceHeads(next,normalizedPatch.operations.map(operation=>operation.path),event,meta.source_ref);storeFeedback(next,event);return{state:next,event};
+  const affectedPaths=unique(normalizedPatch.operations.flatMap(operation=>[operation.path,...preferenceOperationPaths(operation)]));
+  next.config=config;updatePreferenceHeads(next,affectedPaths,event,meta.source_ref);storeFeedback(next,event);return{state:next,event};
 }
 
 function pointerValue(value,path){
   return path.slice(1).split('/').map(part=>part.replace(/~1/g,'/').replace(/~0/g,'~')).reduce((current,key)=>current?.[key],value);
+}
+
+function pointerSegment(value){return String(value).replace(/~/g,'~0').replace(/\//g,'~1');}
+
+function preferenceOperationPaths(operation){
+  if(operation.op!=='set'||operation.value===null||Array.isArray(operation.value)||typeof operation.value!=='object')return[operation.path];
+  const entries=Object.entries(operation.value);
+  if(!entries.length)return[operation.path];
+  return entries.flatMap(([key,value])=>preferenceOperationPaths({op:'set',path:`${operation.path}/${pointerSegment(key)}`,value}));
 }
 
 function pointersOverlap(left,right){return left===right||left.startsWith(`${right}/`)||right.startsWith(`${left}/`);}
@@ -212,7 +231,7 @@ export function forgetExplicitPreferenceV5(state,input){
   if(target?.contract_version!==5||target.type!=='explicit_preference'||target.persistence!=='long_term')fail('INVALID_EVIDENCE_REF','/target_ref','Forget requires a saved long-term explicit preference event');
   const existingRetraction=values(state.feedback_events).find(event=>event.contract_version===5&&event.type==='explicit_preference'&&event.retracts_ref===target.feedback_id);
   if(existingRetraction)return{state:structuredClone(state),event:structuredClone(existingRetraction),deduplicated:true,applied_paths:[]};
-  const paths=unique(target.operations.map(operation=>operation.path)),heads=new Map(paths.map(path=>[path,inferredFieldHead(state,path,target)]));
+  const paths=unique(target.operations.flatMap(preferenceOperationPaths)),heads=new Map(paths.map(path=>[path,inferredFieldHead(state,path,target)]));
   const appliedPaths=paths.filter(path=>heads.get(path).ref===target.feedback_id),preservedPaths=paths.filter(path=>heads.get(path).ref!==target.feedback_id);
   const defaults=createDefaultConfigV5(state.account),operations=appliedPaths.map(path=>{
     const value=pointerValue(defaults,path);
@@ -235,6 +254,7 @@ export function recordFeedbackV5(state,input){
     base.inference_strength='weak';
   }
   if(['quality_failure','execution_failure'].includes(base.type)){
+    base.committed_revision=(next.revision??0)+1;
     const latest=latestFailureEvents(next).get(`${base.type}:${base.dedupe_key}`);
     if(base.resolved_by_ref){
       if(!resolutionRefExists(next,base.resolved_by_ref))fail('INVALID_EVIDENCE_REF','/resolved_by_ref','Resolution reference must exist');

@@ -1,0 +1,90 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash, randomUUID } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { canonicalHash, textHash } from '../scripts/lib/contracts.mjs';
+import { createDefaultConfigV5 } from '../scripts/lib/config.mjs';
+import { initializeState } from '../scripts/lib/state.mjs';
+import { inspirationAssessmentHash, inspirationAssessmentPayload, resolveInspirationDeliveryRef } from '../scripts/lib/inspiration.mjs';
+import { resolveSubject } from '../scripts/lib/subjects.mjs';
+import { applicationProposalHash } from '../scripts/lib/knowledge.mjs';
+import { guidanceOutputContentHashV5, guidanceReviewSubjectHashV5 } from '../scripts/lib/guidance.mjs';
+
+const entry = new URL('../scripts/x-ops.mjs', import.meta.url).pathname;
+const T = '2026-10-27T03:00:00Z';
+
+function runCli(dir, command, payload) {
+  const state = JSON.parse(readFileSync(join(dir, 'account-state.json'), 'utf8'));
+  const input = join(dir, `request-${randomUUID()}.json`), output = join(dir, `output-${randomUUID()}.json`);
+  writeFileSync(input, JSON.stringify({ schema_version: 1, run_id: null, expected_revision: state.revision, payload }));
+  const proc = spawnSync(process.execPath, [entry, command, '--input', input, '--output', output, '--state-dir', dir], { encoding: 'utf8' });
+  return { exitCode: proc.status, envelope: JSON.parse(proc.stdout) };
+}
+
+async function assessedFixture() {
+  const dir = await mkdtemp(join(tmpdir(), 'xops-inspiration-delivery-'));
+  const account = { handle: 'fixture_inspiration_delivery', profile_url: 'https://x.com/fixture_inspiration_delivery', user_id: null, identity_basis: 'user_provided' };
+  let state = initializeState(createDefaultConfigV5(account), 5); state.revision = 1; await writeFile(join(dir, 'account-state.json'), `${JSON.stringify(state, null, 2)}\n`);
+  let result = runCli(dir, 'inspiration-step', { contract_version: 5, operation: 'prepare', session_id: 'session1', request_ref: 'request1', goal: { primary_goal: 'relevant_reach', goal_notes: null, source: 'user_confirmed' }, use: 'current', request_scope: { explicit_topics: ['database'], reader_questions: [], today_only: false }, cutoff: T, budget_policy: { search_allocated: 0, read_allocated: 0 }, operational_context_hash: 'a'.repeat(64), as_of: T }); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors));
+  state = JSON.parse(readFileSync(join(dir, 'account-state.json'), 'utf8'));
+  const seed = state.inspiration_sessions.session1.revisions['1'].seeds[0].seed_id;
+  const candidateText = 'Choose a database by comparing recovery goals and maintenance cost.';
+  result = runCli(dir, 'inspiration-step', { contract_version: 5, operation: 'assess', session_id: 'session1', media_candidates: [], candidates: [{ candidate_id: 'candidate1', kind: 'reader_question', seed_refs: [seed], history_refs: [], source_refs: [], event_refs: [], claim_refs: [], new_information: candidateText, reader_value: 'Reduce selection cost', author_contribution_basis: 'Explain tradeoffs', suggested_format: 'short_post', material_requirements: [], cost: { level: 'low', basis: 'No new material' }, novelty_delta: null, media_candidate_refs: [] }], as_of: T }); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors));
+  return { dir, candidateText, ref: 'inspiration:session1:2:candidate1' };
+}
+
+function draftPayload(ref, text) {
+  const prescription = { mode: 'keep', changes: [], keep_reason: 'Candidate is complete', scope_constraint: 'Use the inspiration material' };
+  const rationale = { recommended_format: 'short_post', information_density: 'low', reader_task: 'Understand the principle', available_asset_refs: [], available_minutes: null, account_capability: 'short_post/thread/reply', personal_evidence_refs: [ref], unsupported_formats: ['native_article', 'platform_long_post'] };
+  return { contract_version: 5, subject_ref: ref, draft_input: { draft_id: 'draft-33333333-3333-4333-8333-333333333333', revision: 1, parent_revision: null, card_id: null, original_text: text, original_ref: null, format: 'short_post', texts: [text], fact_mapping: [], semantic_review: { text_hashes: [textHash(text)], claim_ids: [], kept_user_fact_ids: [], new_claims_check: 'No new claims', stance_voice_notes: [], reviewer: 'fixture', reviewed_at: T, decision: 'approve' } }, edit_request: { requested_mode: 'rewrite_if_needed', scope_constraint: prescription.scope_constraint, prescription: { ...prescription, prescription_hash: canonicalHash(prescription) }, format_rationale: { ...rationale, rationale_hash: canonicalHash(rationale) } }, personalization_mode: 'none', delivery_intent: 'operational_optimize', actual_review_receipt_ref: null, as_of: T };
+}
+
+test('assessed inspiration cannot become a current operational draft subject before novelty approval and finalize', async () => {
+  const { dir, candidateText, ref } = await assessedFixture();
+  const result = runCli(dir, 'draft-check', draftPayload(ref, candidateText));
+  assert.notEqual(result.exitCode, 0);
+  assert.match(JSON.stringify(result.envelope.errors), /finalized|selected|novelty review/i);
+});
+
+test('exact novelty review and finalize make the selected inspiration available after CLI reload', async () => {
+  const { dir, candidateText } = await assessedFixture();
+  let state = JSON.parse(readFileSync(join(dir, 'account-state.json'), 'utf8'));
+  const snapshot = state.inspiration_sessions.session1.revisions['2'], hash = inspirationAssessmentHash(snapshot), reviewedPayload = inspirationAssessmentPayload(snapshot);
+  const actual = { purpose: 'review_novelty', subject_ref: 'inspiration:session1:assessment', subject_hash: hash, subject_content_hash: hash, decision: 'approved', checks: { novelty_supported: true, context_bound: true }, issues: [], reviewer: 'fixture-independent', generator_ref: 'fixture-generator', reviewed_at: T, reviewed_payload: reviewedPayload };
+  const actualPath = join(dir, 'novelty-review.json'); await writeFile(actualPath, JSON.stringify(actual)); const bytes = readFileSync(actualPath);
+  const { reviewed_payload: _reviewedPayload, ...reviewFields } = actual;
+  const host = { contract_version: 5, receipt_id: 'novelty-review', ...reviewFields, actual_result_ref: actualPath, actual_result_sha256: createHash('sha256').update(bytes).digest('hex'), actual_result_hash: hash, data_mode: 'fixture', tool_name: 'fixture-review', host_call_ref: 'call-novelty-review' };
+  let result = runCli(dir, 'record', { contract_version: 5, operation: 'host_review_receipt', data: host, as_of: T }); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors));
+  result = runCli(dir, 'inspiration-step', { contract_version: 5, operation: 'finalize', session_id: 'session1', selected_candidate_ids: ['candidate1'], selection_reasons: { candidate1: 'Current and useful' }, rejection_reasons: {}, actual_review_receipt_ref: host.receipt_id, as_of: T }); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors));
+  const ref = result.envelope.data.selected_refs[0]; assert.equal(ref, 'inspiration:session1:3:candidate1');
+  result = runCli(dir, 'draft-check', draftPayload(ref, candidateText)); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors)); assert.equal(result.envelope.data.task_readiness, 'not_ready');
+  const editReviewPath = join(dir, 'edit-review.json'), editActual = { purpose: 'review_edit_prescription', subject_ref: ref, subject_hash: result.envelope.data.review_receipt.subject_hash, subject_content_hash: resolveSubject(JSON.parse(readFileSync(join(dir, 'account-state.json'), 'utf8')), ref).content_hash, decision: 'approved', checks: { scope_kept: true, facts_kept: true }, issues: [], reviewer: 'fixture-independent-edit-reviewer', generator_ref: 'fixture-generator', reviewed_at: T };
+  await writeFile(editReviewPath, JSON.stringify(editActual)); const editBytes = readFileSync(editReviewPath), editHost = { contract_version: 5, receipt_id: 'edit-review', ...editActual, actual_result_ref: editReviewPath, actual_result_sha256: createHash('sha256').update(editBytes).digest('hex'), actual_result_hash: null, data_mode: 'fixture', tool_name: 'fixture-review', host_call_ref: 'call-edit-review' };
+  result = runCli(dir, 'record', { contract_version: 5, operation: 'host_review_receipt', data: editHost, as_of: T }); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors));
+  result = runCli(dir, 'draft-check', { ...draftPayload(ref, candidateText), actual_review_receipt_ref: editHost.receipt_id }); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors)); assert.equal(result.envelope.data.readiness, 'ready');
+  const approvedDraft = result.envelope.data.draft, approvedReceipt = result.envelope.data.review_receipt;
+  result = runCli(dir, 'record', { contract_version: 5, operation: 'draft_review', draft: approvedDraft, receipt: approvedReceipt, as_of: T }); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors)); assert.equal(result.envelope.data.task_readiness, 'not_ready');
+  const context = result.envelope.data.rule_context, draftRef = `${approvedDraft.draft_id}:${approvedDraft.revision}`;
+  state = JSON.parse(readFileSync(join(dir, 'account-state.json'), 'utf8')); const subject = resolveSubject(state, draftRef);
+  const application = { contract_version: 5, application_id: 'application-inspiration-draft', context_ref: context.context_id, selected_rule_context_hash: context.selected_rule_context_hash, subject_ref: draftRef, actual_input_hash: subject.content_hash, rule_version_refs: [], checks: [{ check_id: 'candidate-material', check_type: 'deterministic', status: 'unknown', reviewed_input_hash: subject.content_hash, review_ref: null, inspected_refs: [draftRef, ref], finding: 'Draft text exactly uses the reviewed inspiration new_information' }], findings: [], actions: [], keep_unchanged_reason: 'Keep the reviewed inspiration text', validation_plan: 'Observe relevant replies in the same window', deliverable_refs: [draftRef], application_proposal_hash: '' }; application.application_proposal_hash = applicationProposalHash(application);
+  result = runCli(dir, 'record', { contract_version: 5, operation: 'rule_application', data: application, as_of: T }); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors));
+  const output = { contract_version: 5, output_id: 'guidance-inspiration-draft', delivery_id: 'delivery-inspiration-draft', goal: context.goal, use: context.use, guidance_text: 'Use the reviewed inspiration draft and observe relevant replies.', actions: ['Keep the reviewed draft'], rationale: ['The text uses the reviewed inspiration new_information'], observation_plan: ['Observe relevant replies in the same window'], gaps: [], deliverable_refs: [draftRef], action_plan_hashes: [], generator_ref: 'guidance-writer', output_content_hash: '', created_at: T }; output.output_content_hash = guidanceOutputContentHashV5(output);
+  result = runCli(dir, 'record', { contract_version: 5, operation: 'guidance_output', data: output, as_of: T }); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors));
+  const binding = { delivery_id: output.delivery_id, subject_ref: draftRef, subject_content_hash: subject.content_hash, output_material_ref: output.output_id, output_content_hash: output.output_content_hash, personal_context_selection_hash: context.personal_context_selection_hash, personal_context_absence_reason: context.personal_context_selection_hash ? null : 'not_used', selected_rule_context_hash: context.selected_rule_context_hash, application_ref: application.application_id, application_proposal_hash: application.application_proposal_hash, action_plan_hashes: [] }, guidanceHash = guidanceReviewSubjectHashV5(binding), guidanceChecks = { exact_material: true, evidence_bounded: true };
+  const guidanceActual = { purpose: 'review_guidance', subject_ref: draftRef, subject_hash: guidanceHash, subject_content_hash: subject.content_hash, decision: 'approved', checks: guidanceChecks, issues: [], reviewer: 'fixture-independent-guidance-reviewer', generator_ref: 'fixture-review-generator', reviewed_at: T }, guidancePath = join(dir, 'guidance-review.json'); await writeFile(guidancePath, JSON.stringify(guidanceActual)); const guidanceBytes = readFileSync(guidancePath), guidanceHost = { contract_version: 5, receipt_id: 'guidance-review', ...guidanceActual, actual_result_ref: guidancePath, actual_result_sha256: createHash('sha256').update(guidanceBytes).digest('hex'), actual_result_hash: null, data_mode: 'fixture', tool_name: 'fixture-review', host_call_ref: 'call-guidance-review' };
+  result = runCli(dir, 'record', { contract_version: 5, operation: 'guidance_review_result', data: guidanceHost, as_of: T }); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors));
+  const guidanceReceipt = { contract_version: 5, receipt_id: 'guidance-approved', ...binding, review_subject_hash: guidanceHash, actual_review_receipt_ref: guidanceHost.receipt_id, decision: 'approved', checks: guidanceChecks, issues: [], reviewed_at: T, supersedes_receipt_ref: null };
+  result = runCli(dir, 'record', { contract_version: 5, operation: 'guidance_receipt', data: guidanceReceipt, as_of: T }); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors));
+  result = runCli(dir, 'record', { contract_version: 5, operation: 'draft_review', draft: approvedDraft, receipt: approvedReceipt, as_of: T }); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors)); assert.equal(result.envelope.data.task_readiness, 'ready'); assert.equal(result.envelope.data.guidance_readiness.readiness, 'ready');
+  state = JSON.parse(readFileSync(join(dir, 'account-state.json'), 'utf8')); const finalized = state.inspiration_sessions.session1.revisions['3'];
+  assert.equal(state.drafts[approvedDraft.draft_id].revisions['1'].texts[0], candidateText); assert.equal(approvedReceipt.subject_ref, ref); assert.deepEqual(approvedReceipt.format_rationale.personal_evidence_refs, [ref]);
+  assert.equal(finalized.status, 'finalized'); assert.equal(finalized.actual_review_receipt_ref, host.receipt_id); assert.equal(finalized.assessment_subject_hash, hash); assert.equal(finalized.candidates[0].selection_status, 'selected');
+  const withUnrelatedHistory = structuredClone(state); withUnrelatedHistory.analyses = { ...(withUnrelatedHistory.analyses ?? {}), 'unrelated-analysis': { note: 'Unrelated history must not stale the finalized inspiration' } }; assert.doesNotThrow(() => resolveInspirationDeliveryRef(withUnrelatedHistory, ref));
+  result = runCli(dir, 'config', { contract_version: 5, operation: 'update', patch: { schema_version: 5, scope: 'persistent', operations: [{ op: 'set', path: '/content/preferences/short_text_on_images', value: true }] }, source_quote: 'Use less text in images from now on', source_ref: 'fixture:preference-change', as_of: T }); assert.equal(result.exitCode, 0, JSON.stringify(result.envelope.errors));
+  state = JSON.parse(readFileSync(join(dir, 'account-state.json'), 'utf8')); assert.throws(() => resolveInspirationDeliveryRef(state, ref), /context changed|resume and reassess/i);
+  result = runCli(dir, 'record', { contract_version: 5, operation: 'draft_review', draft: approvedDraft, receipt: approvedReceipt, as_of: T }); assert.notEqual(result.exitCode, 0); assert.match(JSON.stringify(result.envelope.errors), /context|inspiration|current facts|different draft inputs/i);
+});

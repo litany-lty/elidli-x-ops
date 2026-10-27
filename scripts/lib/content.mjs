@@ -2,7 +2,7 @@ import { Temporal } from '@js-temporal/polyfill';
 import { canonicalHash, ContractError, newId, textHash, validate } from './contracts.mjs';
 import { isReliableState } from './state-version.mjs';
 import { assetReviewSubjectHash, countAlt, dataSpecBindingHash } from './media.mjs';
-import { resolveInspirationRef } from './inspiration.mjs';
+import { resolveInspirationDeliveryRef } from './inspiration.mjs';
 import { validateMediaSourceV5 } from './media-sources.mjs';
 
 const fail=(code,path,message)=>{throw new ContractError(code,path,message,false);};
@@ -56,7 +56,7 @@ function prepareContentV5(state,payload,runId,context){
   for(const request of payload.brief.media_operations){
     if(!slots.has(request.slot_id))fail('INVALID_INPUT','/brief/media_operations','Media operation targets an unknown slot');
     if(request.source)validateMediaSourceV5(request.source,{deliverable:['reuse_asset','annotate_source'].includes(request.operation)});
-    if(request.inspiration_ref)resolveInspirationRef(state,request.inspiration_ref);
+    if(request.inspiration_ref)resolveInspirationDeliveryRef(state,request.inspiration_ref);
     const asset=request.existing_asset_ref?getAsset(state,request.existing_asset_ref):null;if(request.operation==='reuse_asset'&&!asset)fail('INVALID_EVIDENCE_REF','/existing_asset_ref','Reuse requires an existing persisted media asset');
     const capability={inspect_asset:'image_view',annotate_source:'image_edit',render_data:'data_render',generate_illustration:'image_generate'}[request.operation]??null,generationCost=['annotate_source','render_data','generate_illustration'].includes(request.operation)?1:0;
     const available=request.operation==='reuse_asset'||(payload.capabilities[capability]==='verified'&&reserved+generationCost<=payload.budget),status=request.operation==='reuse_asset'?'succeeded':available?'pending':'blocked';

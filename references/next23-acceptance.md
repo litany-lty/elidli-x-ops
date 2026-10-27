@@ -1,6 +1,21 @@
 # NEXT-2.3 验收与范围
 
-本轮沿用 NEXT-2.2 的有效基础，当前产品为 2.3.0-rc.2，唯一写入容器 state 5，transport 1。实际运行方式见 [运行合同](next23-runtime.md)。合成工程验收、现场专业生成、真实账号与媒体使用分别记录。
+本轮沿用 NEXT-2.2 的有效基础，当前产品为 2.3.0-rc.3，唯一写入容器 state 5，transport 1。实际运行方式见 [运行合同](next23-runtime.md)。合成工程验收、现场专业生成、真实账号与媒体使用分别记录。
+
+## 再审修订：2.3.0-rc.3
+
+本次以 `44eef0d` 为基线，修复再审确认的三项 P1 和三项 P2，保留 state 5、transport 1 与既有对象 ID。新增字段为兼容可选项，历史记录不重写。
+
+| 审查项 | 修复及贯通证据 |
+| --- | --- |
+| P1 实际源码变化被元数据掩盖 | check 的文件 SHA 与历史 material_hash 比较，真实修改进入 impact/source_bindings；同元数据旧 pin 即使完成审核及三态 replay 仍不能激活。review-knowledge 正式 CLI 检查、提案、保存回读、激活拒绝与合法激活 |
+| P1 实验结果错绑策略 | propose-pattern 从实验 originating action 取得策略；无关策略拒绝且不增加 revision，合法策略保存后由下一次教练读取。personal 与 review-personal |
+| P1 未定稿灵感进入运营交付 | 历史 resolver 与当前 delivery resolver 分离；当前消费要求 selected/finalized、精确 assessment 和真实 novelty 批准。inspiration-delivery-cli 覆盖正式入口、回读及下游 |
+| P2 撤销父偏好保留旧兄弟字段 | 父 set 拆为 JSON Pointer 叶字段；后写 child 保留，其余旧值恢复默认。数组/null 原子处理。personal/review-personal 及正式 CLI 回读 |
+| P2 同时刻解决事件被 ID 顺序覆盖 | 失败事件保存 committed_revision，同时间使用提交顺序和明确解决关系；重启后不复活旧失败，重复解决幂等。personal 与私有 CLI 复现 |
+| P2 明确用户修改被 double unknown 误拒 | 仅 user_preference 可越过该算法适用性拒绝；仍要求肯定检查、实际信号、精确交付及保存的当前请求。rc3-preference-rule 经 CLI 记录、独立审核文件、保存回读至 ready，撤销后新进程降为 needs_review |
+
+独立跨模块复核另确认两处同范围遗漏：未检查的注册源码路径仍可能被当成无影响、定稿灵感未在直接消费前重算个人上下文；均已补齐，定向验证通过。冻结实现后本地完整回归 **314/314 通过，0失败、0跳过、0取消**，Node v24.20.0；同提交干净安装与 CI 结果以 GitHub Actions 为准。两个既有真实状态副本 rev161/rev172 经正式 personal-step inspect 只读回读成功，状态字节不变，历史精确灵感引用可解析。既有真实 Chrome、媒体和生成证据按未变化范围复用；本次新增入口验证使用明确 fixture，不代表新增真实发布或增长效果。原账号目录与全局旧 skill 不切换。
 
 ## 审查修订：2.3.0-rc.2
 

@@ -355,7 +355,7 @@ export function validateRuleApplicationV5(application, context, bundle) {
     if (!action.supporting_check_refs.length || action.supporting_check_refs.some(ref => !checks.has(ref))) fail(`/actions/${index}/supporting_check_refs`, 'Every action must bind actual supporting checks', 'INVALID_EVIDENCE_REF');
     if (action.signal_refs.some(ref => !Object.hasOwn(context.signal_set.signals, ref))) fail(`/actions/${index}/signal_refs`, 'Action references an unavailable signal', 'INVALID_EVIDENCE_REF');
     if (action.disposition === 'modify') {
-      if (selected.mechanism_applicability.status === TRI.UNKNOWN && selected.editorial_applicability.status === TRI.UNKNOWN) fail(`/actions/${index}`, 'A double-unknown rule cannot support modification', 'MISSING_EVIDENCE');
+      if (action.basis_kind !== 'user_preference' && selected.mechanism_applicability.status === TRI.UNKNOWN && selected.editorial_applicability.status === TRI.UNKNOWN) fail(`/actions/${index}`, 'A double-unknown rule cannot support modification', 'MISSING_EVIDENCE');
       if (action.basis_kind === 'public_mechanism' && selected.mechanism_applicability.status !== TRI.TRUE) fail(`/actions/${index}/basis_kind`, 'Public mechanism basis requires observed mechanism applicability', 'MISSING_EVIDENCE');
       if (action.basis_kind === 'editorial_inference' && selected.editorial_applicability.status !== TRI.TRUE) fail(`/actions/${index}/basis_kind`, 'Editorial modification requires affirmative editorial applicability', 'MISSING_EVIDENCE');
       const supporting = action.supporting_check_refs.map(ref => checks.get(ref));

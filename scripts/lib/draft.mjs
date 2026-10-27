@@ -10,7 +10,8 @@ import {
 } from './contracts.mjs';
 import { buildConsumerContext, goalSnapshotFromState, validatePersonalContextSelection } from './consumer-context.mjs';
 import { buildOperationalContext } from './consumer-context.mjs';
-import { resolveSubject } from './subjects.mjs';
+import { resolveSubject, resolveSubjectV5 } from './subjects.mjs';
+import { resolveInspirationDeliveryRef } from './inspiration.mjs';
 
 const require = createRequire(import.meta.url);
 const { version: parserVersion } = require('twitter-text/package.json');
@@ -404,6 +405,7 @@ export function checkDraftV5(payload,context){
   validate('DraftCheckPayloadV5',payload);
   const operational=context.operational_context??null;
   if(payload.personalization_mode==='evidence_bound'&&!operational)fail('MISSING_EVIDENCE','/operational_context','Evidence-bound edit requires current operational context');
+  if(payload.delivery_intent!=='plain_edit')for(const ref of payload.edit_request.format_rationale.personal_evidence_refs)if(ref.startsWith('inspiration:'))resolveInspirationDeliveryRef(context.state,ref);
   const checked=checkDraft(payload.draft_input,context,payload.as_of),prescription=validateEditPrescriptionV5(payload.edit_request.prescription,{original_text:payload.draft_input.original_text,texts:payload.draft_input.texts,requested_mode:payload.edit_request.requested_mode,scope_constraint:payload.edit_request.scope_constraint}),formatRationale=validateFormatRationaleV5(payload.edit_request.format_rationale,operational),actual=context.actual_review_receipts?.[payload.actual_review_receipt_ref]??context.state.host_media_receipts?.[payload.actual_review_receipt_ref];
   const receiptBase={contract_version:5,subject_ref:payload.subject_ref,draft_ref:{draft_id:checked.draft.draft_id,revision:checked.draft.revision},text_hashes:checked.draft.text_hashes,evidence_mapping_hash:draftEvidenceMappingHash(context.state,payload.draft_input.fact_mapping),operational_context_selector:structuredClone(context.operational_context_selector??{}),operational_context_hash:operational?.selected_context_hash??null,delivery_intent:payload.delivery_intent,requested_mode:payload.edit_request.requested_mode,edit_prescription:prescription,format_rationale:formatRationale,decision:checked.validity==='ready'?'approved':checked.evidence_status==='supported'?'needs_review':'incomplete',actual_review_receipt_ref:payload.actual_review_receipt_ref,reviewed_at:actual?.reviewed_at??payload.as_of};
   const subjectHash=draftReviewSubjectHashV5(receiptBase),subjectContentHash=operational?.subject_descriptor?.content_hash;
@@ -420,7 +422,7 @@ export function evaluateDraftReadiness(ref, selectedReviewRef, state) {
   if(!receipt)unmet.push('draft_review');
   if(draft&&receipt){
     if(receipt.contract_version===5){
-      const subject=resolveSubject(state,receipt.subject_ref),selector={...structuredClone(receipt.operational_context_selector),subject_ref:receipt.subject_ref,subject_descriptor:subject},operational=buildOperationalContext(state,selector),evidenceHash=draftEvidenceMappingHash(state,draft.fact_mapping);
+      const subject=receipt.delivery_intent==='plain_edit'?resolveSubject(state,receipt.subject_ref):resolveSubjectV5(state,receipt.subject_ref);for(const ref of receipt.format_rationale.personal_evidence_refs)if(receipt.delivery_intent!=='plain_edit'&&ref.startsWith('inspiration:'))resolveInspirationDeliveryRef(state,ref);const selector={...structuredClone(receipt.operational_context_selector),subject_ref:receipt.subject_ref,subject_descriptor:subject},operational=buildOperationalContext(state,selector),evidenceHash=draftEvidenceMappingHash(state,draft.fact_mapping);
       if(canonicalHash(draft.texts.map(textHash))!==canonicalHash(receipt.text_hashes))unmet.push('text_hashes');
       if(evidenceHash!==receipt.evidence_mapping_hash)unmet.push('evidence_mapping');
       if(checkEvidence({...draft,fact_mapping:draft.fact_mapping},state).issues.length)unmet.push('evidence');
