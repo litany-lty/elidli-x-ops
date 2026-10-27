@@ -326,12 +326,34 @@ export function draftEvidenceMappingHash(state, mapping) {
   return canonicalHash({fact_mapping:mapping,evidence_versions:mappingEvidenceVersions(state,mapping)});
 }
 
-function effectiveReview(state, ref, selected = null) {
+function reviewHeads(state, ref) {
   const receipts = Object.values(state.draft_review_receipts ?? {}).filter(item => item.draft_ref.draft_id === ref.draft_id && item.draft_ref.revision === ref.revision);
-  const superseded = new Set(receipts.map(item => item.supersedes_receipt_ref).filter(Boolean));
-  const leaves = receipts.filter(item => !superseded.has(item.receipt_id));
+  const superseded = new Set(receipts.flatMap(item => [item.supersedes_receipt_ref, ...(item.supersedes_receipt_refs ?? [])]).filter(Boolean));
+  return receipts.filter(item => !superseded.has(item.receipt_id));
+}
+
+export function effectiveReview(state, ref, selected = null) {
+  const leaves = reviewHeads(state, ref);
   if (selected) return leaves.find(item => item.receipt_id === selected) ?? null;
   return leaves.length === 1 ? leaves[0] : null;
+}
+
+export function currentDraftMappingV5(state, draft) {
+  const stored = state.drafts?.[draft.draft_id]?.revisions?.[draft.revision], heads = reviewHeads(state, {draft_id:draft.draft_id,revision:draft.revision});
+  return stored && (canonicalHash(stored.fact_mapping) !== canonicalHash(draft.fact_mapping) || heads.some(previous => previous.fact_mapping !== undefined || previous.evidence_mapping_hash !== draftEvidenceMappingHash(state,draft.fact_mapping))) ? {fact_mapping:structuredClone(draft.fact_mapping)} : {};
+}
+
+/** Re-audit replaces exact saved heads, including conflicts left by older V5 writers. */
+export function validateDraftReviewChainV5(state, receipt, { recording = false } = {}) {
+  const heads = reviewHeads(state, receipt.draft_ref), existing = state.draft_review_receipts?.[receipt.receipt_id];
+  if (existing) {
+    if (heads.length !== 1) fail('STALE_DRAFT', '/supersedes_receipt_refs', 'Conflicting saved reviews require a new audit replacing all current heads');
+    if (!heads.some(item => item.receipt_id === receipt.receipt_id)) fail('STALE_DRAFT', '/receipt_id', 'This draft review has been superseded');
+    if ((recording && canonicalHash(existing) !== canonicalHash(receipt)) || (receipt.actual_review_receipt_ref && existing.actual_review_receipt_ref !== receipt.actual_review_receipt_ref)) fail('STALE_DRAFT', '/supersedes_receipt_refs', 'A changed audit must explicitly replace the current draft review');
+    return;
+  }
+  const expected = heads.map(item => item.receipt_id).sort(), supplied = [...(receipt.supersedes_receipt_refs ?? [])].sort();
+  if (canonicalHash(expected) !== canonicalHash(supplied)) fail('STALE_DRAFT', '/supersedes_receipt_refs', `Re-audit must replace the exact current draft review heads: ${expected.join(', ')}`);
 }
 
 export function draftPersonalCallerContext(state,input){
@@ -398,7 +420,7 @@ export function validateFormatRationaleV5(rationale,operationalContext=null){
 }
 
 export function draftReviewSubjectHashV5(value){
-  return canonicalHash({subject_ref:value.subject_ref,draft_ref:value.draft_ref,text_hashes:value.text_hashes,evidence_mapping_hash:value.evidence_mapping_hash,operational_context_selector:value.operational_context_selector,operational_context_hash:value.operational_context_hash,delivery_intent:value.delivery_intent,requested_mode:value.requested_mode,edit_prescription:value.edit_prescription,format_rationale:value.format_rationale});
+  return canonicalHash({subject_ref:value.subject_ref,draft_ref:value.draft_ref,text_hashes:value.text_hashes,evidence_mapping_hash:value.evidence_mapping_hash,operational_context_selector:value.operational_context_selector,operational_context_hash:value.operational_context_hash,delivery_intent:value.delivery_intent,requested_mode:value.requested_mode,edit_prescription:value.edit_prescription,format_rationale:value.format_rationale,...(value.supersedes_receipt_refs?.length?{supersedes_receipt_refs:[...value.supersedes_receipt_refs].sort()}: {})});
 }
 
 export function checkDraftV5(payload,context){
@@ -408,9 +430,12 @@ export function checkDraftV5(payload,context){
   if(payload.delivery_intent!=='plain_edit')for(const ref of payload.edit_request.format_rationale.personal_evidence_refs)if(ref.startsWith('inspiration:'))resolveInspirationDeliveryRef(context.state,ref);
   const checked=checkDraft(payload.draft_input,context,payload.as_of),prescription=validateEditPrescriptionV5(payload.edit_request.prescription,{original_text:payload.draft_input.original_text,texts:payload.draft_input.texts,requested_mode:payload.edit_request.requested_mode,scope_constraint:payload.edit_request.scope_constraint}),formatRationale=validateFormatRationaleV5(payload.edit_request.format_rationale,operational),actual=context.actual_review_receipts?.[payload.actual_review_receipt_ref]??context.state.host_media_receipts?.[payload.actual_review_receipt_ref];
   const receiptBase={contract_version:5,subject_ref:payload.subject_ref,draft_ref:{draft_id:checked.draft.draft_id,revision:checked.draft.revision},text_hashes:checked.draft.text_hashes,evidence_mapping_hash:draftEvidenceMappingHash(context.state,payload.draft_input.fact_mapping),operational_context_selector:structuredClone(context.operational_context_selector??{}),operational_context_hash:operational?.selected_context_hash??null,delivery_intent:payload.delivery_intent,requested_mode:payload.edit_request.requested_mode,edit_prescription:prescription,format_rationale:formatRationale,decision:checked.validity==='ready'?'approved':checked.evidence_status==='supported'?'needs_review':'incomplete',actual_review_receipt_ref:payload.actual_review_receipt_ref,reviewed_at:actual?.reviewed_at??payload.as_of};
+  Object.assign(receiptBase,currentDraftMappingV5(context.state,checked.draft));
+  if(payload.supersedes_receipt_refs?.length)receiptBase.supersedes_receipt_refs=[...payload.supersedes_receipt_refs].sort();
   const subjectHash=draftReviewSubjectHashV5(receiptBase),subjectContentHash=operational?.subject_descriptor?.content_hash;
   if(!actual||actual.purpose!=='review_edit_prescription'||actual.subject_ref!==payload.subject_ref||actual.subject_hash!==subjectHash||actual.subject_content_hash!==subjectContentHash||actual.decision!=='approved')receiptBase.decision=receiptBase.decision==='incomplete'?'incomplete':'needs_review';
   const receipt={...receiptBase,subject_hash:subjectHash,receipt_id:`draft-review-v5:${subjectHash}`};validate('DraftReviewReceiptV5',receipt);
+  validateDraftReviewChainV5(context.state,receipt);
   return{...checked,review_receipt:receipt,edit_prescription:prescription,format_rationale:formatRationale,readiness:receipt.decision==='approved'?'ready':receipt.decision};
 }
 
@@ -422,10 +447,10 @@ export function evaluateDraftReadiness(ref, selectedReviewRef, state) {
   if(!receipt)unmet.push('draft_review');
   if(draft&&receipt){
     if(receipt.contract_version===5){
-      const subject=receipt.delivery_intent==='plain_edit'?resolveSubject(state,receipt.subject_ref):resolveSubjectV5(state,receipt.subject_ref);for(const ref of receipt.format_rationale.personal_evidence_refs)if(receipt.delivery_intent!=='plain_edit'&&ref.startsWith('inspiration:'))resolveInspirationDeliveryRef(state,ref);const selector={...structuredClone(receipt.operational_context_selector),subject_ref:receipt.subject_ref,subject_descriptor:subject},operational=buildOperationalContext(state,selector),evidenceHash=draftEvidenceMappingHash(state,draft.fact_mapping);
+      const subject=receipt.delivery_intent==='plain_edit'||receipt.subject_ref===`${ref.draft_id}:${ref.revision}`?resolveSubject(state,receipt.subject_ref):resolveSubjectV5(state,receipt.subject_ref);for(const ref of receipt.format_rationale.personal_evidence_refs)if(receipt.delivery_intent!=='plain_edit'&&ref.startsWith('inspiration:'))resolveInspirationDeliveryRef(state,ref);const selector={...structuredClone(receipt.operational_context_selector),subject_ref:receipt.subject_ref,subject_descriptor:subject},operational=buildOperationalContext(state,selector),mapping=receipt.fact_mapping??draft.fact_mapping,evidenceHash=draftEvidenceMappingHash(state,mapping);
       if(canonicalHash(draft.texts.map(textHash))!==canonicalHash(receipt.text_hashes))unmet.push('text_hashes');
       if(evidenceHash!==receipt.evidence_mapping_hash)unmet.push('evidence_mapping');
-      if(checkEvidence({...draft,fact_mapping:draft.fact_mapping},state).issues.length)unmet.push('evidence');
+      if(checkEvidence({...draft,fact_mapping:mapping},state).issues.length)unmet.push('evidence');
       if(draft.texts.some(text=>!parseTweet(text).valid))unmet.push('length');
       if(operational.selected_context_hash!==receipt.operational_context_hash)unmet.push('operational_context');
       if(draftReviewSubjectHashV5(receipt)!==receipt.subject_hash)unmet.push('draft_review_subject');

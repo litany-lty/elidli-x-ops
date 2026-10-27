@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { canonicalHash } from '../scripts/lib/contracts.mjs';
@@ -41,13 +41,13 @@ function narrowCurrentKnowledge(state, registry, materialHashes, priorHead) {
   event.observed_head_commit = priorHead; event.gaps = event.gaps.filter(ref => ids.has(ref));
 }
 
-async function candidatePackage(root, commit, registry, materialHashes) {
-  const source = resolve('assets/algorithm-knowledge'), target = join(root, 'candidate-package');
+async function candidatePackage(root, commit, registry, materialHashes, { removedDependencyId = null, removeReferencingRules = false, suffix = '' } = {}) {
+  const source = resolve('assets/algorithm-knowledge'), target = join(root, `candidate-package${suffix}`);
   await cp(source, target, { recursive: true });
   const catalogPath = join(target, 'catalog.json'), catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
-  catalog.catalog_id = 'x-algorithm-candidate-v5-fixture'; catalog.catalog_version = '1.2.0'; catalog.upstream.commit = commit;
+  catalog.catalog_id = `x-algorithm-candidate-v5-fixture${suffix}`; catalog.catalog_version = '1.2.0'; catalog.upstream.commit = commit;
   const dependenciesPath = join(target, catalog.dependency_manifest_path), dependencies = JSON.parse(await readFile(dependenciesPath, 'utf8'));
-  dependencies.dependencies = dependencies.dependencies.filter(item => registry.dependencies.some(selected => selected.dependency_id === item.dependency_id)).map(item => ({ ...item, material_hash: materialHashes.get(item.path) }));
+  dependencies.dependencies = dependencies.dependencies.filter(item => registry.dependencies.some(selected => selected.dependency_id === item.dependency_id) && item.dependency_id !== removedDependencyId).map(item => ({ ...item, material_hash: materialHashes.get(item.path) }));
   const changed = dependencies.dependencies.find(item => item.dependency_id === 'scorer:compute_weighted_score');
   changed.review_note = 'Fixture review of the actual committed scoring source, with inherited rules and facts retained at their historical pins.';
   changed.caller_refs=[];
@@ -55,7 +55,13 @@ async function candidatePackage(root, commit, registry, materialHashes) {
   changed.evidence_content_hash=sha(await readFile(join(target,changed.evidence_material_path)));
   const dependencyBytes = Buffer.from(`${JSON.stringify(dependencies, null, 2)}\n`); await writeFile(dependenciesPath, dependencyBytes);
   catalog.files.find(item => item.path === catalog.dependency_manifest_path).sha256 = sha(dependencyBytes);
-  catalog.dependencies = dependencies.dependencies; catalog.rule_version_refs = registry.ruleRefs; catalog.dependency_manifest_hash = canonicalHash(dependencies.dependencies);
+  catalog.dependencies = dependencies.dependencies; catalog.rule_version_refs = registry.ruleRefs;
+  if (removeReferencingRules && removedDependencyId) {
+    const referencing = new Set();
+    for (const entry of catalog.files.filter(item => item.kind === 'operational_rule')) { const rule = JSON.parse(await readFile(join(target, entry.path), 'utf8')); if (rule.dependency_ids.includes(removedDependencyId)) referencing.add(rule.rule_version_id); }
+    catalog.rule_version_refs = catalog.rule_version_refs.filter(ref => !referencing.has(ref));
+  }
+  catalog.dependency_manifest_hash = canonicalHash(dependencies.dependencies);
   catalog.coverage = { ...catalog.coverage, reviewed_dependency_count: catalog.dependencies.length, unreviewed_public_dependency_ids: [], external_unpublished_dependency_ids: [] };
   const eventPath = join(target, catalog.activation_event_path), event = JSON.parse(await readFile(eventPath, 'utf8'));
   event.event_id = 'candidate-event-v5-fixture'; event.event_type = 'candidate_update'; event.catalog_ref = catalog.catalog_id; event.observed_head_commit = commit; event.gaps = event.gaps.filter(ref => catalog.dependencies.some(item => item.dependency_id === ref));
@@ -117,4 +123,32 @@ test('knowledge-step V5 persists real checks, saved candidate proposal, reviewed
   assert.equal(knowledgeBundleFromState(state).catalog.catalog_id, candidate.catalog.catalog_id);
   assert.deepEqual(response.data.event.affected_rule_version_refs, proposal.affected_rule_version_refs);
   for (const replay of approval.replayResults) assert.deepEqual(state.knowledge_events[replay.replay_id], replay);
+});
+
+test('knowledge-step V5 rejects dangling dependency references and activates a consistent legal deletion', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'xops-knowledge-delete-cli-')), checkout = join(root, 'checkout'), stateDir = join(root, 'state');
+  await Promise.all([mkdir(checkout), mkdir(stateDir)]);
+  git(checkout, ['init']); git(checkout, ['config', 'user.email', 'fixture@example.com']); git(checkout, ['config', 'user.name', 'Fixture']); git(checkout, ['remote', 'add', 'origin', 'https://github.com/xai-org/x-algorithm.git']);
+  const remote=join(root,'remote.git');git(checkout,['init','--bare',remote]);git(checkout,['config',`url.${remote}.insteadOf`,'https://github.com/xai-org/x-algorithm.git']);
+  const registry = await fixtureRegistry(), materialHashes = await writeFixtureSources(checkout, registry.dependencies); git(checkout, ['add', '.']); git(checkout, ['commit', '-m', 'prior']); const priorHead = git(checkout, ['rev-parse', 'HEAD']);
+  const removed = registry.dependencies.find(item => item.dependency_id !== 'scorer:compute_weighted_score'); assert.ok(removed);
+  await rm(join(checkout, removed.path)); git(checkout, ['add', '-A']); git(checkout, ['commit', '-m', 'delete registered dependency']);git(checkout,['push','origin','HEAD:master']);git(checkout,['--git-dir',remote,'symbolic-ref','HEAD','refs/heads/master']);
+  const head = git(checkout, ['rev-parse', 'HEAD']), invalidCandidate = await candidatePackage(root, head, registry, materialHashes, { removedDependencyId: removed.dependency_id, suffix: '-invalid' }), legalCandidate = await candidatePackage(root, head, registry, materialHashes, { removedDependencyId: removed.dependency_id, removeReferencingRules: true, suffix: '-legal' });
+  const initialized = initializeState(createDefaultConfig({ handle: 'fixture_knowledge_delete', profile_url: 'https://x.com/fixture_knowledge_delete', user_id: null, identity_basis: 'user_provided' }));
+  narrowCurrentKnowledge(initialized, registry, materialHashes, priorHead); await commitState(stateDir, 0, () => initialized);
+
+  const registeredPaths = [...new Set(registry.dependencies.map(item => item.path))];
+  let response = await call(stateDir, { contract_version: 5, operation: 'check', checkout_dir: checkout, paths: registeredPaths });
+  const successfulCheck = response.data.check; assert.equal(successfulCheck.files.find(item => item.path === removed.path).status, 'deleted');
+  const beforeRejectedProposal = response.state, activeBefore = knowledgeBundleFromState(beforeRejectedProposal).catalog.catalog_id;
+  const rejected = await call(stateDir, { contract_version: 5, operation: 'propose-update', package_dir: invalidCandidate.target, check_ref: successfulCheck.check_id }, 2);
+  assert.equal(rejected.errors[0].code, 'INVALID_EVIDENCE_REF'); assert.match(rejected.errors[0].message, /unsupported dependency/); assert.equal(rejected.state.revision, beforeRejectedProposal.revision); assert.equal(knowledgeBundleFromState(rejected.state).catalog.catalog_id, activeBefore); assert.equal(rejected.state.knowledge_catalogs[invalidCandidate.catalog.catalog_id], undefined);
+
+  response = await call(stateDir, { contract_version: 5, operation: 'propose-update', package_dir: legalCandidate.target, check_ref: successfulCheck.check_id });
+  const proposal = response.data.proposal; assert.ok(proposal.dependency_diff.removed.includes(removed.dependency_id)); assert.ok(proposal.affected_rule_version_refs.length > 0);
+  const approval = await approveProposal(root, stateDir, proposal, 'legal-delete');
+  response = await call(stateDir, { contract_version: 5, operation: 'activate-update', proposal_ref: proposal.proposal_id, candidate_catalog_ref: legalCandidate.catalog.catalog_id, review_receipt_ref: approval.proposalReceipt.receipt_id, replay_results: approval.replayResults });
+  assert.equal(knowledgeBundleFromState(response.state).catalog.catalog_id, legalCandidate.catalog.catalog_id);
+  const consume = spawnSync(process.execPath, ['--input-type=module', '-e', `import {loadState} from ${JSON.stringify(new URL('../scripts/lib/state.mjs', import.meta.url).href)}; import {knowledgeBundleFromState,selectOperationalRules} from ${JSON.stringify(new URL('../scripts/lib/knowledge.mjs', import.meta.url).href)}; const bundle=knowledgeBundleFromState(await loadState(${JSON.stringify(stateDir)})); const selection=selectOperationalRules({intent:'review',goal:{primary_goal:'relevant_reach'},use:'performance_review',signals:{}},bundle); if(bundle.rules[${JSON.stringify(removed.dependency_id)}]||Object.values(bundle.rules).some(rule=>rule.dependency_ids.includes(${JSON.stringify(removed.dependency_id)}))) process.exit(8); console.log(JSON.stringify({catalog:bundle.catalog.catalog_id,selected:selection.selected.length,rules:Object.keys(bundle.rules).length}));`], { encoding: 'utf8' });
+  assert.equal(consume.status, 0, consume.stderr || consume.stdout); assert.equal(JSON.parse(consume.stdout).catalog, legalCandidate.catalog.catalog_id);
 });

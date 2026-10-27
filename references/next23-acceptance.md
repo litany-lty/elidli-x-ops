@@ -1,6 +1,21 @@
 # NEXT-2.3 验收与范围
 
-本轮沿用 NEXT-2.2 的有效基础，当前产品为 2.3.0-rc.3，唯一写入容器 state 5，transport 1。实际运行方式见 [运行合同](next23-runtime.md)。合成工程验收、现场专业生成、真实账号与媒体使用分别记录。
+本轮沿用 NEXT-2.2 的有效基础，当前产品为 2.3.0-rc.4，唯一写入容器 state 5，transport 1。实际运行方式见 [运行合同](next23-runtime.md)。合成工程验收、现场专业生成、真实账号与媒体使用分别记录。
+
+## 衔接修订：2.3.0-rc.4
+
+本次以 `9bf6328` 为基线，修复追加审查确认的两项 P1、两项 P2。保留 state 5、transport 1、旧对象及 ID，不切换原账号或全局旧 skill。
+
+| 审查项 | 实现与验证路径 |
+| --- | --- |
+| P1 删除依赖后仍可激活坏知识包 | loader、propose、activate、consumer 共用引用图校验；悬空引用在事务内拒绝且 revision/active 不变，合法删除可激活后在新进程选择规则。knowledge-cli/knowledge-updates |
+| P1 V5 预览工作项无法保存 | 统一实际追加路径的 V5 工作项结构；正式 prepare→compose→预览/审核→finalize，保存后回读继续执行。rc4-content-cli |
+| P2 同文重审与默认消费者不一致 | V5 审核增加可选 supersedes_receipt_refs，精确替代当前头并绑定实际审核 hash；重放幂等，旧审核保留但不能恢复 ready。inspiration-delivery-cli 覆盖第二次实际审核、保存、新进程默认回读、后续 content compose；旧多头历史支持明确重审合并 |
+| P2 内容恢复未重验灵感 | 当前内容就绪检查覆盖关联灵感，相关变化退出 ready，其他素材及预算保留；整体 task readiness 仍同时要求当前 Guidance，不把内容子状态当完整交付。rc4-content-cli |
+
+独立交叉复核补齐了 V5 preview 消费字段、恢复输入引用、编辑费用/指令持久化和重审事实映射四处同源遗漏。当前定向入口已证明：合法图文经保存、审核及新进程回读达到 content/guidance/task 均 ready；相关素材变化后，content/task 退出 ready，保留预算。旧 writer 实际留下的双审核 fixture 也经当前正式 CLI 追加合并回执后恢复默认 ready，历史两份审核仍保留。
+
+本地完整套件共318项，冻结实现首次315项通过、3项失败；失败源于旧 knowledge 单元样本未声明目录 artifact/fact/rule refs。仅补全这些样本（未放宽生产校验）后，受影响文件4/4通过；其余315项的生产输入与结果复用。精确提交的干净安装和完整318项结果以 GitHub Actions 为准。既有真实状态副本 rev161/rev172 经当前正式 inspect 与知识消费回读成功，状态字节不变，历史精确灵感引用仍可读。本轮新增材料及审核 JSON 为明确 fixture；既有真实 Chrome、媒体、专业生成证据按未变化范围复用，不代表新增发布或增长效果。
 
 ## 再审修订：2.3.0-rc.3
 

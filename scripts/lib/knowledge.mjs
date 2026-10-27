@@ -68,6 +68,23 @@ export function catalogContentHash(catalog, dependencies = catalog.dependencies)
   return canonicalHash(content);
 }
 
+export function validateKnowledgeBundleIntegrity({ catalog, dependencies = catalog.dependencies, artifacts, facts, rules }) {
+  const dependencyIds = new Set(dependencies.map(dependency => dependency.dependency_id));
+  if (dependencyIds.size !== dependencies.length) fail('/catalog/dependencies', 'Knowledge catalog contains duplicate dependency IDs', 'RECEIPT_CONFLICT');
+  for (const ref of catalog.artifact_refs) if (!artifacts[ref]) fail('/catalog/artifact_refs', `Knowledge artifact is missing: ${ref}`, 'MISSING_EVIDENCE');
+  for (const ref of catalog.fact_version_refs) {
+    const fact = facts[ref], artifact = fact && artifacts[fact.source_material_ref];
+    if (!fact || !artifact || fact.source_content_hash !== artifact.artifact_content_hash) fail('/catalog/fact_version_refs', `Knowledge fact material is missing or changed: ${ref}`, 'MISSING_EVIDENCE');
+  }
+  for (const ref of catalog.rule_version_refs) {
+    const rule = rules[ref];
+    if (!rule) fail('/catalog/rule_version_refs', `Knowledge operational rule is missing: ${ref}`, 'MISSING_EVIDENCE');
+    for (const factRef of rule.fact_version_refs) if (!facts[factRef]) fail(`/rules/${ref}/fact_version_refs`, `Rule references an inactive fact: ${factRef}`, 'INVALID_EVIDENCE_REF');
+    for (const dependencyId of rule.dependency_ids) if (!dependencyIds.has(dependencyId)) fail(`/rules/${ref}/dependency_ids`, `Rule references an unsupported dependency: ${dependencyId}`, 'INVALID_EVIDENCE_REF');
+  }
+  return true;
+}
+
 export function loadKnowledgeCatalog(packageDir = defaultPackageDir, { now = new Date(), allowFutureForErrata = false } = {}) {
   const root = resolve(packageDir);
   let catalog;
@@ -100,12 +117,7 @@ export function loadKnowledgeCatalog(packageDir = defaultPackageDir, { now = new
     if (sha256(bytes) !== dependency.evidence_content_hash) fail(`/dependencies/${dependency.dependency_id}/evidence_content_hash`, 'Dependency review evidence bytes changed', 'MISSING_EVIDENCE');
   }
   if (catalogContentHash(catalog, dependencyDoc.dependencies) !== catalog.catalog_content_hash) fail('/catalog_content_hash', 'Knowledge catalog content hash mismatch', 'MISSING_EVIDENCE');
-  for (const ref of catalog.artifact_refs) if (!artifacts[ref]) fail('/artifact_refs', `Missing knowledge artifact: ${ref}`, 'MISSING_EVIDENCE');
-  for (const fact of Object.values(facts)) {
-    const artifact = artifacts[fact.source_material_ref];
-    if (!artifact || artifact.artifact_content_hash !== fact.source_content_hash) fail(`/facts/${fact.rule_version_id}`, 'Fact does not resolve to exact packaged bytes', 'MISSING_EVIDENCE');
-  }
-  for (const rule of Object.values(rules)) for (const ref of rule.fact_version_refs) if (!facts[ref]) fail(`/rules/${rule.rule_version_id}/fact_version_refs`, `Missing fact: ${ref}`, 'MISSING_EVIDENCE');
+  validateKnowledgeBundleIntegrity({ catalog, dependencies: dependencyDoc.dependencies, artifacts, facts, rules });
   let event = parsed.get(catalog.activation_event_path);
   if (!event) {
     try { event = JSON.parse(readFileSync(packagePath(root, catalog.activation_event_path, '/activation_event_path'), 'utf8')); }
@@ -136,7 +148,6 @@ export function knowledgeBundleFromState(state, { now = new Date() } = {}) {
   if (canonicalHash(catalog.dependencies) !== catalog.dependency_manifest_hash) fail('/knowledge_catalogs/dependency_manifest_hash', 'Active dependency snapshot hash mismatch', 'RECEIPT_CONFLICT');
   if (catalogContentHash(catalog, catalog.dependencies) !== catalog.catalog_content_hash) fail('/knowledge_catalogs/catalog_content_hash', 'Active catalog content hash mismatch', 'RECEIPT_CONFLICT');
   const dependencies = Object.fromEntries(catalog.dependencies.map(dependency => [dependency.dependency_id, dependency]));
-  if (Object.keys(dependencies).length !== catalog.dependencies.length) fail('/knowledge_catalogs/dependencies', 'Active catalog contains duplicate dependency IDs', 'RECEIPT_CONFLICT');
   for (const dependency of catalog.dependencies) {
     const hashOk = dependency.material_hash === null || /^[a-f0-9]{64}$/.test(dependency.material_hash);
     const evidenceOk = dependency.evidence_content_hash === null || /^[a-f0-9]{64}$/.test(dependency.evidence_content_hash);
@@ -156,11 +167,9 @@ export function knowledgeBundleFromState(state, { now = new Date() } = {}) {
   }
   for (const ref of catalog.rule_version_refs) {
     const rule = state.operational_rules[ref];
-    if (!rule) fail('/knowledge_catalogs/rule_version_refs', `Active operational rule is missing: ${ref}`, 'MISSING_EVIDENCE');
-    for (const factRef of rule.fact_version_refs) if (!facts[factRef]) fail(`/operational_rules/${ref}/fact_version_refs`, `Rule references an inactive fact: ${factRef}`, 'INVALID_EVIDENCE_REF');
-    for (const dependencyId of rule.dependency_ids) if (!dependencies[dependencyId]) fail(`/operational_rules/${ref}/dependency_ids`, `Rule references an unsupported dependency: ${dependencyId}`, 'INVALID_EVIDENCE_REF');
-    rules[ref] = rule;
+    if (rule) rules[ref] = rule;
   }
+  validateKnowledgeBundleIntegrity({ catalog, dependencies: catalog.dependencies, artifacts, facts, rules });
   const temporal_readiness = knowledgeTimeReadiness({ catalog, event, artifacts, facts }, now);
   return Object.freeze({catalog:Object.freeze(catalog),event:Object.freeze(event),artifacts:Object.freeze(artifacts),facts:Object.freeze(facts),rules:Object.freeze(rules),dependencies:Object.freeze(catalog.dependencies),signal_registry:Object.freeze(catalog.signal_registry),gaps:Object.freeze([...event.gaps]),temporal_readiness});
 }

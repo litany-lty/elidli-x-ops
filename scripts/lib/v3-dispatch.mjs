@@ -214,9 +214,11 @@ export async function contentContext(state,dir,payload={
     else if(payload.result_kind==='preview'){
       const bytes=await readFile(payload.preview_path);
       if(byteHash(bytes)!==receipt.actual_result_sha256)fail('RECEIPT_CONFLICT','/preview_path','Preview bytes differ from actual result');
-      const path=await persistBytes(dir,bytes,payload.preview_path.endsWith('.md')?'md':'html'),pack=getPack(state,item.pack_target_ref);
+      const packTargetRef=item.pack_target_ref??item.input_refs.find(ref=>getPack(state,ref)),pack=packTargetRef&&getPack(state,packTargetRef);
+      if(!pack)fail('INVALID_EVIDENCE_REF','/work_item_id','Preview work item must reference its exact saved pack');
+      const path=await persistBytes(dir,bytes,payload.preview_path.endsWith('.md')?'md':'html');
       context.ingested_preview=inspectPreviewBytes(bytes,{
-        preview_id:`preview:${byteHash(bytes)}`,pack_ref:item.pack_target_ref,pack_content_hash:pack.pack_content_hash,artifact_ref:path,created_at:payload.as_of,persistence_receipt_ref:`sha256:${byteHash(bytes)}`,tool_receipt_ref:receiptRef
+        preview_id:`preview:${byteHash(bytes)}`,pack_ref:packTargetRef,pack_content_hash:pack.pack_content_hash,artifact_ref:path,created_at:payload.as_of,persistence_receipt_ref:`sha256:${byteHash(bytes)}`,tool_receipt_ref:receiptRef
       }
       );
       hashes.set(path,byteHash(bytes));

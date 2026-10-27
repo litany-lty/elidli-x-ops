@@ -1,6 +1,6 @@
 # NEXT-2.3 运行合同
 
-产品 2.3.0-rc.3，Node 24，transport envelope 1，唯一写入容器 state 5。安装路径由宿主决定；私有状态、材料和原图不放进公开仓库。旧 state1/2/3/4 先使用 contract5 `state-migrate preview/apply`；backup_directory 必须位于私有账号目录内。提交后只读回读失败使用 `resume_verify`。不得直接改版本号，不自动替换全局技能或迁移原账号。
+产品 2.3.0-rc.4，Node 24，transport envelope 1，唯一写入容器 state 5。安装路径由宿主决定；私有状态、材料和原图不放进公开仓库。旧 state1/2/3/4 先使用 contract5 `state-migrate preview/apply`；backup_directory 必须位于私有账号目录内。提交后只读回读失败使用 `resume_verify`。不得直接改版本号，不自动替换全局技能或迁移原账号。
 
 ## 入口与合同
 
@@ -48,13 +48,13 @@ Chrome 宿主从 assets/host-binding.codex-desktop-v4.json 读取当前模板，
 
 区分reuse_asset、inspect_asset、annotate_source、render_data、generate_illustration。官方原图保存来源、取得/查看时间、使用条件和署名；用户原图可以在无生成能力时使用。缩略图、提示词、任务ID、临时URL不是交付原件。
 
-媒体导入读取实际文件并保存内容寻址副本；预览和审核实际查看精确字节。只改第二张保持正文和其他图片；恢复历史必须恢复实际版本。来源更正、alt或事实映射变化只使相关审核失效。最终交付、resume和采用都检查当前文件和当前文字/个人依据。
+媒体导入读取实际文件并保存内容寻址副本；预览和审核实际查看精确字节。只改第二张保持正文和其他图片；恢复历史必须恢复实际版本。来源更正、alt或事实映射变化只使相关审核失效。最终交付、resume和采用都检查当前文件和当前文字/个人依据。V5 compose/revise/restore 追加 V5 工作项；预览读取由其冻结 input_refs 解析准确 pack。V5 任务恢复保留 revision_request 和真实 generation_cost，同 slot 的 source/asset/inspiration 引用当前有效才可解锁，能力恢复不免除预算。即使尚无 pack，也检查关联灵感并保留预算；base_pack/restore 不将 V5 当前需求降回旧 brief。
 
 ## 真实审核与知识更新
 
-`record host_review_receipt`保存实际JSON的SHA，逐项对照purpose、subject、content hash、decision、checks、issues、reviewer与generator。实际revise不能登记approved。语义assessment还绑定实际reviewed_payload，不接受三个true替代。工具调用成功不等于内容通过。
+`record host_review_receipt`保存实际JSON的SHA，逐项对照purpose、subject、content hash、decision、checks、issues、reviewer与generator。实际revise不能登记approved。语义assessment还绑定实际reviewed_payload，不接受三个true替代。工具调用成功不等于内容通过。同一 draft revision 的 V5 重审通过 supersedes_receipt_refs 明确替代全部当前回执头；该关系绑定实际审核 subject hash。首次审核或完全相同的重放保持兼容，缺少/错误替代关系拒绝，旧回执保留且不能重新成为当前批准。旧 writer 留下的多个冲突头可经一次明确重审合并，不改旧记录；默认回读、组装与采用共用唯一当前审核。同文事实映射或其证据更新时，将当前映射保存在新回执，正文历史不改；下游使用当前审核的映射，相关 V5 subject hash 改变，旧 Guidance 必须重审。
 
-知识检查保存官方HEAD、实际时刻与文件hash，状态unchanged/changed/check_failed；失败不刷新最近成功时间。check逐项记录实际commit/blob/SHA并拒绝工作区源码与提交字节不一致；候选依赖、调用者、新事实原文及截取范围须与该check实际文件对应，证据不能只填commit字符串。派生评审文档应保存candidate_commit和files（实际path/status/sha256，删除项sha256=null），与检查范围逐项对应；直接源码材料必须是原文片段。候选先保存，再从当前/候选依赖重算新增、修改、删除、移动和受影响规则；即使候选依赖元数据未变，实际 check 的文件字节变化仍进入 modified 和受影响规则，旧源码 pin 会形成阻止激活的 gap。未检查路径与历史 pin 不足分别记录 impact_limitations，并进入 potentially_modified/gaps 阻止激活；实际已检查且字节不变的依赖不受影响，不能把未知写成已确认无影响。旧未绑定source的候选重新check/propose，已激活历史保留。激活要求精确独立审核和完整三态replay；不相关交付保持有效。源码读过、模块公开、生产开关和当次请求可见分别表述。没有真实宿主调度时，只在调用时检查到期事项。
+知识检查保存官方HEAD、实际时刻与文件hash，状态unchanged/changed/check_failed；失败不刷新最近成功时间。check逐项记录实际commit/blob/SHA并拒绝工作区源码与提交字节不一致；候选依赖、调用者、新事实原文及截取范围须与该check实际文件对应，证据不能只填commit字符串。派生评审文档应保存candidate_commit和files（实际path/status/sha256，删除项sha256=null），与检查范围逐项对应；直接源码材料必须是原文片段。候选先保存，再从当前/候选依赖重算新增、修改、删除、移动和受影响规则；即使候选依赖元数据未变，实际 check 的文件字节变化仍进入 modified 和受影响规则，旧源码 pin 会形成阻止激活的 gap。未检查路径与历史 pin 不足分别记录 impact_limitations，并进入 potentially_modified/gaps 阻止激活；实际已检查且字节不变的依赖不受影响，不能把未知写成已确认无影响。旧未绑定source的候选重新check/propose，已激活历史保留。提案和激活前使用与 loader/实际消费者相同的完整性检查，rule→fact→artifact、rule→dependency 引用必须存在；删除依赖时同步移除或修正相关 active rule，失败不提交候选或切换 active。激活要求精确独立审核和完整三态replay；不相关交付保持有效。源码读过、模块公开、生产开关和当次请求可见分别表述。没有真实宿主调度时，只在调用时检查到期事项。
 
 ## 交付
 

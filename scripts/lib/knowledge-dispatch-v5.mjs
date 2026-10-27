@@ -1,7 +1,7 @@
 import { canonicalHash, ContractError, validate } from './contracts.mjs';
 import { commitState, putImmutable } from './state.mjs';
 import { seedKnowledgeState } from './knowledge-state.mjs';
-import { knowledgeBundleFromState, loadKnowledgeCatalog } from './knowledge.mjs';
+import { knowledgeBundleFromState, loadKnowledgeCatalog, validateKnowledgeBundleIntegrity } from './knowledge.mjs';
 import { activateKnowledgeUpdateV5, inspectKnowledgeCheckoutV5, knowledgeReplayResultHashV5, proposeKnowledgeUpdateV5, verifyKnowledgeSourceMaterialsV5 } from './knowledge-updates.mjs';
 
 const fail = (code, path, message) => { throw new ContractError(code, path, message, false); };
@@ -13,6 +13,7 @@ function savedCandidateBundle(state, catalogRef, temporalReadiness) {
   const facts = Object.fromEntries(catalog.fact_version_refs.map(ref => [ref, state.rule_versions_v2[ref]]));
   const rules = Object.fromEntries(catalog.rule_version_refs.map(ref => [ref, state.operational_rules[ref]]));
   if (Object.values(artifacts).some(value => !value) || Object.values(facts).some(value => !value) || Object.values(rules).some(value => !value)) fail('MISSING_EVIDENCE', '/candidate_catalog_ref', 'Saved candidate is incomplete');
+  validateKnowledgeBundleIntegrity({ catalog, dependencies: catalog.dependencies, artifacts, facts, rules });
   return Object.freeze({ catalog, artifacts, facts, rules, dependencies: catalog.dependencies, signal_registry: catalog.signal_registry, temporal_readiness: temporalReadiness });
 }
 

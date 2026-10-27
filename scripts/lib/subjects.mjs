@@ -1,4 +1,5 @@
 import {canonicalHash,ContractError} from './contracts.mjs';
+import {effectiveReview,draftEvidenceMappingHash} from './draft.mjs';
 import {actionPlanContent} from './actions.mjs';
 import {resolveInspirationDeliveryRef,resolveInspirationRef} from './inspiration.mjs';
 
@@ -31,5 +32,7 @@ export function resolveSubject(state,ref){
 }
 export function resolveSubjectV5(state,ref){
   if(ref?.startsWith('inspiration:'))resolveInspirationDeliveryRef(state,ref);
-  return resolveSubject(state,ref);
+  const subject=resolveSubject(state,ref),split=ref?.lastIndexOf(':')??-1,id=ref?.slice(0,split),revision=Number(ref?.slice(split+1));
+  if(state.drafts?.[id]?.revisions?.[revision]){const review=effectiveReview(state,{draft_id:id,revision});if(review?.contract_version===5&&review.fact_mapping) return{...subject,content_hash:canonicalHash({draft_content_hash:subject.content_hash,evidence_mapping_hash:draftEvidenceMappingHash(state,review.fact_mapping)})};}
+  return subject;
 }

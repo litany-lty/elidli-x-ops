@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { canonicalHash, ContractError } from './contracts.mjs';
+import { validateKnowledgeBundleIntegrity } from './knowledge.mjs';
 
 const fail = (path, message, code = 'INVALID_INPUT') => { throw new ContractError(code, path, message); };
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -179,6 +180,7 @@ export function verifyKnowledgeSourceMaterialsV5(currentBundle, candidateBundle,
 
 export function proposeKnowledgeUpdateV5(currentBundle, savedCandidate, check) {
   if (!savedCandidate?.catalog || !savedCandidate?.dependencies || !savedCandidate?.rules) fail('/saved_candidate', 'A saved, reloadable candidate bundle is required', 'MISSING_EVIDENCE');
+  validateKnowledgeBundleIntegrity(savedCandidate);
   if (check?.status !== 'changed' || check.observed_head !== check.remote_head || check.remote_head !== savedCandidate.catalog.upstream.commit) fail('/check', 'Changed check must bind candidate to actual remote HEAD', 'INVALID_EVIDENCE_REF');
   const source_bindings = knowledgeSourceBindingsV5(currentBundle, savedCandidate, check);
   const impact = computeKnowledgeImpactV5(currentBundle, savedCandidate, check);
@@ -193,6 +195,7 @@ export function knowledgeReplayResultHashV5(result) {
 }
 
 export function activateKnowledgeUpdateV5(currentBundle, savedCandidate, proposal, { review_receipt, replay_results, check, activated_at = new Date() }) {
+  validateKnowledgeBundleIntegrity(savedCandidate);
   if (proposal.source_binding_version !== 'git-source-v1' || check?.check_hash !== proposal.check_hash || check.check_id !== proposal.check_ref || canonicalHash(knowledgeSourceBindingsV5(currentBundle, savedCandidate, check)) !== canonicalHash(proposal.source_bindings)) fail('/source_bindings', 'Activation requires current exact saved source bindings; re-check legacy candidates', 'MISSING_EVIDENCE');
   const pendingRules = Object.values(savedCandidate.rules).filter(rule => rule.review_status !== 'approved').map(rule => rule.rule_version_id);
   if (pendingRules.length) fail('/candidate_catalog/rules', `Candidate contains rules without approved status: ${pendingRules.join(', ')}`, 'MISSING_EVIDENCE');
