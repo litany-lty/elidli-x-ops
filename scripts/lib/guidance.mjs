@@ -80,9 +80,16 @@ function validateGuidanceOutputShapeV5(output, state) {
   if (output.contract_version !== 5) fail('/contract_version', 'GuidanceOutput must use contract version 5', 'SCHEMA_VERSION');
   if (!output.guidance_text?.trim() || !output.deliverable_refs?.length || !Array.isArray(output.action_plan_hashes)) fail('/guidance_text', 'Complete guidance and deliverables are required', 'REQUESTED_OUTPUT_INCOMPLETE');
   if (new Set(output.action_plan_hashes).size !== output.action_plan_hashes.length) fail('/action_plan_hashes', 'Action plan hashes must be unique');
+  const canonicalPlans = new Map(Object.values(state.actions ?? {}).map(action => {
+    const hash = actionPlanHash(action);
+    if (action.plan_hash && action.plan_hash !== hash) fail('/action_plan_hashes', `Stored action plan changed after review: ${action.action_id}`, 'STALE_BUNDLE');
+    return [hash, action];
+  }));
+  for (const hash of output.action_plan_hashes) if (!canonicalPlans.has(hash)) fail('/action_plan_hashes', `Guidance references an unavailable canonical action plan: ${hash}`, 'MISSING_EVIDENCE');
   const coachReports = output.deliverable_refs.map(ref => state.coaching_reports?.[ref]).filter(Boolean);
+  if (output.action_plan_hashes.length && !coachReports.length) fail('/deliverable_refs', 'Guidance with action plans must identify the reviewed coaching proposal', 'INVALID_EVIDENCE_REF');
   if (coachReports.length) {
-    const expected = coachReports.flatMap(report => report.actions.map(item => state.actions?.[item.action_id])).map(action => action && (action.plan_hash ?? actionPlanHash(action)));
+    const expected = coachReports.flatMap(report => report.actions.map(item => state.actions?.[item.action_id])).map(action => action && actionPlanHash(action));
     if (expected.some(value => !value) || canonicalHash([...expected].sort()) !== canonicalHash([...output.action_plan_hashes].sort())) fail('/action_plan_hashes', 'Coach guidance must bind every exact canonical action plan', 'INVALID_EVIDENCE_REF');
   }
   if (guidanceOutputContentHashV5(output) !== output.output_content_hash) fail('/output_content_hash', 'Guidance hash does not match the complete V5 output', 'RECEIPT_CONFLICT');
@@ -101,6 +108,13 @@ export function validateGuidanceReceiptV5(receipt, { output, application, contex
   if (applicationProposalHash(application) !== application.application_proposal_hash) fail('/application_proposal_hash', 'Rule application changed after proposal', 'STALE_BUNDLE');
   if (canonicalHash(output.goal) !== canonicalHash(context.goal) || output.use !== context.use) fail('/output', 'Guidance goal and use must match the exact rule context', 'INVALID_EVIDENCE_REF');
   if (subject.ref !== application.subject_ref || subject.ref !== context.subject_ref || subject.content_hash !== application.actual_input_hash) fail('/subject_ref', 'Guidance subject must match exact context and input', 'INVALID_EVIDENCE_REF');
+  if (!output.deliverable_refs.includes(subject.ref) || !application.deliverable_refs.includes(subject.ref) || application.deliverable_refs.some(ref => !output.deliverable_refs.includes(ref))) fail('/deliverable_refs', 'Guidance output must cover the current subject and every applied deliverable', 'INVALID_EVIDENCE_REF');
+  if (output.action_plan_hashes.length) {
+    const proposal = state.coaching_reports?.[subject.ref];
+    if (!proposal) fail('/subject_ref', 'Guidance with action plans must review the coaching proposal itself, not an account or unrelated deliverable', 'INVALID_EVIDENCE_REF');
+    const expected = proposal.actions.map(item => state.actions?.[item.action_id]).map(action => action && actionPlanHash(action));
+    if (expected.some(value => !value) || canonicalHash([...expected].sort()) !== canonicalHash([...output.action_plan_hashes].sort())) fail('/action_plan_hashes', 'Receipt must cover every canonical plan in the current subject proposal', 'INVALID_EVIDENCE_REF');
+  }
   const binding = exactBindingV5(output, application, context, subject);
   for (const [key, value] of Object.entries(binding)) if (canonicalHash(receipt[key]) !== canonicalHash(value)) fail(`/${key}`, `Receipt does not match exact ${key}`, 'INVALID_EVIDENCE_REF');
   const reviewSubjectHash = guidanceReviewSubjectHashV5(binding);

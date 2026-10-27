@@ -266,7 +266,7 @@ async function dispatch(command,request,stateDir) {
         const advanced=applyExplicitPreferencePatch(working,{...payload.patch,schema_version:5},{feedback_id:`config-${canonicalHash({revision:working.revision,patch:payload.patch}).slice(0,24)}`,source_quote:payload.source_quote??JSON.stringify(payload.patch.operations),source_ref:payload.source_ref??request.run_id??'explicit_config_request',scope:{goal:null,topics:[],formats:[],surfaces:[],use:null},persistence:'long_term',recorded_at:payload.as_of});
         Object.assign(working,advanced.state);working.account=working.config.account;
       }else{working.config=effective.config;working.account=effective.config.account;}
-      for(const operation of payload.patch.operations)working.preference_meta[operation.path]={basis:'user',source:request.run_id??'explicit_config_request',confirmed_at:payload.as_of};
+      for(const operation of payload.patch.operations)working.preference_meta[operation.path]={...(working.preference_meta[operation.path]??{}),basis:'user',source:request.run_id??'explicit_config_request',confirmed_at:payload.as_of};
       return working;
     });return {data:effective,state};
   }

@@ -35,6 +35,16 @@ function canonicalPostKey(state, key) {
   return state.post_aliases?.[key] ?? key;
 }
 
+/** Stable identity for one actual platform post across duplicate publication records. */
+export function publicationIdentityV5(state, publicationOrId) {
+  const publication = typeof publicationOrId === 'string' ? state.publications?.[publicationOrId] : publicationOrId;
+  if (!publication) return null;
+  const urlId = typeof publication.url === 'string' ? publication.url.match(/\/status\/([^/?#]+)/)?.[1] : null;
+  const platformId = publication.platform_post_id ?? publication.post_id ?? urlId;
+  if (platformId) return canonicalPostKey(state, `x:${platformId}`);
+  return publication.publication_id ? `publication:${publication.publication_id}` : null;
+}
+
 export function publicationCreatedAtV4(state, publication) {
   if(publication.published_at)return publication.published_at;
   const key = canonicalPostKey(state, `x:${publication.post_id}`);
@@ -237,16 +247,27 @@ export function experimentEvidenceSummary(state, experimentId) {
   if (!experiment) fail('MISSING_EVIDENCE', '/experiment_id', 'Experiment does not exist');
   const action = state.actions?.[experiment.originating_action_id];
   const strategyRef = action?.strategy_version_ref ?? `legacy-action:${experiment.originating_action_id}`;
-  const groups = new Map();
+  const publicationsByIdentity = new Map();
   for (const publicationId of experiment.linked_publication_ids ?? []) {
     const publication = state.publications?.[publicationId];
     if (!publication) continue;
-    const cadenceRef = experiment.cadence_group_ref ?? publication.cadence_group_ref ?? publication.series_execution_ref ?? publicationId;
-    const key = `${strategyRef}:${cadenceRef}`;
-    const entry = groups.get(key) ?? { sample_key: key, strategy_version_ref: strategyRef, cadence_group_ref: cadenceRef, publication_ids: [] };
-    entry.publication_ids.push(publicationId); groups.set(key, entry);
+    const identity = publicationIdentityV5(state, publication) ?? `publication:${publicationId}`;
+    const entry = publicationsByIdentity.get(identity) ?? { publication_identity: identity, publication_ids: [], cadence_refs: new Set() };
+    entry.publication_ids.push(publicationId);
+    const cadenceRef = publication.cadence_group_ref ?? publication.series_execution_ref;
+    if (cadenceRef) entry.cadence_refs.add(cadenceRef);
+    publicationsByIdentity.set(identity, entry);
   }
-  return { experiment_id: experimentId, strategy_version_ref: strategyRef, independent_sample_n: groups.size, sample_groups: [...groups.values()].map(group => ({ ...group, publication_ids: group.publication_ids.sort() })).sort((a, b) => a.sample_key.localeCompare(b.sample_key)) };
+  const groups = new Map();
+  for (const publication of publicationsByIdentity.values()) {
+    const cadenceRef = experiment.cadence_group_ref ?? [...publication.cadence_refs].sort()[0] ?? `post:${publication.publication_identity}`;
+    const key = `${strategyRef}:${cadenceRef}`;
+    const entry = groups.get(key) ?? { sample_key: key, strategy_version_ref: strategyRef, cadence_group_ref: cadenceRef, publication_ids: [], publication_identities: [] };
+    entry.publication_ids.push(...publication.publication_ids);
+    entry.publication_identities.push(publication.publication_identity);
+    groups.set(key, entry);
+  }
+  return { experiment_id: experimentId, strategy_version_ref: strategyRef, independent_publication_n: publicationsByIdentity.size, independent_sample_n: groups.size, sample_groups: [...groups.values()].map(group => ({ ...group, publication_ids: group.publication_ids.sort(), publication_identities: group.publication_identities.sort() })).sort((a, b) => a.sample_key.localeCompare(b.sample_key)) };
 }
 
 export function priorActionOutcome(state, action) {

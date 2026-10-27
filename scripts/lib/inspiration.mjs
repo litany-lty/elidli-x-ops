@@ -55,6 +55,7 @@ export function assertParentNewsReserve(state,run,logicalTaskIds){
   const relation=entry.runtime.child_relations[run.run_id];if(!relation)fail('STATE_CONFLICT','/inspiration_sessions','Parent-owned news run lacks its frozen relation');
   const tasks=logicalTaskIds.map(id=>run.plan?.tasks?.find(item=>item.logical_task_id===id));
   if(tasks.some(item=>!item))fail('MISSING_EVIDENCE','/logical_task_ids','Parent reserve requires planned child tasks');
+  const snapshot=current(entry);for(const task of tasks){const query=snapshot.query_tasks.find(item=>item.child_news_run_ref===run.run_id&&item.logical_task_ref===task.logical_task_id);if(!query)fail('MISSING_EVIDENCE','/logical_task_ids','Parent reserve requires its exact inspiration query task');assertQueryBinding(state,query);}
   const view=inspirationBudgetView(entry);
   const childTickets=values(entry.runtime.ticket_ledger).filter(item=>item.child_news_run_ref===run.run_id);
   for(const operation of ['search','read']){
@@ -88,25 +89,59 @@ function queryTask(value,seeds,childRefs){
   if(!childRefs.has(value.child_news_run_ref))fail('INVALID_EVIDENCE_REF','/query_tasks/child_news_run_ref','Query must use a parent-owned child news run');
   const base={...structuredClone(value),status:'planned'};return validate('InspirationQueryTaskV5',{...base,query_hash:contentHash(base,'query_hash')});
 }
+function assertQueryBinding(state,value){
+  const run=state.runs?.[value.child_news_run_ref],task=run?.plan?.tasks?.find(item=>item.logical_task_id===value.logical_task_ref);
+  if(!task||task.operation!=='search'||task.request?.query!==value.query||value.seed_refs.some(ref=>!task.scope_refs?.includes(ref)))fail('INVALID_EVIDENCE_REF','/query_tasks','Inspiration query must exactly bind the saved child news search task, request, and seeds');
+}
 function actualSource(state,ref){return Boolean(state.sources?.[ref]||Object.values(state.sources??{}).some(source=>source.versions?.[ref])||state.raw_receipts?.[ref]);}
+function sourceVersion(state,ref){for(const source of values(state.sources))if(source.versions?.[ref])return source.versions[ref];return null;}
+function mediaAsset(state,ref){if(typeof ref!=='string')return null;const split=ref.lastIndexOf(':'),assetId=ref.slice(0,split),version=Number(ref.slice(split+1));return Number.isInteger(version)?state.media_assets?.[assetId]?.versions?.[version]??null:null;}
 function novelty(value){if(!value)return null;const base=structuredClone(value);return validate('NoveltyDeltaV5',{...base,delta_hash:contentHash(base,'delta_hash')});}
 function candidateHash(value){const copy=structuredClone(value);for(const field of ['candidate_hash','selection_status','selection_reason','rejection_reason'])delete copy[field];return canonicalHash(copy);}
-function eventIsCurrent(state,event,cutoff){
+export function inspirationAssessmentPayload(snapshot){
+  const mediaRefs=new Set(snapshot.candidates.flatMap(item=>item.media_candidate_refs));
+  return{session_id:snapshot.session_id,operational_context_hash:snapshot.operational_context_hash,candidates:snapshot.candidates.map(item=>({candidate_id:item.candidate_id,candidate_hash:item.candidate_hash,novelty_delta:item.novelty_delta,media_candidate_refs:structuredClone(item.media_candidate_refs)})),media_candidates:snapshot.media_candidates.filter(item=>mediaRefs.has(item.media_candidate_id)).sort((a,b)=>a.media_candidate_id.localeCompare(b.media_candidate_id)).map(item=>structuredClone(item))};
+}
+export function inspirationAssessmentHash(snapshot){return canonicalHash(inspirationAssessmentPayload(snapshot));}
+function requireAssessmentReview(snapshot,payload,context){
+  const ref=payload.actual_review_receipt_ref,receipt=context.actual_review_receipts?.[ref],hash=inspirationAssessmentHash(snapshot),subjectRef=`inspiration:${snapshot.session_id}:assessment`;
+  if(!ref||!receipt||receipt.purpose!=='review_novelty'||receipt.subject_ref!==subjectRef||receipt.subject_hash!==hash||receipt.subject_content_hash!==hash||receipt.actual_result_hash!==hash||receipt.decision!=='approved')fail('MISSING_EVIDENCE','/actual_review_receipt_ref','Finalize requires an exact approved novelty review of the current candidates and operational context');
+  return receipt;
+}
+function eventIsCurrent(event,cutoff,window){
   const instantValue=event?.event_time?.instant;if(!instantValue)return false;
-  const at=Date.parse(instantValue),end=Date.parse(cutoff),window=state.config?.news?.window;
+  const at=Date.parse(instantValue),end=Date.parse(cutoff);
   if(!Number.isFinite(at)||!Number.isFinite(end))return false;
   if(window?.mode==='rolling')return at>=end-window.hours*3_600_000&&at<end;
   if(window?.mode==='interval')return at>=Date.parse(window.start)&&at<Date.parse(window.end)&&at<end;
   return event.in_window===true&&at<end;
 }
-function candidate(state,value,snapshot){
+function evidenceIsCurrent(state,ref,cutoff,window){
+  const source=sourceVersion(state,ref),receipt=state.raw_receipts?.[ref],values=[source?.event_at?.instant,source?.updated_at?.instant,source?.published_at?.instant,source?.observed_at?.instant,receipt?.returned_at].filter(Boolean);
+  return values.some(instantValue=>eventIsCurrent({event_time:{instant:instantValue}},cutoff,window));
+}
+function newsEvidence(state,value,snapshot){
+  const window=snapshot.news_window;
+  if(value.kind==='fresh_event'&&value.event_refs.some(ref=>!eventIsCurrent(state.events[ref],snapshot.cutoff,window)))fail('INVALID_EVIDENCE_REF','/event_refs','Fresh-event inspiration requires an event inside the current frozen news window');
+  if(value.kind==='event_update'&&!value.novelty_delta?.new_material_refs?.some(ref=>evidenceIsCurrent(state,ref,snapshot.cutoff,window)))fail('INVALID_EVIDENCE_REF','/novelty_delta/new_material_refs','Event update requires current new material inside the frozen news window');
+  for(const ref of value.claim_refs){
+    const claim=state.claims?.[ref];
+    if(!value.event_refs.includes(claim?.event_id))fail('INVALID_EVIDENCE_REF','/claim_refs','Every news claim must belong to a referenced event');
+    if(!['supported','attributed','inferred'].includes(claim.support_status))fail('MISSING_EVIDENCE','/claim_refs','News inspiration cannot use an invalidated or unsupported claim');
+    if(!claim.source_version_ids?.length||!claim.locators?.length)fail('MISSING_EVIDENCE','/claim_refs','News claims require actually read source evidence and exact locators');
+    if(claim.source_version_ids.some(id=>!value.source_refs?.includes(id)))fail('INVALID_EVIDENCE_REF','/source_refs','News inspiration must retain every supporting claim source version');
+    for(const locator of claim.locators){const source=sourceVersion(state,locator.source_version_id);if(!claim.source_version_ids.includes(locator.source_version_id)||!source||!['read','partial'].includes(source.read_status)||source.material_kind==='search_snippet'||!state.raw_receipts?.[source.raw_receipt_ref]||source.captured_text?.slice(locator.start,locator.end)!==locator.text)fail('MISSING_EVIDENCE','/claim_refs','News claim locator must resolve to actually read source text');}
+  }
+}
+function candidate(state,value,snapshot,mediaIds){
   if(!value.seed_refs?.length||value.seed_refs.some(ref=>!snapshot.seeds.some(seed=>seed.seed_id===ref)))fail('INVALID_EVIDENCE_REF','/candidates/seed_refs','Candidate must bind selected seeds');
   const newsKind=['fresh_event','event_update'].includes(value.kind);
   if(newsKind&&(!value.event_refs?.length||!value.claim_refs?.length))fail('MISSING_EVIDENCE','/candidates','News inspiration requires verified event and claim refs');
   if(newsKind&&(value.event_refs.some(ref=>!state.events?.[ref])||value.claim_refs.some(ref=>!state.claims?.[ref])))fail('INVALID_EVIDENCE_REF','/candidates','News inspiration references missing news evidence');
-  if(value.kind==='fresh_event'&&value.event_refs.some(ref=>!eventIsCurrent(state,state.events[ref],snapshot.cutoff)))fail('INVALID_EVIDENCE_REF','/event_refs','Fresh-event inspiration requires an event inside the current frozen news window');
+  if(newsKind)newsEvidence(state,value,snapshot);
   if(!newsKind&&value.event_refs?.length)fail('INVALID_INPUT','/event_refs','Non-news inspiration cannot invent an event identity or event time');
   if((value.source_refs??[]).some(ref=>!actualSource(state,ref)))fail('INVALID_EVIDENCE_REF','/source_refs','Candidate source must be actually saved or read');
+  if((value.media_candidate_refs??[]).some(ref=>!mediaIds.has(ref)))fail('INVALID_EVIDENCE_REF','/media_candidate_refs','Candidate must reference an exact media candidate in this assessment');
   const delta=novelty(value.novelty_delta);
   if((value.kind==='event_update'||value.kind==='history_followup'||value.history_refs?.length)&&!delta)fail('MISSING_EVIDENCE','/novelty_delta','Update and historical angles require an actual NoveltyDelta');
   if(value.kind==='event_update'&&(!delta.new_material_refs.every(ref=>(value.source_refs??[]).includes(ref))||delta.new_material_refs.some(ref=>delta.prior_refs.includes(ref))))fail('INVALID_EVIDENCE_REF','/novelty_delta','Event update requires actually new saved material distinct from prior references');
@@ -133,14 +168,14 @@ export function advanceInspiration(state,payload,context={}){
     const limits=newsLimits(next),budget={search_allocated:payload.budget_policy?.search_allocated??limits.search,read_allocated:payload.budget_policy?.read_allocated??limits.read};
     if(budget.search_allocated>limits.search||budget.read_allocated>limits.read)fail('BUDGET_EXHAUSTED','/budget_policy','Parent allocation exceeds the existing news budget');
     const selector=payload.operational_context_selector??{subject_ref:'account',intent:'news',use:payload.use,goal:structuredClone(payload.goal),cutoff:instant(payload.cutoff,'/cutoff'),topic_refs:seeds.filter(item=>item.kind==='topic').map(item=>item.value),format:null,surface:null,task_constraints:structuredClone(payload.request_scope??{}),temporary_overrides:{},content_evidence_refs:unique(seeds.flatMap(item=>item.basis_refs).filter(ref=>!['config',payload.request_ref].includes(ref))),metric_evidence_refs:[],selected_signals:[],knowledge_dependency_versions:{},selection_policy_version:'operational-context-v5'};
-    const base={contract_version:5,session_id:payload.session_id,revision:1,account_ref:accountRef(next),goal:structuredClone(payload.goal),use:payload.use,request_scope:structuredClone(payload.request_scope??{}),config_hash:canonicalHash(next.config),cutoff:instant(payload.cutoff,'/cutoff'),budget_policy:budget,operational_context_selector:selector,operational_context_hash:payload.operational_context_hash,seeds,query_tasks:[],candidates:[],media_candidates:[],status:'prepared',created_at:instant(at,'/as_of')};
+    const base={contract_version:5,session_id:payload.session_id,revision:1,account_ref:accountRef(next),goal:structuredClone(payload.goal),use:payload.use,request_scope:structuredClone(payload.request_scope??{}),config_hash:canonicalHash(next.config),cutoff:instant(payload.cutoff,'/cutoff'),news_window:structuredClone(next.config?.news?.window??null),budget_policy:budget,operational_context_selector:selector,operational_context_hash:payload.operational_context_hash,seeds,query_tasks:[],candidates:[],media_candidates:[],status:'prepared',created_at:instant(at,'/as_of')};
     const snapshot=validate('InspirationSessionSnapshotV5',{...base,session_content_hash:snapshotHash(base)}),entry={session_id:payload.session_id,latest_revision:1,revisions:{1:snapshot},runtime:{child_news_run_refs:[],child_relations:{},ticket_ledger:{},pending_work:[],status:'active'}};
     next.inspiration_sessions[payload.session_id]=validate('InspirationSessionEntryV5',entry);return{state:next,result:{snapshot,budget:inspirationBudgetView(entry)},changed:true};
   }
   const entry=requireEntry(next,payload.session_id);
   if(payload.operation==='plan'){
     const previous=current(entry),childRefs=new Set(payload.child_news_runs.map(item=>item.run_id)),seeds=new Set(previous.seeds.map(item=>item.seed_id));
-    const tasks=payload.query_tasks.map(item=>queryTask(item,seeds,childRefs));
+    const tasks=payload.query_tasks.map(item=>{const task=queryTask(item,seeds,childRefs);assertQueryBinding(next,task);return task;});
     for(const child of payload.child_news_runs){
       if(entry.runtime.child_relations[child.run_id])fail('STATE_CONFLICT','/child_news_runs','Child news run is already allocated');
       const relation={allocated_search:child.allocated_search,allocated_read:child.allocated_read,query_refs:unique(tasks.filter(item=>item.child_news_run_ref===child.run_id).map(item=>item.query_id))};
@@ -151,21 +186,27 @@ export function advanceInspiration(state,payload,context={}){
     const snapshot=appendRevision(entry,{query_tasks:tasks,status:'planned'},at);entry.runtime.pending_work=tasks.map(item=>item.query_id);return{state:next,result:{snapshot,budget:inspirationBudgetView(entry)},changed:true};
   }
   if(payload.operation==='assess'){
-    const previous=current(entry),media=(payload.media_candidates??[]).map(item=>{if(item.asset_ref&&!next.media_assets?.[item.asset_ref])fail('INVALID_EVIDENCE_REF','/media_candidates/asset_ref','Successful media must reference an existing media asset');return validate('InspirationMediaCandidateV5',item);});
-    const candidates=payload.candidates.map(item=>candidate(next,item,previous));
-    const snapshot=appendRevision(entry,{candidates,media_candidates:media,status:'assessed'},at);return{state:next,result:{snapshot},changed:true};
+    const previous=current(entry);if(previous.news_window==null)fail('STATE_CONFLICT','/news_window','Legacy active inspiration session must resume to freeze a news window and reassess');
+    const contextHash=context.operational_context?.selected_context_hash??previous.operational_context_hash,media=(payload.media_candidates??[]).map(item=>{if(item.asset_ref&&!mediaAsset(next,item.asset_ref))fail('INVALID_EVIDENCE_REF','/media_candidates/asset_ref','Media candidate asset version does not exist');return validate('InspirationMediaCandidateV5',item);}),mediaIds=new Set(media.map(item=>item.media_candidate_id));
+    const assessmentBase={...previous,operational_context_hash:contextHash},candidates=payload.candidates.map(item=>candidate(next,item,assessmentBase,mediaIds));
+    const snapshot=appendRevision(entry,{operational_context_hash:contextHash,candidates,media_candidates:media,status:'assessed'},at);entry.runtime.pending_work=unique([...entry.runtime.pending_work.filter(item=>item!=='reassess_personal_angles'),'review_inspiration_assessment']);return{state:next,result:{snapshot,assessment_subject_hash:inspirationAssessmentHash(snapshot),readiness:'needs_review'},changed:true};
   }
   if(payload.operation==='finalize'){
     const previous=current(entry),selected=new Set(payload.selected_candidate_ids??[]);if(selected.size>3)fail('BUDGET_EXHAUSTED','/selected_candidate_ids','At most three inspiration candidates may be selected');
+    if(previous.news_window==null)fail('STATE_CONFLICT','/news_window','Legacy active inspiration session must resume to freeze a news window and reassess');
+    const contextHash=context.operational_context?.selected_context_hash??previous.operational_context_hash;if((selected.size&&previous.status!=='assessed')||contextHash!==previous.operational_context_hash||entry.runtime.pending_work.includes('reassess_personal_angles'))fail('STATE_CONFLICT','/candidates','Current context changed; rebuild context and reassess candidates before finalize');
     if([...selected].some(id=>!previous.candidates.some(item=>item.candidate_id===id)))fail('MISSING_EVIDENCE','/selected_candidate_ids','Selected inspiration candidate is missing');
+    if(selected.size)requireAssessmentReview(previous,payload,context);
+    for(const item of previous.candidates.filter(candidate=>selected.has(candidate.candidate_id))){if(['fresh_event','event_update'].includes(item.kind))newsEvidence(next,item,previous);for(const ref of item.source_refs??[])if(!actualSource(next,ref))fail('STATE_CONFLICT','/candidates','Related source evidence changed; reassess candidates before finalize');}
     if(previous.request_scope.today_only&&previous.candidates.filter(item=>selected.has(item.candidate_id)).some(item=>!['fresh_event','event_update'].includes(item.kind)))fail('INVALID_INPUT','/selected_candidate_ids','A today-only request cannot be completed with evergreen inspiration');
     const candidates=previous.candidates.map(item=>({...item,selection_status:selected.has(item.candidate_id)?'selected':'rejected',selection_reason:selected.has(item.candidate_id)?payload.selection_reasons?.[item.candidate_id]??'selected for current goal':null,rejection_reason:selected.has(item.candidate_id)?null:payload.rejection_reasons?.[item.candidate_id]??'not selected'}));
     const snapshot=appendRevision(entry,{candidates,status:'finalized'},at);entry.runtime.status='complete';entry.runtime.pending_work=[];return{state:next,result:{snapshot,selected_refs:candidates.filter(item=>item.selection_status==='selected').map(item=>`inspiration:${entry.session_id}:${snapshot.revision}:${item.candidate_id}`),result_kind:selected.size?'findings':'no_findings'},changed:true};
   }
   if(payload.operation==='resume'){
     const previous=current(entry),contextHash=context.operational_context?.selected_context_hash??previous.operational_context_hash;
+    if(previous.news_window==null){const window=next.config?.news?.window;if(!window)fail('CONFIG_CONFLICT','/config/news/window','Resume requires an actual news window to freeze');const snapshot=appendRevision(entry,{news_window:structuredClone(window),operational_context_hash:contextHash,status:'planned'},at);entry.runtime.status='active';entry.runtime.pending_work=unique([...entry.runtime.pending_work,'reassess_personal_angles']);return{state:next,result:{snapshot,runtime:structuredClone(entry.runtime),budget:inspirationBudgetView(entry),reselection_required:true,window_refreeze_required:true},changed:true};}
     if(contextHash!==previous.operational_context_hash){
-      const snapshot=appendRevision(entry,{operational_context_hash:contextHash,status:previous.candidates.length?'assessed':'planned'},at);
+      const snapshot=appendRevision(entry,{operational_context_hash:contextHash,status:'planned'},at);
       entry.runtime.status='active';entry.runtime.pending_work=unique([...entry.runtime.pending_work,'reassess_personal_angles']);
       return{state:next,result:{snapshot,runtime:structuredClone(entry.runtime),budget:inspirationBudgetView(entry),reselection_required:true},changed:true};
     }

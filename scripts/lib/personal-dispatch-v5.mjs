@@ -25,9 +25,9 @@ async function hostReviewApi(){
   try{return await import('./host-review-v5.mjs');}catch(error){if(error.code==='ERR_MODULE_NOT_FOUND')fail('MISSING_EVIDENCE','/host_review','V5 host review verifier is not installed');throw error;}
 }
 
-export async function operationalContextFor(state,{subject_ref,intent,use,goal=goalSnapshotFromState(state),cutoff,topic_refs=[],format=null,surface=null,task_constraints={},temporary_overrides={},content_evidence_refs=[],metric_evidence_refs=[],selected_signals=[],knowledge_dependency_versions={},selection_policy_version='operational-context-v5'}={}){
+export async function operationalContextFor(state,{subject_ref,intent,use,goal=goalSnapshotFromState(state),cutoff,topic_refs=[],format=null,surface=null,task_constraints={},temporary_overrides={},content_evidence_refs=[],metric_evidence_refs=[],selected_signals=[],knowledge_dependency_versions={},selection_policy_version='operational-context-v5',model_selection=null}={}){
   const {resolveSubject}=await import('./subjects.mjs'),subject=await resolveSubject(state,subject_ref);
-  return buildOperationalContext(state,{subject_ref,subject_descriptor:subject,intent,use,goal,cutoff,topic_refs,format,surface,task_constraints,temporary_overrides,content_evidence_refs,metric_evidence_refs,selected_signals,knowledge_dependency_versions,selection_policy_version});
+  return buildOperationalContext(state,{subject_ref,subject_descriptor:subject,intent,use,goal,cutoff,topic_refs,format,surface,task_constraints,temporary_overrides,content_evidence_refs,metric_evidence_refs,selected_signals,knowledge_dependency_versions,selection_policy_version,model_selection});
 }
 
 export function operationalContextForContentBrief(state,brief,cutoff){
@@ -87,12 +87,13 @@ export async function dispatchPersonalV5(command,p,{dataDir,state=null,expected_
     let result;const next=await commitState(dataDir,expected,working=>{const advanced=personalStep(working,p,{actual_review_receipts});result=advanced.result;return advanced.state;});return{state:next,data:{...result,state_revision:next.revision}};
   }
   if(command==='inspiration-step'){
-    const now=p.as_of??new Date(clock()).toISOString(),entry=current.inspiration_sessions?.[p.session_id],snapshot=entry&&entry.revisions[String(entry.latest_revision)];let internal=structuredClone(p),operational=null;
+    const now=p.as_of??new Date(clock()).toISOString(),entry=current.inspiration_sessions?.[p.session_id],snapshot=entry&&entry.revisions[String(entry.latest_revision)];let internal=structuredClone(p),operational=null,actual_review_receipts={};
     if(p.operation==='prepare'){
       const provisional=advanceInspiration(current,p,{as_of:now}),frozen=provisional.result.snapshot;operational=await operationalContextFor(current,frozen.operational_context_selector);internal={...internal,operational_context_selector:frozen.operational_context_selector,operational_context_hash:operational.selected_context_hash};
     }else if(snapshot){operational=await operationalContextFor(current,snapshot.operational_context_selector);}
-    const preview=advanceInspiration(current,internal,{as_of:now,operational_context:operational});if(!preview.changed)return{state:current,data:preview.result};
-    let result;const next=await commitState(dataDir,expected,working=>{const advanced=advanceInspiration(working,internal,{as_of:now,operational_context:operational});result=advanced.result;return advanced.state;});return{state:next,data:{...result,state_revision:next.revision}};
+    if(p.actual_review_receipt_ref){const api=await hostReviewApi();actual_review_receipts=await api.loadActualReviewReceiptsV5(current,[p.actual_review_receipt_ref],{clock,expectedPurpose:'review_novelty'});}
+    const preview=advanceInspiration(current,internal,{as_of:now,operational_context:operational,actual_review_receipts});if(!preview.changed)return{state:current,data:preview.result};
+    let result;const next=await commitState(dataDir,expected,working=>{const advanced=advanceInspiration(working,internal,{as_of:now,operational_context:operational,actual_review_receipts});result=advanced.result;return advanced.state;});return{state:next,data:{...result,state_revision:next.revision}};
   }
   if(command==='draft-check'){
     let actual_review_receipts={};if(p.actual_review_receipt_ref){const api=await hostReviewApi();actual_review_receipts=await api.loadActualReviewReceiptsV5(current,[p.actual_review_receipt_ref],{clock});}

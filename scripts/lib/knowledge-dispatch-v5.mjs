@@ -2,7 +2,7 @@ import { canonicalHash, ContractError, validate } from './contracts.mjs';
 import { commitState, putImmutable } from './state.mjs';
 import { seedKnowledgeState } from './knowledge-state.mjs';
 import { knowledgeBundleFromState, loadKnowledgeCatalog } from './knowledge.mjs';
-import { activateKnowledgeUpdateV5, inspectKnowledgeCheckoutV5, knowledgeReplayResultHashV5, proposeKnowledgeUpdateV5 } from './knowledge-updates.mjs';
+import { activateKnowledgeUpdateV5, inspectKnowledgeCheckoutV5, knowledgeReplayResultHashV5, proposeKnowledgeUpdateV5, verifyKnowledgeSourceMaterialsV5 } from './knowledge-updates.mjs';
 
 const fail = (code, path, message) => { throw new ContractError(code, path, message, false); };
 
@@ -50,6 +50,7 @@ export async function dispatchKnowledgeV5(request, dir, state) {
       if (!check || check.contract_version !== 5 || !check.check_id) fail('MISSING_EVIDENCE', '/check_ref', 'Saved knowledge check does not exist');
       const loaded = loadKnowledgeCatalog(payload.package_dir, { now: new Date() });
       if (loaded.catalog.upstream.commit !== check.observed_head) fail('INVALID_EVIDENCE_REF', '/check_ref', 'Candidate package does not match the actual checked HEAD');
+      verifyKnowledgeSourceMaterialsV5(current, loaded, check, payload.package_dir);
       seedKnowledgeState(working, loaded, { activate: false });
       const saved = savedCandidateBundle(working, loaded.catalog.catalog_id, loaded.temporal_readiness);
       if (canonicalHash(saved.catalog) !== canonicalHash(loaded.catalog)) fail('RECEIPT_CONFLICT', '/candidate_catalog_ref', 'Saved candidate differs from verified package');
@@ -77,7 +78,7 @@ export async function dispatchKnowledgeV5(request, dir, state) {
       if (receipt?.purpose !== 'review_knowledge' || receipt.subject_ref !== replay.replay_id || receipt.subject_hash !== replay.replay_result_hash || receipt.actual_result_hash !== replay.replay_result_hash || receipt.decision !== 'approved') fail('MISSING_EVIDENCE', '/replay_results/review_ref', 'Each replay requires its exact actual review');
       putImmutable(working.knowledge_events, replay.replay_id, replay);
     }
-    result = activateKnowledgeUpdateV5(current, saved, proposal, { review_receipt: proposalReview, replay_results: replayResults, activated_at: clock });
+    result = activateKnowledgeUpdateV5(current, saved, proposal, { review_receipt: proposalReview, replay_results: replayResults, check: working.knowledge_events[proposal.check_ref], activated_at: clock });
     putImmutable(working.knowledge_events, result.event.event_id, validate('KnowledgeEventV5', result.event));
     return working;
   });

@@ -17,7 +17,7 @@ function pattern(overrides={}){
   return{...base,pattern_content_hash:personalPatternContentHash(base)};
 }
 
-function contextInput(){return{intent:'draft',use:'current',goal:'relevant_reach',cutoff:T,subject_descriptor:{ref:'draft1',content_hash:'b'.repeat(64)},topic_refs:['ai'],format:'short_post',surface:'for_you',task_constraints:{max_changes:1},temporary_overrides:{},selected_signals:[{signal_id:'clear-opening'}],knowledge_dependency_versions:{catalog:'v5'}};}
+function contextInput(){return{intent:'draft',use:'current',goal:'relevant_reach',cutoff:T,subject_descriptor:{ref:'draft1',content_hash:'b'.repeat(64)},topic_refs:['ai'],format:'short_post',surface:'for_you',task_constraints:{max_changes:1},temporary_overrides:{},selected_signals:[{signal_id:'clear-opening'}],knowledge_dependency_versions:{}};}
 
 test('operational context selects only compatible active patterns and reindexes related counterevidence',()=>{
   const state=baseState();state.personal_patterns.active=pattern();state.personal_patterns.other=pattern({pattern_version_id:'p-other',pattern_chain_id:'other',scope:{...scope,topics:['cooking']}});

@@ -14,13 +14,13 @@ const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const git = (cwd, args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 const entry = resolve('scripts/x-ops.mjs');
 
-async function call(stateDir, payload) {
+async function call(stateDir, payload, expectedStatus = 0) {
   const state = await loadState(stateDir), input = join(stateDir, `${crypto.randomUUID()}.input.json`), output = join(stateDir, `${crypto.randomUUID()}.output.json`);
   await writeFile(input, JSON.stringify({ schema_version: 1, run_id: null, expected_revision: state.revision, payload }));
   const processResult = spawnSync(process.execPath, [entry, 'knowledge-step', '--input', input, '--output', output, '--state-dir', stateDir], { encoding: 'utf8' });
   const envelope = JSON.parse(processResult.stdout);
-  assert.equal(processResult.status, 0, JSON.stringify(envelope.errors));
-  return { state: await loadState(stateDir), data: envelope.data };
+  assert.equal(processResult.status, expectedStatus, JSON.stringify(envelope.errors));
+  return { state: await loadState(stateDir), data: envelope.data, errors:envelope.errors };
 }
 
 async function candidatePackage(root, commit) {
@@ -30,7 +30,11 @@ async function candidatePackage(root, commit) {
   catalog.catalog_id = 'x-algorithm-candidate-v5-fixture'; catalog.catalog_version = '1.2.0'; catalog.upstream.commit = commit;
   const dependenciesPath = join(target, catalog.dependency_manifest_path), dependencies = JSON.parse(await readFile(dependenciesPath, 'utf8'));
   const changed = dependencies.dependencies.find(item => item.dependency_id === 'scorer:compute_weighted_score');
-  changed.review_note = `${changed.review_note} fixture reviewed change`;
+  changed.review_note = 'Fixture review of the actual committed scoring source, with inherited rules and facts retained at their historical pins.';
+  changed.caller_refs=[];
+  changed.evidence_material_path='source-snapshots/review-excerpts/scorer_compute_weighted_score.txt';
+  changed.evidence_content_hash=sha(await readFile(join(target,changed.evidence_material_path)));
+  changed.material_hash=changed.evidence_content_hash;
   const dependencyBytes = Buffer.from(`${JSON.stringify(dependencies, null, 2)}\n`); await writeFile(dependenciesPath, dependencyBytes);
   catalog.files.find(item => item.path === catalog.dependency_manifest_path).sha256 = sha(dependencyBytes);
   catalog.dependencies = dependencies.dependencies; catalog.dependency_manifest_hash = canonicalHash(dependencies.dependencies);
@@ -54,13 +58,16 @@ test('knowledge-step V5 persists real checks, saved candidate proposal, reviewed
   await import('node:fs/promises').then(({ mkdir }) => Promise.all([mkdir(checkout), mkdir(stateDir)]));
   git(checkout, ['init']); git(checkout, ['config', 'user.email', 'fixture@example.com']); git(checkout, ['config', 'user.name', 'Fixture']); git(checkout, ['remote', 'add', 'origin', 'https://github.com/xai-org/x-algorithm.git']);
   const remote=join(root,'remote.git');git(checkout,['init','--bare',remote]);git(checkout,['config',`url.${remote}.insteadOf`,'https://github.com/xai-org/x-algorithm.git']);
-  await writeFile(join(checkout, 'tracked.rs'), 'candidate\n'); git(checkout, ['add', 'tracked.rs']); git(checkout, ['commit', '-m', 'candidate']);git(checkout,['push','origin','HEAD:master']);git(checkout,['--git-dir',remote,'symbolic-ref','HEAD','refs/heads/master']);
+  await writeFile(join(checkout, 'tracked.rs'), 'candidate\n'); await import('node:fs/promises').then(({mkdir})=>mkdir(join(checkout,'xai-value-model'))); await writeFile(join(checkout,'xai-value-model/scoring.rs'),await readFile(resolve('assets/algorithm-knowledge/source-snapshots/review-excerpts/scorer_compute_weighted_score.txt'))); git(checkout, ['add', '.']); git(checkout, ['commit', '-m', 'candidate']);git(checkout,['push','origin','HEAD:master']);git(checkout,['--git-dir',remote,'symbolic-ref','HEAD','refs/heads/master']);
   const head = git(checkout, ['rev-parse', 'HEAD']), candidate = await candidatePackage(root, head);
   const initialized = initializeState(createDefaultConfig({ handle: 'fixture_knowledge5', profile_url: 'https://x.com/fixture_knowledge5', user_id: null, identity_basis: 'user_provided' }));
   let state = await commitState(stateDir, 0, () => initialized);
 
   let response = await call(stateDir, { contract_version: 5, operation: 'check', checkout_dir: checkout, paths: ['tracked.rs'] });
-  state = response.state; const successfulCheck = response.data.check;
+  state = response.state; const incompleteCheck = response.data.check;
+  const rejected=await call(stateDir,{contract_version:5,operation:'propose-update',package_dir:candidate.target,check_ref:incompleteCheck.check_id},4);assert.equal(rejected.errors[0].code,'MISSING_EVIDENCE');
+  response=await call(stateDir,{contract_version:5,operation:'check',checkout_dir:checkout,paths:['xai-value-model/scoring.rs']});
+  state=response.state;const successfulCheck=response.data.check;
   assert.equal(successfulCheck.status, 'changed'); assert.equal(successfulCheck.observed_head, head); assert.match(successfulCheck.files[0].sha256, /^[a-f0-9]{64}$/);
   response = await call(stateDir, { contract_version: 5, operation: 'check', checkout_dir: join(root, 'missing'), paths: ['tracked.rs'] });
   state = response.state; assert.equal(response.data.check.status, 'check_failed'); assert.equal(response.data.last_successful_checked_at, successfulCheck.checked_at);

@@ -1,5 +1,5 @@
 import { canonicalHash, ContractError } from './contracts.mjs';
-import { activatePersonalPatternV5, proposePersonalPatternV5, recordFeedbackV5, retirePersonalPatternV5, unresolvedFailureEventsV5 } from './personal-model.mjs';
+import { activatePersonalPatternV5, forgetExplicitPreferenceV5, proposePersonalPatternV5, recordFeedbackV5, retirePersonalPatternV5, unresolvedFailureEventsV5 } from './personal-model.mjs';
 
 const fail=(code,path,message)=>{throw new ContractError(code,path,message,false);};
 
@@ -23,8 +23,7 @@ export function personalStep(state,payload,context={}){
       const next=structuredClone(state),pattern=retirePersonalPatternV5(next,payload.pattern);next.personal_patterns[pattern.pattern_version_id]=pattern;return{state:next,result:{pattern}};
     }
     if(payload.target_kind==='feedback'){
-      const feedback={...payload.feedback,type:'explicit_preference',persistence:'long_term',retracts_ref:payload.target_ref};
-      const recorded=recordFeedbackV5(state,feedback);return{state:recorded.state,result:{event:recorded.event}};
+      const recorded=forgetExplicitPreferenceV5(state,{...payload.feedback,target_ref:payload.target_ref});return{state:recorded.state,result:{event:recorded.event,deduplicated:recorded.deduplicated,applied_paths:recorded.applied_paths,preserved_paths:recorded.preserved_paths??[]}};
     }
   }
   fail('INVALID_INPUT','/operation','Unsupported personal-step operation');

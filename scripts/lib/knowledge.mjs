@@ -296,7 +296,7 @@ export function buildRuleContextV5(input, bundle) {
   const selectedDependencyHashes=Object.fromEntries([...new Set(selection.selected.flatMap(item=>item.dependency_ids))].sort().map(ref=>[ref,canonicalHash(bundle.dependencies.find(item=>item.dependency_id===ref))]));
   const context = {
     contract_version: 5,
-    context_id: input.context_id ?? `rule-context-${canonicalHash({ run_id: input.run_id, subject_ref: input.subject_ref, subject_hash: input.subject_hash, signal_set_hash: signalSet.signal_set_hash, catalog_content_hash: bundle.catalog.catalog_content_hash, cutoff: input.cutoff }).slice(0, 24)}`,
+    context_id: input.context_id ?? `rule-context-${canonicalHash({ run_id: input.run_id, subject_ref: input.subject_ref, subject_hash: input.subject_hash, signal_set_hash: signalSet.signal_set_hash, catalog_content_hash: bundle.catalog.catalog_content_hash, cutoff: input.cutoff, personal_context_selection_hash: input.personal_context_selection_hash ?? null }).slice(0, 24)}`,
     run_id: input.run_id, intent: input.intent, goal: structuredClone(input.goal), use: input.use,
     surface: input.surface ?? null, post_type: input.post_type ?? null,
     subject_ref: input.subject_ref, subject_hash: input.subject_hash, cutoff: input.cutoff,
@@ -346,10 +346,11 @@ export function validateRuleApplication(application, context, bundle) {
 export function validateRuleApplicationV5(application, context, bundle) {
   if (application.contract_version !== 5 || context.contract_version !== 5) fail('/contract_version', 'RuleApplicationV5 requires V5 application and context', 'SCHEMA_VERSION');
   if (application.context_ref !== context.context_id || application.selected_rule_context_hash !== context.selected_rule_context_hash || application.subject_ref !== context.subject_ref || application.actual_input_hash !== context.subject_hash) fail('/context_ref', 'Application is not bound to exact V5 context and subject', 'INVALID_EVIDENCE_REF');
-  const selections = new Map(context.selections.map(item => [item.rule_version_ref, item])), checks = new Map(application.checks.map(item => [item.check_id, item]));
+  const selections = new Map(context.selections.map(item => [item.rule_version_ref, item])), checks = new Map(application.checks.map(item => [item.check_id, item])), applied = new Set(application.rule_version_refs);
+  const supportingTypes = { public_mechanism: new Set(['mechanism']), editorial_inference: new Set(['semantic', 'deterministic']), personal_observation: new Set(['personal_observation']), user_preference: new Set(['preference']) };
   for (const [index, action] of application.actions.entries()) {
     const selected = selections.get(action.rule_version_ref);
-    if (!selected || !bundle.rules[action.rule_version_ref]) fail(`/actions/${index}/rule_version_ref`, 'Action uses an unselected rule', 'INVALID_EVIDENCE_REF');
+    if (!selected || !bundle.rules[action.rule_version_ref] || !applied.has(action.rule_version_ref)) fail(`/actions/${index}/rule_version_ref`, 'Action uses a rule that was not selected and applied', 'INVALID_EVIDENCE_REF');
     if (!['public_mechanism', 'editorial_inference', 'personal_observation', 'user_preference'].includes(action.basis_kind)) fail(`/actions/${index}/basis_kind`, 'Unsupported action basis');
     if (!action.supporting_check_refs.length || action.supporting_check_refs.some(ref => !checks.has(ref))) fail(`/actions/${index}/supporting_check_refs`, 'Every action must bind actual supporting checks', 'INVALID_EVIDENCE_REF');
     if (action.signal_refs.some(ref => !Object.hasOwn(context.signal_set.signals, ref))) fail(`/actions/${index}/signal_refs`, 'Action references an unavailable signal', 'INVALID_EVIDENCE_REF');
@@ -357,6 +358,10 @@ export function validateRuleApplicationV5(application, context, bundle) {
       if (selected.mechanism_applicability.status === TRI.UNKNOWN && selected.editorial_applicability.status === TRI.UNKNOWN) fail(`/actions/${index}`, 'A double-unknown rule cannot support modification', 'MISSING_EVIDENCE');
       if (action.basis_kind === 'public_mechanism' && selected.mechanism_applicability.status !== TRI.TRUE) fail(`/actions/${index}/basis_kind`, 'Public mechanism basis requires observed mechanism applicability', 'MISSING_EVIDENCE');
       if (action.basis_kind === 'editorial_inference' && selected.editorial_applicability.status !== TRI.TRUE) fail(`/actions/${index}/basis_kind`, 'Editorial modification requires affirmative editorial applicability', 'MISSING_EVIDENCE');
+      const supporting = action.supporting_check_refs.map(ref => checks.get(ref));
+      if (supporting.some(check => check.status !== TRI.TRUE || !supportingTypes[action.basis_kind].has(check.check_type) || check.reviewed_input_hash !== context.subject_hash || !check.inspected_refs.some(ref => action.deliverable_refs.includes(ref)))) fail(`/actions/${index}/supporting_check_refs`, 'Modification support must be affirmative, basis-compatible, and inspect the modified deliverable', 'MISSING_EVIDENCE');
+      const signals = action.signal_refs.map(ref => context.signal_set.signals[ref]);
+      if (signals.some(signal => signal.status === 'unknown' || signal.value === null || !signal.source_refs.some(ref => action.deliverable_refs.includes(ref)))) fail(`/actions/${index}/signal_refs`, 'Modification support requires observed signals from the modified deliverable', 'MISSING_EVIDENCE');
     }
   }
   for (const check of application.checks) if (check.check_type === 'semantic' && (check.reviewed_input_hash !== context.subject_hash || !check.review_ref)) fail('/checks', 'Semantic check must bind a real review to exact subject', 'INVALID_EVIDENCE_REF');

@@ -1,6 +1,9 @@
 import { canonicalHash, ContractError, validate } from './contracts.mjs';
 import { activeContentReceiptV3, isContentAnalysisCurrent } from './post-content.mjs';
 import { resolvePostContext } from './imports.mjs';
+import { unresolvedFailureEventsV5 as unresolvedFailureEvents } from './personal-model.mjs';
+import { experimentEvidenceSummary, publicationIdentityV5 } from './experiments.mjs';
+import { knowledgeBundleFromState } from './knowledge.mjs';
 
 const fail = (code, path, message) => { throw new ContractError(code, path, message, false); };
 const values = value => Object.values(value ?? {});
@@ -208,6 +211,71 @@ function scopeCompatibility(scope,{goal,topic_refs:topics,format,surface,use}){
   return reasons;
 }
 
+function metricWindowCompatibility(pattern,input){
+  const reasons=[];
+  if(input.metric_definition&&canonicalHash(pattern.metric_definition)!==canonicalHash(input.metric_definition))reasons.push('metric_mismatch');
+  if(input.observation_window&&canonicalHash(pattern.observation_window)!==canonicalHash(input.observation_window))reasons.push('window_mismatch');
+  return reasons;
+}
+
+function algorithmCompatibility(state,pattern){
+  const binding=pattern.algorithm_dependency_versions,strategy=state.strategy_definitions?.[pattern.strategy_version_ref],expectsBinding=(strategy?.rule_refs??[]).length>0;
+  const bound=Boolean(binding&&binding.rules&&!Array.isArray(binding.rules)&&Object.keys(binding.rules).length);
+  if(!bound)return expectsBinding?['algorithm_dependency_unbound']:[];
+  let active;try{active=knowledgeBundleFromState(state);}catch{return['algorithm_dependency_changed'];}
+  const activeDependencies=Object.fromEntries(active.dependencies.map(item=>[item.dependency_id,item]));
+  const changed=Object.entries(binding.rules).some(([ref,hash])=>canonicalHash(active.rules[ref])!==hash)||Object.entries(binding.facts??{}).some(([ref,hash])=>canonicalHash(active.facts[ref])!==hash)||Object.entries(binding.dependencies??{}).some(([ref,hash])=>canonicalHash(activeDependencies[ref])!==hash);
+  return changed?['algorithm_dependency_changed']:[];
+}
+
+function strategyCompatibility(strategy,request){
+  return scopeCompatibility({goal:strategy.goal,topics:strategy.topic_scope??[],formats:strategy.format_scope??[],surfaces:strategy.surface_scope??[],use:strategy.use??null},request);
+}
+
+function actualKnowledgeDependencies(state,declared){
+  const requested=declared??{},hasRequested=Object.keys(requested).length>0;
+  if(!hasRequested)return{};
+  const catalog=state.knowledge_catalogs?.[requested.catalog_ref];
+  if(!catalog)fail('MISSING_EVIDENCE','/knowledge_dependency_versions','Declared algorithm dependencies require a saved knowledge catalog');
+  const actual={catalog_ref:catalog.catalog_id,catalog_content_hash:catalog.catalog_content_hash};
+  if(canonicalHash(requested)!==canonicalHash(actual))fail('INVALID_EVIDENCE_REF','/knowledge_dependency_versions','Algorithm dependency versions must match the exact saved catalog');
+  return actual;
+}
+
+function patternExecutionUnits(state,pattern){
+  const experimentIds=new Set(),sampleKeys=new Set(),publicationIdentities=new Set();
+  for(const reviewRef of pattern.experiment_review_refs??[]){
+    const review=state.experiment_reviews?.[reviewRef],experiment=review&&state.experiments?.[review.experiment_id];
+    if(experiment){
+      experimentIds.add(experiment.experiment_id);
+      const summary=experimentEvidenceSummary(state,experiment.experiment_id);
+      for(const group of summary.sample_groups){sampleKeys.add(group.sample_key);for(const identity of group.publication_identities)publicationIdentities.add(identity);}
+    }
+  }
+  if(!sampleKeys.size){sampleKeys.add(`pattern:${pattern.pattern_version_id}`);for(const ref of pattern.publication_refs??[]){const identity=publicationIdentityV5(state,ref);if(identity)publicationIdentities.add(identity);}}
+  return{experiment_ids:[...experimentIds].sort(),sample_keys:[...sampleKeys].sort(),publication_identities:[...publicationIdentities].sort()};
+}
+
+function personalModelSummary(state,patterns,{grouped}){
+  const groups=new Map();
+  for(const pattern of patterns){
+    const key=canonicalHash({strategy_version_ref:pattern.strategy_version_ref,scope:pattern.scope,metric_definition:pattern.metric_definition,observation_window:pattern.observation_window,algorithm_dependency_versions:pattern.algorithm_dependency_versions??{}});
+    const group=groups.get(key)??{group_key:key,strategy_version_ref:pattern.strategy_version_ref,scope:structuredClone(pattern.scope),metric_definition:structuredClone(pattern.metric_definition),observation_window:structuredClone(pattern.observation_window),algorithm_dependency_versions:structuredClone(pattern.algorithm_dependency_versions??{}),patterns:[],publication_ids:new Set(),experiment_ids:new Set(),execution_units:new Set(),positive_refs:new Set(),negative_refs:new Set(),uncertain_refs:new Set(),alternatives:new Set(),directions:{positive:0,negative:0,mixed:0,inconclusive:0},dispersions:[]};
+    const evidence=patternExecutionUnits(state,pattern),directionRefs=[pattern.pattern_version_id,...(pattern.experiment_review_refs??[]),...(pattern.observation_refs??[])];group.patterns.push(pattern);for(const identity of evidence.publication_identities)group.publication_ids.add(identity);for(const experimentId of evidence.experiment_ids)group.experiment_ids.add(experimentId);for(const unit of evidence.sample_keys)group.execution_units.add(unit);for(const ref of pattern.counter_evidence_refs??[])group.negative_refs.add(ref);for(const text of pattern.alternative_explanations??[])group.alternatives.add(text);group.directions[pattern.result_direction]=(group.directions[pattern.result_direction]??0)+1;if(pattern.dispersion)group.dispersions.push(pattern.dispersion);const target=pattern.result_direction==='positive'?group.positive_refs:pattern.result_direction==='negative'?group.negative_refs:group.uncertain_refs;for(const ref of directionRefs)target.add(ref);groups.set(key,group);
+  }
+  const summaries=[...groups.values()].map(group=>({group_key:group.group_key,strategy_version_ref:group.strategy_version_ref,scope:group.scope,metric_definition:group.metric_definition,observation_window:group.observation_window,algorithm_dependency_versions:group.algorithm_dependency_versions,valid_n:group.execution_units.size,independent_experiment_count:group.experiment_ids.size,independent_publication_count:group.publication_ids.size,coverage:group.patterns.map(item=>item.coverage),comparability:group.patterns.map(item=>item.comparability),result_directions:group.directions,dispersion:group.dispersions,alternative_explanations:[...group.alternatives].sort(),positive_evidence_refs:[...group.positive_refs].sort(),negative_evidence_refs:[...group.negative_refs].sort(),uncertain_evidence_refs:[...group.uncertain_refs].sort(),pattern_refs:unique(group.patterns.map(item=>item.pattern_version_id))})).sort((a,b)=>a.group_key.localeCompare(b.group_key));
+  return{grouping:grouped?'strategy_scope_metric_window_algorithm':'requested_strategy_scope_metric_window_algorithm',groups:summaries};
+}
+
+function failureRelevant(event,input,request,relevantStrategyRefs){
+  if(!['coach','draft','content'].includes(input.intent))return false;
+  if(event.consumer_intents?.length&&!event.consumer_intents.includes(input.intent))return false;
+  if(event.scope&&scopeCompatibility(event.scope,request).length)return false;
+  if(event.strategy_version_ref&&!relevantStrategyRefs.has(event.strategy_version_ref))return false;
+  if(!event.scope&&!event.consumer_intents?.length&&!event.strategy_version_ref)return event.type==='quality_failure'&&event.output_ref===input.subject_ref;
+  return true;
+}
+
 function latestPatternHeads(patterns){
   const superseded=new Set(patterns.map(item=>item.supersedes_ref).filter(Boolean));
   return patterns.filter(item=>!superseded.has(item.pattern_version_id));
@@ -227,6 +295,7 @@ export function buildOperationalContext(state,input){
   if(!['coach','draft','news','content','review'].includes(input?.intent))fail('INVALID_INPUT','/intent','Unknown operational context consumer');
   if(!input.use||!input.goal||!input.cutoff)fail('INVALID_INPUT','/operational_context','Use, full goal, and cutoff are required');
   const cutoffMs=Date.parse(input.cutoff);if(!Number.isFinite(cutoffMs))fail('INVALID_INPUT','/cutoff','Cutoff must be an ISO instant');
+  const modelSelection={metric_definition:structuredClone(input.model_selection?.metric_definition??input.metric_definition??null),observation_window:structuredClone(input.model_selection?.observation_window??input.observation_window??null)};
   const request={goal:input.goal,topic_refs:unique(input.topic_refs??[]),format:input.format??null,surface:input.surface??null,use:input.use};
   const ownAccount=accountRef(state),effectivePatterns=values(state.personal_patterns).filter(item=>{
     if(item.contract_version!==5||item.account_ref!==ownAccount)return false;
@@ -238,7 +307,7 @@ export function buildOperationalContext(state,input){
     const heads=latestPatternHeads(group),chainRelated=group.some(item=>scopeCompatibility(item.scope,request).length===0);
     if(chainRelated)indexedPatterns.push(...group);
     for(const head of heads){
-      const reasons=scopeCompatibility(head.scope,request);
+      const reasons=[...scopeCompatibility(head.scope,request),...metricWindowCompatibility(head,modelSelection),...algorithmCompatibility(state,head)];
       if(reasons.length){if(chainRelated)excluded.push({pattern_version_ref:head.pattern_version_id,reasons});continue;}
       relevant.push(head);
     }
@@ -253,24 +322,25 @@ export function buildOperationalContext(state,input){
   const superseded=new Set(feedback.map(item=>item.supersedes_ref).filter(Boolean));
   const inferred=feedback.filter(item=>item.type==='output_feedback'&&!retracted.has(item.feedback_id)&&!superseded.has(item.feedback_id)&&scopeCompatibility(item.scope,request).length===0).map(item=>({feedback_ref:item.feedback_id,response:item.response,reason:item.reason,strength:'weak',scope:item.scope}));
   const contentConfig=state.config.content??{},explicit={...structuredClone(contentConfig.preferences??{}),style_notes:structuredClone(contentConfig.style_notes??[]),voice_samples:structuredClone(contentConfig.voice_samples??[]),audience:contentConfig.audience??null,audience_regions:structuredClone(contentConfig.audience_regions??[]),topics:structuredClone(contentConfig.topics??null),allowed_formats:structuredClone(contentConfig.allowed_formats??[]),output_language:state.config.output_language??null};
-  const strategyDefinitions=Object.entries(state.strategy_definitions??{}).filter(([,item])=>!item.account_ref||item.account_ref===ownAccount);
+  const strategyDefinitions=Object.entries(state.strategy_definitions??{}).filter(([,item])=>(!item.account_ref||item.account_ref===ownAccount)&&strategyCompatibility(item,request).length===0);
   const strategyRefs=new Set(strategyDefinitions.map(([ref])=>ref));
   const experiments=values(state.experiments).filter(item=>{
-    const action=state.actions?.[item.originating_action_id];return !action?.strategy_version_ref||strategyRefs.has(action.strategy_version_ref);
+    const action=state.actions?.[item.originating_action_id],strategyRef=action?.strategy_version_ref??item.strategy_version_ref;return (!strategyRef||strategyRefs.has(strategyRef))&&(!item.goal||canonicalHash(item.goal)===canonicalHash(request.goal?.primary_goal??request.goal));
   });
   const strategyState=strategyDefinitions.map(([ref,item])=>({strategy_version_ref:ref,status:item.status??'defined',content_hash:item.strategy_hash??canonicalHash(item)}));
   const dueNeeds=experiments.filter(item=>['accepted','running','ready_for_review'].includes(item.status)).map(item=>({experiment_ref:item.experiment_id,status:item.status,observation_window:structuredClone(item.age_window_or_period??null),review_condition:item.planned_review_condition??null}));
-  const signals=input.selected_signals??[];
+  const signals=input.selected_signals??[],knowledgeDependencies=actualKnowledgeDependencies(state,input.knowledge_dependency_versions),unresolvedFailures=unresolvedFailureEvents(state).filter(event=>Date.parse(event.recorded_at)<=cutoffMs&&failureRelevant(event,input,request,strategyRefs));
+  const summary=personalModelSummary(state,selected,{grouped:!modelSelection.metric_definition||!modelSelection.observation_window});
   const base={
     contract_version:5,account_ref:ownAccount,intent:input.intent,use:input.use,goal:structuredClone(input.goal),cutoff:new Date(cutoffMs).toISOString(),
     subject_descriptor:structuredClone(input.subject_descriptor??null),subject_ref:input.subject_ref??input.subject_descriptor?.ref??null,
     topic_refs:request.topic_refs,format:request.format,surface:request.surface,task_constraints:structuredClone(input.task_constraints??{}),temporary_overrides:structuredClone(input.temporary_overrides??{}),
     content_evidence_refs:unique(input.content_evidence_refs??[]),content_evidence_fingerprints:unique(input.content_evidence_refs??[]).map(ref=>contentEvidenceFingerprint(state,ref)),metric_evidence_refs:unique(input.metric_evidence_refs??[]),
-    explicit_preferences:explicit,inferred_preferences:inferred,selected_patterns:selected.map(item=>({pattern_version_ref:item.pattern_version_id,pattern_content_hash:item.pattern_content_hash,statement:item.statement,scope:item.scope,evidence_status:item.evidence_status,effect_kind:item.effect_kind,limitations:item.limitations,counter_evidence_refs:item.counter_evidence_refs})),
+    explicit_preferences:explicit,inferred_preferences:inferred,selected_patterns:selected.map(item=>({pattern_version_ref:item.pattern_version_id,pattern_content_hash:item.pattern_content_hash,statement:item.statement,scope:item.scope,metric_definition:item.metric_definition,observation_window:item.observation_window,algorithm_dependency_versions:item.algorithm_dependency_versions??{},valid_n:item.valid_n,independent_publication_count:item.independent_publication_count,coverage:item.coverage,comparability:item.comparability,evidence_status:item.evidence_status,effect_kind:item.effect_kind,result_direction:item.result_direction,dispersion:item.dispersion,alternative_explanations:item.alternative_explanations,publication_refs:item.publication_refs,observation_refs:item.observation_refs,experiment_review_refs:item.experiment_review_refs,limitations:item.limitations,counter_evidence_refs:item.counter_evidence_refs})),model_selection:modelSelection,personal_model_summary:summary,unresolved_failures:unresolvedFailures,
     counter_evidence_refs:unique(counter),excluded_patterns:excluded.sort((a,b)=>a.pattern_version_ref.localeCompare(b.pattern_version_ref)),strategy_state:strategyState.sort((a,b)=>a.strategy_version_ref.localeCompare(b.strategy_version_ref)),due_observation_needs:dueNeeds.sort((a,b)=>a.experiment_ref.localeCompare(b.experiment_ref)),
-    signal_refs:unique(signals.map(item=>typeof item==='string'?item:item.signal_id??item.ref)),knowledge_dependency_versions:structuredClone(input.knowledge_dependency_versions??{}),selection_policy_version:input.selection_policy_version??'operational-context-v5'
+    signal_refs:unique(signals.map(item=>typeof item==='string'?item:item.signal_id??item.ref)),knowledge_dependency_versions:knowledgeDependencies,selection_policy_version:input.selection_policy_version??'operational-context-v5'
   };
-  const index={patterns:indexedPatterns.map(item=>({ref:item.pattern_version_id,hash:item.pattern_content_hash,status:item.lifecycle_status,supersedes_ref:item.supersedes_ref,activated_at:item.activated_at})).sort((a,b)=>a.ref.localeCompare(b.ref)),feedback:feedback.filter(item=>item.type==='output_feedback'&&scopeCompatibility(item.scope,request).length===0).map(item=>({ref:item.feedback_id,hash:item.event_hash,retracts_ref:item.retracts_ref,supersedes_ref:item.supersedes_ref})).sort((a,b)=>a.ref.localeCompare(b.ref)),strategies:base.strategy_state,policy:base.selection_policy_version};
+  const index={patterns:indexedPatterns.map(item=>({ref:item.pattern_version_id,hash:item.pattern_content_hash,status:item.lifecycle_status,supersedes_ref:item.supersedes_ref,activated_at:item.activated_at})).sort((a,b)=>a.ref.localeCompare(b.ref)),feedback:feedback.filter(item=>item.type==='output_feedback'&&scopeCompatibility(item.scope,request).length===0).map(item=>({ref:item.feedback_id,hash:item.event_hash,retracts_ref:item.retracts_ref,supersedes_ref:item.supersedes_ref})).sort((a,b)=>a.ref.localeCompare(b.ref)),failures:unresolvedFailures.map(item=>({ref:item.feedback_id,hash:item.event_hash})).sort((a,b)=>a.ref.localeCompare(b.ref)),strategies:base.strategy_state,policy:base.selection_policy_version};
   const withIndex={...base,selection_index_hash:canonicalHash(index)};
   return validate('OperationalContextV5',{...withIndex,selected_context_hash:canonicalHash(withIndex)});
 }

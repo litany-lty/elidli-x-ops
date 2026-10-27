@@ -127,16 +127,17 @@ export function actionOriginalGoal(state, actionId) {
 }
 
 export function actionRequiresCurrentApproval(state, actionId) {
-  return Boolean(actionOriginatingProposalRef(state, actionId) || state.actions?.[actionId]?.contract_version === 5);
+  return Boolean(state?.schema_version === 5 || actionOriginatingProposalRef(state, actionId) || state.actions?.[actionId]?.contract_version === 5);
 }
 
 export function assertActionCurrentlyApproved(state, actionId, { approved_guidance = null } = {}) {
   const action = state.actions?.[actionId];
   if (!action) fail('MISSING_EVIDENCE', '/action_id', 'Action does not exist');
+  const proposalRef = actionOriginatingProposalRef(state, actionId);
+  if (state?.schema_version === 5 && !proposalRef) fail('MISSING_EVIDENCE', '/action_id', 'A legacy action without review origin must be re-reviewed through a current proposal or replaced before acceptance');
   const planHash = action.plan_hash ?? actionPlanHash(action);
   if (action.plan_hash && action.plan_hash !== actionPlanHash(action)) fail('STALE_BUNDLE', '/plan_hash', 'Stored action plan changed after review');
   if (approved_guidance) {
-    const proposalRef = actionOriginatingProposalRef(state, actionId);
     if (approved_guidance.readiness !== 'ready' || approved_guidance.subject_ref !== (proposalRef ?? actionId) || !approved_guidance.action_plan_hashes?.includes(planHash)) fail('MISSING_EVIDENCE', '/action_id', 'Verified current guidance does not approve this exact action plan');
     return { action: clone(action), plan_hash: planHash, guidance_receipt_ref: approved_guidance.active_receipt_ref };
   }

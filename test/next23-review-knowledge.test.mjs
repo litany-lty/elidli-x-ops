@@ -1,0 +1,35 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import {createHash} from 'node:crypto';
+import { canonicalHash } from '../scripts/lib/contracts.mjs';
+import { inspectKnowledgeCheckoutV5, proposeKnowledgeUpdateV5, verifyKnowledgeSourceMaterialsV5 } from '../scripts/lib/knowledge-updates.mjs';
+const git=(cwd,args)=>execFileSync('git',args,{cwd,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+
+test('review: knowledge check rejects uncommitted source bytes at an otherwise current HEAD',()=>{
+  const root=mkdtempSync(join(tmpdir(),'xops-reviewed-source-')),remote=join(root,'remote.git');
+  git(root,['init']);git(root,['config','user.email','fixture@example.com']);git(root,['config','user.name','Fixture']);git(root,['init','--bare',remote]);
+  git(root,['remote','add','origin','https://github.com/fixture/source.git']);git(root,['config',`url.${remote}.insteadOf`,'https://github.com/fixture/source.git']);
+  writeFileSync(join(root,'source.rs'),'pub const VALUE: u8 = 1;\n');git(root,['add','source.rs']);git(root,['commit','-m','source']);git(root,['push','origin','HEAD:master']);git(root,['--git-dir',remote,'symbolic-ref','HEAD','refs/heads/master']);
+  const head=git(root,['rev-parse','HEAD']),clean=inspectKnowledgeCheckoutV5({checkout_dir:root,repo:'fixture/source',prior_head:head,paths:['source.rs','removed.rs']});
+  assert.equal(clean.status,'unchanged');
+  const material=Buffer.from(JSON.stringify({candidate_commit:head,files:clean.files.map(({path,status,sha256})=>({path,status,sha256}))}));writeFileSync(join(root,'review.json'),material);
+  const prior={dependencies:[{dependency_id:'removed',path:'removed.rs',source_visibility:'public'}],facts:{}};
+  const candidate={dependencies:[{dependency_id:'score',path:'source.rs',source_visibility:'public',material_hash:clean.files[0].sha256,evidence_material_path:'review.json',evidence_content_hash:canonicalHash(null)}],facts:{},artifacts:{}};
+  candidate.dependencies[0].evidence_content_hash=createHash('sha256').update(material).digest('hex');
+  assert.doesNotThrow(()=>verifyKnowledgeSourceMaterialsV5(prior,candidate,clean,root));
+
+  writeFileSync(join(root,'source.rs'),'pub const VALUE: u8 = 99;\n');
+  const changed=inspectKnowledgeCheckoutV5({checkout_dir:root,repo:'fixture/source',prior_head:head,paths:['source.rs']});
+  assert.equal(changed.status,'check_failed');assert.match(changed.error,/committed|dirty|source bytes/i);
+});
+
+test('review: candidate source cannot be approved from matching HEAD strings alone',()=>{
+  const head='c'.repeat(40),current={catalog:{catalog_id:'prior',catalog_content_hash:'a'.repeat(64)},dependencies:[],rules:{},facts:{},artifacts:{}};
+  const candidate={catalog:{catalog_id:'candidate',catalog_content_hash:'b'.repeat(64),upstream:{commit:head}},dependencies:[{dependency_id:'score',path:'score.rs',material_hash:'d'.repeat(64),evidence_material_path:'evidence.txt',evidence_content_hash:'e'.repeat(64),source_visibility:'public',wiring_status:'wired_reviewed'}],rules:{},facts:{},artifacts:{}};
+  const base={contract_version:5,check_id:'check',repo:'fixture/source',checked_at:'2026-10-27T05:00:00Z',observed_head:head,remote_head:head,status:'changed',files:[],error:null},check={...base,check_hash:canonicalHash(base)};
+  assert.throws(()=>proposeKnowledgeUpdateV5(current,candidate,check),/source|file|binding|coverage/i);
+});

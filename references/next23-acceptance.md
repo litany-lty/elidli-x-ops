@@ -1,8 +1,26 @@
 # NEXT-2.3 验收与范围
 
-本轮沿用 NEXT-2.2 的有效基础，产品升级为 2.3.0-rc.1，唯一写入容器 state 5，transport 1。实际运行方式见 [运行合同](next23-runtime.md)。合成工程验收、现场专业生成、真实账号与媒体使用分别记录。
+本轮沿用 NEXT-2.2 的有效基础，当前产品为 2.3.0-rc.2，唯一写入容器 state 5，transport 1。实际运行方式见 [运行合同](next23-runtime.md)。合成工程验收、现场专业生成、真实账号与媒体使用分别记录。
 
-## 工程证据
+## 审查修订：2.3.0-rc.2
+
+本次以 `9d40430` 为修复基线。先为确认的缺陷补失败回归，再修真实入口和下游合同；初轮完整回归297/297，最终冻结业务实现完整回归 **308/308通过，0失败、0跳过、0取消**，本地Node v24.20.0。GitHub干净安装及同提交结果另以Actions为准。
+
+| 本次审查项 | 修复及直接证据 |
+| --- | --- |
+| state5旧动作未审核接受 | 所有兼容采纳/试验接受均走当前Guidance；历史事实保留。next23-review-actions与coach-cli验证拒绝、合法审核后采用、保存回读与试验流程 |
+| 撤销覆盖较新偏好 | config和feedback同commit维护字段head及commit顺序，支持JSON Pointer父子覆盖；撤销旧指令/同时间戳反向ID/重复撤销均不复活旧值。next23-review-personal正式CLI保存及新进程回读 |
+| 过期灵感与无效新闻主张 | 相关上下文变化须重评；事件归属、支持状态、原文locator与冻结窗口在assess/finalize核对。next23-inspiration与media-dispatch实际CLI |
+| 重复发布膨胀样本 | 真实post identity先去重，再按cadence组；有效执行样本、独立实验、独立发布分别计数。review-actions/review-personal覆盖同帖、多帖、分窗口和重复模式 |
+| 个人模型和失败反馈 | 按strategy/scope/metric/window/相关算法版本分组，保留统计、覆盖、正负与不确定证据；精确依赖变化使旧模式排除，无关变化稳定；相关未解决质量/运行失败进入当前选择。review-personal与coach-cli |
+| 完整计划与规则依据 | Guidance核对当前proposal全部canonical plans及实际交付；修改动作需affirmative且依据类型匹配的检查、实际信号与交付引用。review-actions |
+| 灵感查询、媒体和审核 | query绑定子任务/seed；媒体引用精确到版本。真实review_novelty绑定候选、NoveltyDelta、当前个人选择和引用媒体的完整内容；旧审核不能批准同ID的新图片/来源/条件。inspiration/media-dispatch |
+| 知识源码字节 | check验证Git HEAD/blob与文件字节；候选源文件、调用者、事实摘录及派生评审文档逐项对应检查，缺范围/未提交修改/仅填SHA拒绝。review-knowledge及knowledge-cli保存、回读、审核激活 |
+| 历史兼容和重审 | 旧state5上下文与已完成灵感引用可读取；旧活动会话先补冻结窗口并重评；model_selection可重放，变化的个人依据追加新RuleContext后可重新审核。review-personal/review-delivery |
+
+本轮独立跨模块复核发现媒体审核哈希和独立实验分母两处遗漏，均已修复并加定向回归。既有真实Chrome采集、源图字节和专业生成材料按未变化范围复用；本轮新增入口/拒绝与恢复验证使用明确合成材料，不把fixture批准称为真实专业判断或增长。新版正式CLI还只读回读了此前真实账号副本rev161与灵感副本rev172，状态字节未改变，历史精确灵感ref可解析。原账号目录、全局skill、实际X发布及付费/调度均未变更。
+
+## 上一轮工程证据
 
 保留既有230项回归的业务断言；旧state4夹具按实际migration5或当前初始化更新，不跳过、不删除测试。旧八组专业配对显式使用保留的V4知识快照，当前V5行为由新的真实SignalSet案例与新生成配对验证。首次完整回归为271项：238通过、33失败；失败涉及旧写入目标以及真实消费者衔接，已逐项定位后定向修复。本地最终完整套件280/280通过（包含真实来源兼容缺陷新增回归），0 fail/skip/cancel。精确提交的干净安装与完整套件以同提交Actions日志为准。
 
