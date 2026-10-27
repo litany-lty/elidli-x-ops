@@ -12,9 +12,10 @@ test('active knowledge rejects synthetic future clock while errata mode preserve
   assert.throws(() => selectOperationalRules({ intent: 'review', goal: { primary_goal: 'relevant_reach' }, use: 'performance_review', signals: {} }, archived), error => error.code === 'MISSING_EVIDENCE' && /future-dated evidence/.test(error.message));
 });
 
-test('v4 seeds corrected active objects after exact historical ancestors', () => {
+test('current bundle seeds reviewed active objects after exact historical ancestors', () => {
   const bundle = loadKnowledgeCatalog();
-  assert.equal(bundle.catalog.catalog_id, 'x-algorithm-public-v4');
+  assert.equal(bundle.catalog.catalog_id, 'x-algorithm-2f252142-signals-candidate-v5');
+  assert.equal(bundle.history.catalogs['x-algorithm-public-v4'].catalog_content_hash,'51cef794aba149f525719ee8cc7178cbd4f76353bffff185267e4a38d9d8c5c8');
   assert.equal(bundle.temporal_readiness.status, 'ready');
   assert.deepEqual(Object.keys(bundle.history.facts).sort(), [
     'fact-c16-6258a1549ef8', 'fact-c17-6258a1549ef8',
@@ -33,7 +34,7 @@ test('v4 seeds corrected active objects after exact historical ancestors', () =>
 test('v4 content hash excludes lifecycle bytes while archived v2 keeps its legacy hash', () => {
   const bundle = loadKnowledgeCatalog();
   const changedLifecycle = structuredClone(bundle.catalog);
-  for (const file of changedLifecycle.files) if (file.kind === 'knowledge_event' || file.kind === 'historical_catalog') file.sha256 = 'f'.repeat(64);
+  for (const file of changedLifecycle.files) if (['knowledge_event','historical_catalog','review_receipt'].includes(file.kind)) file.sha256 = 'f'.repeat(64);
   assert.equal(catalogContentHash(changedLifecycle, changedLifecycle.dependencies), bundle.catalog.catalog_content_hash);
   const v2 = JSON.parse(readFileSync(new URL('../assets/algorithm-knowledge/source-snapshots/catalogs/x-algorithm-public-v2.json', import.meta.url)));
   assert.equal(catalogContentHash(v2, v2.dependencies), v2.catalog_content_hash);

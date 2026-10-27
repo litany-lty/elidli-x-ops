@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFile, writeFile, mkdir, unlink } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validate, canonicalHash, newId, summarizeRun, ContractError } from './lib/contracts.mjs';
@@ -10,6 +11,10 @@ import { buildReview } from './lib/review.mjs';
 import { initializeNews, advanceNews, finalizeRun } from './lib/news.mjs';
 import { loadState, commitState, initializeState, registerSources, putImmutable, saveDraft, savePersistenceReceipt, persistenceStatus, findSourceVersion } from './lib/state.mjs';
 import { guardDeliveryV4 } from './lib/delivery-v4.mjs';
+import { dispatchV5 } from './lib/v5-dispatch.mjs';
+import { dispatchPersonalV5,operationalContextFor } from './lib/personal-dispatch-v5.mjs';
+import { dispatchKnowledgeV5 } from './lib/knowledge-dispatch-v5.mjs';
+import { applyExplicitPreferencePatch } from './lib/personal-model.mjs';
 import { dispatchV4 } from './lib/v4-dispatch.mjs';
 import { seedKnowledgeState } from './lib/knowledge-state.mjs';
 import { isReliableState } from './lib/state-version.mjs';
@@ -20,7 +25,7 @@ import { verifyCollectionReceipt,normalizeHostBinding,verifyCollectionMaterialV4
 import { buildConsumerContext, goalSnapshotFromState } from './lib/consumer-context.mjs';
 
 const runtimeDir=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const commands=['doctor','config','account-analyze','draft-check','news-step','record','review','data-import','coach-step','state-migrate','content-step','knowledge-step','collection-step'];
+const commands=['doctor','config','account-analyze','draft-check','news-step','record','review','data-import','coach-step','state-migrate','content-step','knowledge-step','collection-step','personal-step','inspiration-step'];
 const fail=(code,path,message)=>{throw new ContractError(code,path,message,false);};
 const stage=(name,passed,refs=[],reason=null)=>({stage:name,required:true,status:passed?'passed':'failed',evidence_refs:refs,reason});
 const same=(left,right)=>canonicalHash(left)===canonicalHash(right);
@@ -57,13 +62,15 @@ async function doctor(payload,stateDir,state) {
     try {await verifyCollectionReceipt(receipt,state.account);accountCollection[receipt.capability].actual=receipt.status==='succeeded'?'verified':receipt.status;refs.push(receipt.receipt_id);}catch {accountCollection[receipt.capability].actual='unverified';}
   }
   const mediaCapabilities=Object.fromEntries(['image_view','image_generate','image_edit','data_render','preview_render','artifact_persistence'].map(name=>[name,{declared:payload.binding.media_capabilities?.[name]?.declared??'unverified',actual:'unverified'}]));
-  const mediaOperation={image_view:['review_asset','review_pack'],image_generate:['generate_image'],image_edit:['edit_image'],data_render:['render_data'],preview_render:['build_preview'],artifact_persistence:['artifact_persistence']};
+  const mediaOperation={image_view:['review_asset','review_pack','inspect_asset','reuse_asset'],image_generate:['generate_image','generate_illustration'],image_edit:['edit_image','annotate_source'],data_render:['render_data'],preview_render:['build_preview'],artifact_persistence:['artifact_persistence']};
   for(const [name,entry] of Object.entries(mediaCapabilities))for(const receipt of Object.values(state?.host_media_receipts??{}))if(receipt.binding_id===payload.binding.binding_id&&receipt.data_mode==='live'&&receipt.status==='succeeded'&&mediaOperation[name].includes(receipt.operation)){
     try{await verifyHostMediaReceipt(receipt);entry.actual='verified';refs.push(receipt.receipt_id);}catch{entry.actual='unverified';}
   }
   const browserCapabilities=(browserBinding?.capabilities??[]).map(capability=>({...capability,actual:'unverified'}));
   for(const receipt of Object.values(state?.collection_receipts_v4??{}))if(receipt.binding_id===payload.binding.binding_id&&receipt.data_mode==='live')try{await verifyCollectionMaterialV4({contract_version:4,operation:'ingest',result_kind:'material',run_id:receipt.run_id,receipt},state);for(const capability of browserCapabilities)if(({'analytics_export':['normal_export','download_completion','file_read'],analytics_visible:['browser_connection','tab_read','accessibility_tree'],public_posts:['tab_read','accessibility_tree'],public_profile:['browser_connection','tab_read'],screenshot:['screenshot']}[receipt.capability]??[]).includes(capability.capability))capability.actual=receipt.status==='succeeded'?'verified':receipt.status;}catch{}
-  return {browser_capabilities:browserCapabilities,runtime_version:process.version,dependency_versions:versions,schema_valid:true,state_access:stateAccess,binding_id:payload.binding.binding_id,capabilities,media_capabilities:mediaCapabilities,account_collection:accountCollection,current_account_identity:state?.account??null,evidence_refs:refs,limitations:[...Object.entries(capabilities).filter(([,value])=>value!=='verified').map(([name])=>`${name} has no current successful probe receipt`),...Object.entries(accountCollection).filter(([,value])=>value.actual!=='verified').map(([name,value])=>`${name}: ${value.actual}`)]};
+  const gitProbe=spawnSync('git',['--version'],{encoding:'utf8'});
+  const knowledgeChecks=Object.values(state?.knowledge_events??{}).filter(e=>e.contract_version===5&&e.check_id&&e.status!=='check_failed').sort((a,b)=>b.checked_at.localeCompare(a.checked_at));
+  return {product_version:packageData.version,state_schema_version:state?.schema_version??null,entry_path:fileURLToPath(import.meta.url),knowledge_check:{git:gitProbe.status===0?'available':'unavailable',last_successful_check_at:knowledgeChecks[0]?.checked_at??null},browser_capabilities:browserCapabilities,runtime_version:process.version,dependency_versions:versions,schema_valid:true,state_access:stateAccess,binding_id:payload.binding.binding_id,capabilities,media_capabilities:mediaCapabilities,account_collection:accountCollection,current_account_identity:state?.account??null,evidence_refs:refs,limitations:[...Object.entries(capabilities).filter(([,value])=>value!=='verified').map(([name])=>`${name} has no current successful probe receipt`),...Object.entries(accountCollection).filter(([,value])=>value.actual!=='verified').map(([name,value])=>`${name}: ${value.actual}`)]};
 }
 
 function makeRun(context,runId,stageResults,refs,hasFindings,extra={}) {
@@ -236,6 +243,12 @@ function currentRunView(state,runId,persistence) {
 async function dispatch(command,request,stateDir) {
   const payload=request.payload;let state=await loadState(stateDir);
   if(command==='doctor')return {data:await doctor(payload,stateDir,state),state};
+  if(payload.contract_version===5&&command!=='config'){
+    if(command==='state-migrate'){const {migrateStateV5}=await import('./lib/migrations.mjs');return migrateStateV5(stateDir,payload,request.expected_revision);}
+    if(command==='knowledge-step')return dispatchKnowledgeV5(request,stateDir,state);
+    if(['personal-step','inspiration-step','content-step','draft-check'].includes(command)||(command==='record'&&['host_media_receipt','host_review_receipt','draft_review'].includes(payload.operation)))return dispatchPersonalV5(command,payload,{dataDir:stateDir,state,expected_revision:request.expected_revision,run_id:request.run_id});
+    return dispatchV5(command,request,stateDir,state);
+  }
   if(payload.contract_version===4)return dispatchV4(command,request,stateDir,state);
   if(payload.contract_version===3)return dispatchV3(command,request,stateDir,state);
   if(payload.contract_version===2)return dispatchV2(command,request,stateDir,state);
@@ -249,7 +262,10 @@ async function dispatch(command,request,stateDir) {
     if(payload.patch?.scope!=='persistent')fail('INVALID_INPUT','/patch/scope','Long-term updates require an explicitly persistent patch');
     if(payload.patch.expected_revision!==undefined&&payload.patch.expected_revision!==request.expected_revision)fail('STATE_CONFLICT','/patch/expected_revision','Patch and envelope revisions must agree');
     state=await commitState(stateDir,request.expected_revision,working=>{
-      working.config=effective.config;working.account=effective.config.account;
+      if(working.schema_version===5){
+        const advanced=applyExplicitPreferencePatch(working,{...payload.patch,schema_version:5},{feedback_id:`config-${canonicalHash({revision:working.revision,patch:payload.patch}).slice(0,24)}`,source_quote:payload.source_quote??JSON.stringify(payload.patch.operations),source_ref:payload.source_ref??request.run_id??'explicit_config_request',scope:{goal:null,topics:[],formats:[],surfaces:[],use:null},persistence:'long_term',recorded_at:payload.as_of});
+        Object.assign(working,advanced.state);working.account=working.config.account;
+      }else{working.config=effective.config;working.account=effective.config.account;}
       for(const operation of payload.patch.operations)working.preference_meta[operation.path]={basis:'user',source:request.run_id??'explicit_config_request',confirmed_at:payload.as_of};
       return working;
     });return {data:effective,state};
@@ -270,17 +286,18 @@ async function dispatch(command,request,stateDir) {
     requireState(state);let data;
     let internal=payload;
     if(payload.operation==='ingest')internal={...payload,raw_object:JSON.parse(await readFile(payload.raw_result_path,'utf8'))};
-    state=await commitState(stateDir,request.expected_revision,working=>{
+    state=await commitState(stateDir,request.expected_revision,async working=>{
       if(payload.operation==='init') {
         const run=initializeNews(payload.request,payload.effective_config,payload.binding,payload.request.requested_at);assertAccount(working,run.effective_config.config.account);
-        run.consumer_context=buildConsumerContext(working,{intent:'news',goal_snapshot:goalSnapshotFromState(working,run.effective_config.config)});
+        if(working.schema_version!==5)run.consumer_context=buildConsumerContext(working,{intent:'news',goal_snapshot:goalSnapshotFromState(working,run.effective_config.config)});
         const allRules={...working.rule_versions,...working.rule_versions_v2};
         const superseded=new Set(Object.values(allRules).map(rule=>rule.supersedes).filter(Boolean));
         run.rule_version_ids=Object.keys(allRules).filter(id=>!superseded.has(id));
         working.runs[run.run_id]=run;data={run};return working;
       }
       const run=working.runs[request.run_id];if(!run?.binding)fail('MISSING_EVIDENCE','/run_id','News run does not exist');
-      const context={state:working,effective_config:run.effective_config,data_mode:run.request.data_mode,as_of:run.request.data_mode==='fixture'?(payload.actual_call?.returned_at??run.started_at):new Date().toISOString()};
+      const operational=working.schema_version===5?await operationalContextFor(working,{subject_ref:'account',intent:'news',use:'topic_selection',cutoff:run.cutoff_at,topic_refs:run.effective_config.config.news.core_topics??[]}):null;
+      const context={state:working,operational_context:operational,effective_config:run.effective_config,data_mode:run.request.data_mode,as_of:run.request.data_mode==='fixture'?(payload.actual_call?.returned_at??run.started_at):new Date().toISOString()};
       data=advanceNews(run,payload.operation,internal,context);return working;
     });return {data,state};
   }
@@ -309,7 +326,7 @@ export async function main(argv=process.argv.slice(2)) {
     const code=error instanceof ContractError?error.code:error instanceof SyntaxError?'INVALID_INPUT':'IO_ERROR';
     exitCode=['STATE_CONFLICT','BUDGET_EXHAUSTED','CAPABILITY_UNAVAILABLE','MISSING_EVIDENCE','PERSIST_FAILED','MIGRATION_REQUIRED','AUTH_REQUIRED','ADAPTER_UNVERIFIED','ENTITLEMENT_REQUIRED','EXPORT_UNAVAILABLE','TRANSFER_REQUIRED','SCOPE_UNVERIFIED','COVERAGE_PARTIAL','WINDOW_PENDING','WINDOW_MISSING','FUTURE_EVIDENCE'].includes(code)?4:code==='IO_ERROR'?5:2;
     const recovery={STALE_BUNDLE:['recheck','prepare'],STALE_DRAFT:['recheck','draft-check'],STATE_CONFLICT:['resume','resume'],CAPABILITY_UNAVAILABLE:['collect','resume'],AUTH_REQUIRED:['collect','resume'],MISSING_EVIDENCE:['provide_material','resume'],PERSIST_FAILED:['retry','resume'],MIGRATION_REQUIRED:['migrate','state-migrate'],BUDGET_EXHAUSTED:['provide_material','resume'],ENTITLEMENT_REQUIRED:['collect','resume'],EXPORT_UNAVAILABLE:['collect','resume'],TRANSFER_REQUIRED:['provide_material','resume'],SCOPE_UNVERIFIED:['recheck','prepare'],COVERAGE_PARTIAL:['collect','resume'],WINDOW_PENDING:['collect','review'],WINDOW_MISSING:['provide_material','review'],FUTURE_EVIDENCE:['recheck','knowledge-step']}[code];
-    const recoveryData=[3,4].includes(request?.payload?.contract_version)&&recovery?{user_summary:error.message,next_actions:[{kind:recovery[0],target_ref:request.payload.run_id??request.run_id??'account',required_inputs:[error.path??'/'],can_resume:true,requires_user_input:['AUTH_REQUIRED','MISSING_EVIDENCE','BUDGET_EXHAUSTED'].includes(code),reason:error.message,operation:recovery[1]}]}:null;
+    const recoveryData=[3,4,5].includes(request?.payload?.contract_version)&&recovery?{user_summary:error.message,next_actions:[{kind:recovery[0],target_ref:request.payload.run_id??request.run_id??'account',required_inputs:[error.path??'/'],can_resume:true,requires_user_input:['AUTH_REQUIRED','MISSING_EVIDENCE','BUDGET_EXHAUSTED'].includes(code),reason:error.message,operation:recovery[1]}]}:null;
     envelope={schema_version:1,command,run_id:request?.run_id??null,status:exitCode===4?'blocked':'error',data:recoveryData,errors:[{code,path:error.path??'/',message:error.message,retryable:error.retryable??false}],evidence_refs:[],state_revision:null};
   }
   if(options['--output'])try {await mkdir(dirname(options['--output']),{recursive:true});await writeFile(options['--output'],JSON.stringify(envelope,null,2)+'\n',{mode:0o600});}catch(error){

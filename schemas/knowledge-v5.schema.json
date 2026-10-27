@@ -1,0 +1,108 @@
+{
+  "$id": "https://x-ops.local/schemas/knowledge-v5.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "RuleContextV5": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contract_version", "context_id", "run_id", "intent", "goal", "use", "surface", "post_type", "subject_ref", "subject_hash", "cutoff", "signal_set", "catalog_ref", "catalog_content_hash", "selections", "not_selected", "missing_signals", "personal_context_selection_ref", "personal_context_selection_hash", "selected_rule_context_hash"],
+      "properties": {
+        "contract_version": {"const": 5}, "context_id": {"type": "string", "minLength": 1}, "run_id": {"type": "string", "minLength": 1},
+        "intent": {"type": "string", "minLength": 1}, "goal": {"type": "object"}, "use": {"type": "string", "minLength": 1},
+        "surface": {"oneOf": [{"type": "string"}, {"type": "null"}]}, "post_type": {"oneOf": [{"type": "string"}, {"type": "null"}]}, "subject_ref": {"type": "string", "minLength": 1},
+        "subject_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "cutoff": {"$ref": "#/definitions/Instant"}, "signal_set": {"$ref": "#/definitions/SignalSetV5"},
+        "catalog_ref": {"type": "string", "minLength": 1}, "catalog_content_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "selections": {"type": "array", "items": {"$ref": "#/definitions/RuleSelectionV4"}},
+        "not_selected": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["rule_version_ref", "reason"], "properties": {"rule_version_ref": {"type": "string", "minLength": 1}, "reason": {"type": "string", "minLength": 1}}}},
+        "missing_signals": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "explicit_rule_version_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "selected_rule_hashes": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+        "selected_fact_hashes": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+        "selected_dependency_hashes": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+        "personal_context_selection_ref": {"oneOf": [{"type": "string"}, {"type": "null"}]}, "personal_context_selection_hash": {"oneOf": [{"type": "string", "pattern": "^[a-f0-9]{64}$"}, {"type": "null"}]},
+        "operational_context": {"oneOf": [{"$ref": "#/definitions/OperationalContextV5"}, {"type": "null"}]},
+        "selected_rule_context_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "RuleActionV5": {
+      "type": "object", "additionalProperties": false,
+      "required": ["action_id", "rule_version_ref", "disposition", "text", "deliverable_refs", "basis_kind", "supporting_check_refs", "signal_refs"],
+      "properties": {
+        "action_id": {"type": "string", "minLength": 1}, "rule_version_ref": {"type": "string", "minLength": 1},
+        "disposition": {"enum": ["modify", "keep", "collect_evidence"]}, "text": {"type": "string", "minLength": 1},
+        "deliverable_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "basis_kind": {"enum": ["public_mechanism", "editorial_inference", "personal_observation", "user_preference"]},
+        "supporting_check_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "signal_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "RuleCheckV5": {
+      "type": "object", "additionalProperties": false,
+      "required": ["check_id", "check_type", "status", "reviewed_input_hash", "review_ref", "inspected_refs", "finding"],
+      "properties": {
+        "check_id": {"type": "string", "minLength": 1}, "check_type": {"enum": ["deterministic", "semantic", "mechanism", "preference", "personal_observation"]},
+        "status": {"enum": ["applicable", "not_applicable", "unknown"]}, "reviewed_input_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "review_ref": {"oneOf": [{"type": "string"}, {"type": "null"}]}, "inspected_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "finding": {"type": "string", "minLength": 1}
+      }
+    },
+    "RuleApplicationV5": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contract_version", "application_id", "context_ref", "selected_rule_context_hash", "subject_ref", "actual_input_hash", "rule_version_refs", "checks", "findings", "actions", "keep_unchanged_reason", "validation_plan", "deliverable_refs", "application_proposal_hash"],
+      "properties": {
+        "contract_version": {"const": 5}, "application_id": {"type": "string", "minLength": 1}, "context_ref": {"type": "string", "minLength": 1},
+        "selected_rule_context_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "subject_ref": {"type": "string", "minLength": 1}, "actual_input_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "rule_version_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}, "checks": {"type": "array", "minItems": 1, "items": {"$ref": "#/definitions/RuleCheckV5"}},
+        "findings": {"type": "array", "items": {"type": "string"}}, "actions": {"type": "array", "items": {"$ref": "#/definitions/RuleActionV5"}},
+        "keep_unchanged_reason": {"oneOf": [{"type": "string"}, {"type": "null"}]}, "validation_plan": {"type": "string", "minLength": 1},
+        "deliverable_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}, "application_proposal_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "KnowledgeCheckV5": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contract_version", "check_id", "repo", "checked_at", "prior_head", "observed_head", "status", "files", "error", "check_hash"],
+      "properties": {
+        "contract_version": {"const": 5}, "check_id": {"type": "string"}, "repo": {"type": "string"}, "checked_at": {"$ref": "#/definitions/Instant"},
+        "remote_url": {"oneOf": [{"type": "string", "minLength": 1}, {"type": "null"}]}, "remote_checked_at": {"$ref": "#/definitions/Instant"},
+        "prior_head": {"oneOf": [{"type": "string"}, {"type": "null"}]}, "observed_head": {"oneOf": [{"type": "string"}, {"type": "null"}]}, "remote_head": {"oneOf": [{"type": "string", "pattern": "^[a-f0-9]{40}$"}, {"type": "null"}]}, "status": {"enum": ["unchanged", "changed", "check_failed"]},
+        "files": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["path", "status", "sha256"], "properties": {"path": {"type": "string"}, "status": {"enum": ["present", "deleted"]}, "sha256": {"oneOf": [{"type": "string", "pattern": "^[a-f0-9]{64}$"}, {"type": "null"}]}}}},
+        "error": {"oneOf": [{"type": "string"}, {"type": "null"}]}, "check_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "KnowledgeUpdateProposalV5": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contract_version", "proposal_id", "prior_catalog_ref", "candidate_catalog_ref", "candidate_catalog_hash", "candidate_bundle_hash", "check_ref", "check_hash", "dependency_diff", "affected_rule_version_refs", "gaps", "proposal_hash"],
+      "properties": {
+        "contract_version": {"const": 5}, "proposal_id": {"type": "string", "minLength": 1}, "prior_catalog_ref": {"type": "string", "minLength": 1}, "candidate_catalog_ref": {"type": "string", "minLength": 1},
+        "candidate_catalog_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "candidate_bundle_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "check_ref": {"type": "string", "minLength": 1}, "check_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "dependency_diff": {"type": "object", "additionalProperties": false, "required": ["added", "modified", "removed", "moved"], "properties": {
+          "added": {"$ref": "#/definitions/StringArray"}, "modified": {"$ref": "#/definitions/StringArray"}, "removed": {"$ref": "#/definitions/StringArray"},
+          "moved": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["dependency_id", "from", "to"], "properties": {"dependency_id": {"type": "string", "minLength": 1}, "from": {"type": "string"}, "to": {"type": "string"}}}}
+        }},
+        "affected_rule_version_refs": {"$ref": "#/definitions/StringArray"}, "gaps": {"$ref": "#/definitions/StringArray"}, "proposal_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "KnowledgeReplayResultV5": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contract_version", "replay_id", "proposal_ref", "rule_version_ref", "subject_hash", "status", "cases", "replay_result_hash", "review_ref"],
+      "properties": {
+        "contract_version": {"const": 5}, "replay_id": {"type": "string", "minLength": 1}, "proposal_ref": {"type": "string", "minLength": 1}, "rule_version_ref": {"type": "string", "minLength": 1},
+        "subject_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "status": {"enum": ["passed", "failed"]},
+        "cases": {"type": "array", "minItems": 3, "items": {"type": "object", "additionalProperties": false, "required": ["case_id", "expected", "actual", "status"], "properties": {
+          "case_id": {"type": "string", "minLength": 1}, "expected": {"enum": ["applicable", "not_applicable", "unknown"]}, "actual": {"enum": ["applicable", "not_applicable", "unknown"]}, "status": {"enum": ["passed", "failed"]}
+        }}},
+        "replay_result_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "review_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "KnowledgeEventV5": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contract_version", "event_id", "event_type", "catalog_ref", "prior_catalog_ref", "checked_at", "observed_head_commit", "affected_rule_version_refs", "gaps", "review_receipt_ref", "replay_result_refs"],
+      "properties": {
+        "contract_version": {"const": 5}, "event_id": {"type": "string", "minLength": 1}, "event_type": {"const": "activated"},
+        "catalog_ref": {"type": "string", "minLength": 1}, "prior_catalog_ref": {"type": "string", "minLength": 1}, "checked_at": {"$ref": "#/definitions/Instant"},
+        "observed_head_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"}, "affected_rule_version_refs": {"$ref": "#/definitions/StringArray"}, "gaps": {"$ref": "#/definitions/StringArray"},
+        "review_receipt_ref": {"type": "string", "minLength": 1}, "replay_result_refs": {"$ref": "#/definitions/StringArray"}
+      }
+    }
+  }
+}

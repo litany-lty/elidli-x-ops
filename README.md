@@ -1,6 +1,6 @@
 # x-ops
 
-x-ops 是一个面向个人 X（Twitter）运营的 Agent 技能。它把账号分析、推文优化、新闻选题和发布后复盘整理为可审计的工作流：真实网页搜索与读取由宿主 Agent 完成，Node.js CLI 负责合同校验、确定性计算、状态管理和结果封装。
+x-ops 是一个面向个人 X（Twitter）运营的 Agent 技能。它把账号分析、推文优化、新闻选题和发布后复盘整理为可审计的工作流：真实网页搜索与读取由宿主 Agent 完成，Node.js CLI 负责合同校验、确定性计算、状态管理和结果封装。持续运营会关联完整行动、实际发布、成熟复盘与经过审核的个人经验，并用历史内容生成素材线索，支持真实媒体复用。
 
 它不会自行发帖、回复、点赞、购买 API 或创建后台任务，也不承诺流量增长。
 
@@ -61,14 +61,16 @@ node scripts/x-ops.mjs <command> \
 | `review` | 关联真实发布版本与观测，生成复盘计算结果 |
 | `data-import` | 预览并提交 V2 Analytics、宿主观测或历史帖子材料 |
 | `coach-step` | 准备证据、接收内容分析与建议、绑定语义复核并交付报告 |
-| `state-migrate` | 预览或应用 V1 到 V2 的可恢复状态迁移 |
-| `knowledge-step` | 离线知识种入、实际规则选择、解释与审核后更新 |
+| `state-migrate` | 预览、备份并原子迁移旧状态至 state 5，或恢复回读验证 |
+| `knowledge-step` | 内置规则、实际上游检查、保存候选影响和审核后更新 |
+| `personal-step` | 查看个人模型，记录反馈，审核、激活或撤销有限经验 |
+| `inspiration-step` | 历史驱动的查询计划、五类灵感和共享新闻预算 |
 | `collection-step` | 已登录Chrome采集的材料、范围、导入、封存和只读恢复 |
 | `content-step` | 准备、制作、组装、审核、局部修改、恢复和交付真实图文稿件 |
 
 各命令的请求对象和状态规则见 [`references/data-contracts.md`](references/data-contracts.md)。可复制的输入骨架见 [`assets/input-templates.md`](assets/input-templates.md)。
 
-## 三条主流程
+## 主要流程
 
 ### 1. 账号分析
 
@@ -134,7 +136,7 @@ node scripts/x-ops.mjs doctor \
 
 不要把账号状态、原始回执、凭据或真实账号材料提交到 Git。不要直接编辑 `account-state.json` 绕过 revision 与引用校验。
 
-state1/2/3 在首次 NEXT-2.2 写入前使用 contract4 `state-migrate preview/apply`。迁移先保存原始字节备份与清单，直接原子提交 state4；回读失败仅 `resume_verify`，不重做迁移。不要把备份或实际媒体放进仓库。
+state1/2/3/4 在首次 NEXT-2.3 写入前使用 contract5 `state-migrate preview/apply`。迁移先保存原始字节备份与清单，直接原子提交 state5；回读失败仅 `resume_verify`，不重做迁移。不要把备份或实际媒体放进仓库。
 
 ## 测试
 
@@ -160,6 +162,6 @@ V2 的任务、问题和 48 个确定性案例对应关系见 [`references/v2-ac
 
 NEXT-2.1 的完整范围、52项场景与真实使用边界见[交付与验收](references/next-acceptance.md)。最终精确提交的工程门禁以本仓库 Actions 为准。
 
-NEXT-2.2 的实际入口、Chrome范围、指导审核及旧版本迁移见 [运行合同](references/next22-runtime.md)。验收范围见 [本轮验收](references/next22-acceptance.md)。
+当前 NEXT-2.3 的持续学习、历史灵感、媒体复用与兼容边界见 [运行合同](references/next23-runtime.md)。实际验证范围见 [本轮验收](references/next23-acceptance.md)。NEXT-2.2 的历史证据保留在 [上一版验收](references/next22-acceptance.md)。
 
 项目自有实现采用 MIT；随包的上游源码节选保留 Apache-2.0 许可与固定提交来源，见 `assets/algorithm-knowledge/source-snapshots/LICENSE.xai-algorithm.txt`。

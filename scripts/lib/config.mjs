@@ -22,17 +22,40 @@ const DEFAULT_CONFIG = Object.freeze({
   history: { dedupe_scope: 'account', previously_recommended: 'require_new_angle_or_update' }
 });
 
+const DEFAULT_EXPLICIT_PREFERENCES_V5 = Object.freeze({
+  short_text_on_images: null,
+  image_usage: null,
+  available_minutes_per_post: null,
+  topic_boundaries: []
+});
+
 export function createDefaultConfig(account = undefined) {
   const config = structuredClone(DEFAULT_CONFIG);
   if (account) config.account = normalizeAccount(account);
   return validate('ConfigV1', config);
 }
 
+export function migrateConfigV5(config) {
+  if (config?.schema_version === 5) return validate('ConfigV5', config);
+  const current = validate('ConfigV1', config ?? createDefaultConfig());
+  return validate('ConfigV5', {
+    ...structuredClone(current),
+    schema_version: 5,
+    content: { ...structuredClone(current.content), preferences: structuredClone(DEFAULT_EXPLICIT_PREFERENCES_V5) }
+  });
+}
+
+export function createDefaultConfigV5(account = undefined) {
+  return migrateConfigV5(createDefaultConfig(account));
+}
+
 export function resolveConfig(base, patch, asOf) {
-  const original = validate('ConfigV1', base ?? createDefaultConfig());
-  const checkedPatch = patch === null || patch === undefined ? null : validate('ConfigPatch', patch);
+  const originalType = base?.schema_version === 5 ? 'ConfigV5' : 'ConfigV1';
+  const original = validate(originalType, base ?? createDefaultConfig());
+  const patchType = originalType === 'ConfigV5' ? 'ConfigPatchV5' : 'ConfigPatch';
+  const checkedPatch = patch === null || patch === undefined ? null : validate(patchType, patch);
   const instant = normalizeInstant(asOf, '/as_of');
-  const config = checkedPatch ? applyPatch(original, checkedPatch) : original;
+  const config = checkedPatch ? applyConfigPatch(original, checkedPatch) : original;
   const window = resolveWindow(config.news.window, config.timezone, instant);
   const effective = {
     config,
@@ -42,10 +65,10 @@ export function resolveConfig(base, patch, asOf) {
     config_hash: canonicalHash(config),
     assumptions: []
   };
-  return validate('EffectiveConfig', effective);
+  return validate(originalType === 'ConfigV5' ? 'EffectiveConfigV5' : 'EffectiveConfig', effective);
 }
 
-function applyPatch(base, patch) {
+export function applyConfigPatch(base, patch) {
   const next = structuredClone(base);
   patch.operations.forEach((operation, index) => {
     const segments = operation.path.slice(1).split('/').map(unescapePointer);
@@ -73,7 +96,7 @@ function applyPatch(base, patch) {
       target[key] = current.filter(value => !keys.has(identityKey(value)));
     }
   });
-  return validate('ConfigV1', next);
+  return validate(next.schema_version === 5 ? 'ConfigV5' : 'ConfigV1', next);
 }
 
 function normalizeAccount(account) {

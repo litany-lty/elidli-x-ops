@@ -1,0 +1,22 @@
+{
+  "$id": "https://x-ops.local/schemas/knowledge-entry-v5.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "KnowledgeStepPayloadV5": {
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["contract_version", "operation", "checkout_dir", "paths"], "properties": {
+          "contract_version": {"const": 5}, "operation": {"const": "check"}, "checkout_dir": {"type": "string", "minLength": 1},
+          "paths": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+        }},
+        {"type": "object", "additionalProperties": false, "required": ["contract_version", "operation", "package_dir", "check_ref"], "properties": {
+          "contract_version": {"const": 5}, "operation": {"const": "propose-update"}, "package_dir": {"type": "string", "minLength": 1}, "check_ref": {"type": "string", "minLength": 1}
+        }},
+        {"type": "object", "additionalProperties": false, "required": ["contract_version", "operation", "proposal_ref", "candidate_catalog_ref", "review_receipt_ref", "replay_results"], "properties": {
+          "contract_version": {"const": 5}, "operation": {"const": "activate-update"}, "proposal_ref": {"type": "string", "minLength": 1},
+          "candidate_catalog_ref": {"type": "string", "minLength": 1}, "review_receipt_ref": {"type": "string", "minLength": 1},
+          "replay_results": {"type": "array", "minItems": 1, "items": {"$ref": "#/definitions/KnowledgeReplayResultV5"}}
+        }}
+      ]
+    }
+  }
+}

@@ -2,6 +2,8 @@ import { Temporal } from '@js-temporal/polyfill';
 import { canonicalHash, ContractError, newId, textHash, validate } from './contracts.mjs';
 import { isReliableState } from './state-version.mjs';
 import { assetReviewSubjectHash, countAlt, dataSpecBindingHash } from './media.mjs';
+import { resolveInspirationRef } from './inspiration.mjs';
+import { validateMediaSourceV5 } from './media-sources.mjs';
 
 const fail=(code,path,message)=>{throw new ContractError(code,path,message,false);};
 const clone=value=>structuredClone(value);
@@ -30,7 +32,7 @@ function saveBrief(state,brief){
 function normalizedBriefHash(brief){const copy=clone(brief);delete copy.brief_hash;return canonicalHash(copy);}
 
 function assertBrief(brief){
-  validate('ContentBriefV3',brief);
+  validate(brief.contract_version===5?'ContentBriefV5':'ContentBriefV3',brief);
   if(brief.brief_hash!==normalizedBriefHash(brief))fail('RECEIPT_CONFLICT','/brief/brief_hash','Brief hash does not match its immutable requirements');
   const slots=brief.visual_request.slots;
   if(brief.visual_request.count!==slots.length)fail('INVALID_INPUT','/brief/visual_request/count','Requested image count must equal declared slots');
@@ -39,6 +41,39 @@ function assertBrief(brief){
   for(const slot of slots){if(ids.has(slot.slot_id))fail('INVALID_INPUT','/brief/visual_request/slots','Slot IDs must be unique');ids.add(slot.slot_id);const key=`${slot.draft_text_index}:${slot.position_in_post}`;if(positions.has(key))fail('INVALID_INPUT','/brief/visual_request/slots','Image positions must be unique within each post');positions.add(key);}
   if(brief.personalization_mode==='evidence_bound'&&(!brief.context_selection_hash||!brief.used_context_refs.length))fail('MISSING_EVIDENCE','/brief/personalization_mode','Evidence-bound content requires the actual relevant context selection');
   if(brief.personalization_mode==='none'&&(brief.context_selection_hash||brief.used_context_refs.length))fail('INVALID_INPUT','/brief/used_context_refs','Pure editing must not claim unused account evidence');
+}
+
+function prepareContentV5(state,payload,runId,context){
+  assertBrief(payload.brief);assertRecipe(payload.recipe);
+  if(payload.brief.recipe_ref!==payload.recipe.recipe_ref||payload.brief.recipe_version!==payload.recipe.recipe_version)fail('INVALID_INPUT','/brief/recipe_ref','Brief must freeze the supplied recipe version');
+  if(payload.brief.personalization_mode==='evidence_bound'&&payload.brief.operational_context_hash!==context.operational_context?.selected_context_hash)fail('STALE_BUNDLE','/brief/operational_context_hash','Content brief must bind the current relevant operational context');
+  const preferences=context.operational_context?.explicit_preferences??{};
+  if(preferences.short_text_on_images===true&&payload.brief.visual_request.count&&payload.brief.visual_request.style.density==='dense')fail('INVALID_INPUT','/brief/visual_request/style/density','Current explicit preference requires less text on images');
+  if(preferences.image_usage==='avoid'&&payload.brief.visual_request.count&&!context.operational_context?.temporary_overrides?.allow_images)fail('INVALID_INPUT','/brief/visual_request','Current explicit image preference avoids images unless this task explicitly overrides it');
+  const id=runId??newId('content_run');if(state.content_runs[id])fail('STATE_CONFLICT','/run_id','Content run already exists');saveBrief(state,payload.brief);immutable(state.recipe_versions,payload.recipe.recipe_ref,payload.recipe,'/recipe_versions');
+  const slots=new Map(payload.brief.visual_request.slots.map(item=>[item.slot_id,item])),items=[];let reserved=0;
+  if(payload.brief.required_deliverables.includes('text')&&!payload.base_pack_ref){const input={run_id:id,brief_revision_ref:briefRef(payload.brief),slot_id:null,operation:'compose_text',input_refs:[]};items.push({contract_version:5,work_item_id:`content-work-${canonicalHash(input).slice(0,24)}`,...input,input_hash:canonicalHash(input),capability_required:null,generation_cost:0,status:'pending',result_refs:[],actual_tool_receipt_ref:null});}
+  for(const request of payload.brief.media_operations){
+    if(!slots.has(request.slot_id))fail('INVALID_INPUT','/brief/media_operations','Media operation targets an unknown slot');
+    if(request.source)validateMediaSourceV5(request.source,{deliverable:['reuse_asset','annotate_source'].includes(request.operation)});
+    if(request.inspiration_ref)resolveInspirationRef(state,request.inspiration_ref);
+    const asset=request.existing_asset_ref?getAsset(state,request.existing_asset_ref):null;if(request.operation==='reuse_asset'&&!asset)fail('INVALID_EVIDENCE_REF','/existing_asset_ref','Reuse requires an existing persisted media asset');
+    const capability={inspect_asset:'image_view',annotate_source:'image_edit',render_data:'data_render',generate_illustration:'image_generate'}[request.operation]??null,generationCost=['annotate_source','render_data','generate_illustration'].includes(request.operation)?1:0;
+    const available=request.operation==='reuse_asset'||(payload.capabilities[capability]==='verified'&&reserved+generationCost<=payload.budget),status=request.operation==='reuse_asset'?'succeeded':available?'pending':'blocked';
+    const inputRefs=[request.source?.source_id,request.inspiration_ref,request.existing_asset_ref&&`${request.existing_asset_ref.asset_id}:${request.existing_asset_ref.asset_version}`].filter(Boolean),input={run_id:id,brief_revision_ref:briefRef(payload.brief),slot_id:request.slot_id,operation:request.operation,input_refs:inputRefs};
+    items.push({contract_version:5,work_item_id:`content-work-${canonicalHash(input).slice(0,24)}`,...input,input_hash:canonicalHash(input),capability_required:capability,generation_cost:generationCost,status,result_refs:asset?[`${asset.asset_id}:${asset.asset_version}`]:[],actual_tool_receipt_ref:null});if(status==='pending')reserved+=generationCost;
+  }
+  const run={contract_version:5,run_id:id,status:'prepared',brief_revision_ref:briefRef(payload.brief),recipe_ref:payload.recipe.recipe_ref,base_pack_ref:payload.base_pack_ref,active_pack_ref:payload.base_pack_ref,work_items:items,budget:{reserved,used:0,limit:payload.budget},created_at:payload.as_of,updated_at:payload.as_of,execution_status:'partial',next_actions:[],operational_context_hash:payload.brief.operational_context_hash};
+  state.content_runs[id]=validate('ContentRunV5',run);return{state,result:view(state,run)};
+}
+
+function ingestContentV5(state,payload,context){
+  const run=getRun(state,payload.run_id),item=run.work_items.find(candidate=>candidate.work_item_id===payload.work_item_id);if(!item||item.status!=='pending')fail('STATE_CONFLICT','/work_item_id','Only a pending V5 media task may ingest');
+  const receipt=context.actual_tool_receipt;if(!receipt||receipt.contract_version!==5||receipt.receipt_id!==payload.tool_receipt_ref||receipt.status!=='succeeded'||receipt.operation!==item.operation||receipt.input_hash!==item.input_hash)fail('RECEIPT_CONFLICT','/tool_receipt_ref','V5 media receipt must bind the exact work operation and input');
+  if(!context.ingested_asset||context.asset_persisted!==true)fail('PERSIST_FAILED','/asset_path','Verified media bytes must be persisted and read back');
+  const asset=context.ingested_asset;validate('MediaAssetV3',asset);if(asset.tool_receipt_ref!==receipt.receipt_id)fail('RECEIPT_CONFLICT','/asset_path','Asset must bind the exact host media receipt');
+  state.media_assets[asset.asset_id]??={versions:{},latest_version:0};const entry=state.media_assets[asset.asset_id];if(asset.asset_version!==entry.latest_version+1)fail('STATE_CONFLICT','/asset_version','Asset versions must append');entry.versions[asset.asset_version]=clone(asset);entry.latest_version=asset.asset_version;
+  item.status='succeeded';item.result_refs=[`${asset.asset_id}:${asset.asset_version}`];item.actual_tool_receipt_ref=receipt.receipt_id;run.budget.used+=item.generation_cost;run.updated_at=payload.as_of;return{state,result:view(state,run)};
 }
 
 function assertRecipe(snapshot){
@@ -264,7 +299,10 @@ function resumeContent(state,payload,context){
 function view(state,run){return{run:clone(run),brief:clone(state.content_briefs[run.brief_revision_ref]),recipe:clone(state.recipe_versions[run.recipe_ref]),active_pack:clone(getPack(state,run.active_pack_ref)),user_summary:run.status==='ready'?'当前图文稿件已就绪。':'当前结果已保存，可按 next_actions 继续。',next_actions:clone(run.next_actions)};}
 
 export function advanceContent(state,payload,runId=null,context={}){
-  if(!state||!isReliableState(state))fail('MIGRATION_REQUIRED','/state/schema_version','Content production requires state 3');contentCollections(state);validate('ContentStepPayloadV3',payload);
+  if(!state||!isReliableState(state))fail('MIGRATION_REQUIRED','/state/schema_version','Content production requires state 3');contentCollections(state);validate(payload.contract_version===5?'ContentStepPayloadV5':'ContentStepPayloadV3',payload);
+  if(payload.contract_version===5&&payload.operation==='prepare')return prepareContentV5(state,payload,runId,context);
+  if(payload.contract_version===5&&payload.operation==='ingest')return ingestContentV5(state,payload,context);
+  if(payload.contract_version===5&&payload.operation==='compose'){const projected={...payload,contract_version:3};return composeContent(state,projected,context);}
   if(payload.operation==='prepare')return prepareContent(state,payload,runId);
   if(runId&&payload.run_id!==runId)fail('STATE_CONFLICT','/run_id','Envelope and payload run IDs differ');
   if(payload.operation==='ingest')return ingestContent(state,payload,context);

@@ -1,0 +1,48 @@
+{
+  "$id": "https://x-ops.local/schemas/config-entry-v5.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "ConfigPayloadV5": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "patch",
+        "as_of"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 5
+        },
+        "operation": {
+          "enum": [
+            "resolve",
+            "update"
+          ]
+        },
+        "patch": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ConfigPatchV5"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "as_of": {
+          "$ref": "#/definitions/Instant"
+        },
+        "source_quote": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

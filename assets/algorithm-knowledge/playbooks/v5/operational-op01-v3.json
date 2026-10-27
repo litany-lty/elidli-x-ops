@@ -1,0 +1,141 @@
+{
+  "contract_version": 4,
+  "rule_id": "OP01",
+  "rule_version_id": "operational-op01-v3",
+  "review_status": "approved",
+  "origin": "algorithm_inference",
+  "fact_version_refs": [
+    "fact-sc01-6258a1549ef8",
+    "fact-c01-6258a1549ef8"
+  ],
+  "dependency_ids": [
+    "scorer:compute_weighted_score",
+    "source:PhoenixSource"
+  ],
+  "support_material_refs": [
+    "artifact-sc01",
+    "artifact-c01"
+  ],
+  "derivation": "受众与主题：完整正文及精确语义审核确认首句未说明目标读者收益时，编辑上可补出读者与用途；公开推荐机制是否命中仍未知。",
+  "boundaries": [
+    "不计算推荐积分",
+    "不把候选预算当曝光配额",
+    "不推断隐藏标签或线上实验条件",
+    "原稿已满足时允许保持不改"
+  ],
+  "applicability": {
+    "intents": [
+      "coach",
+      "draft",
+      "news",
+      "content",
+      "review",
+      "operational_optimize"
+    ],
+    "goals": [
+      "*"
+    ],
+    "uses": [
+      "*"
+    ],
+    "surfaces": [
+      "*"
+    ],
+    "post_types": [
+      "*"
+    ]
+  },
+  "mechanism_predicate": {
+    "eq": {
+      "signal": "internal_mechanism_observed",
+      "value": true,
+      "unit": "flag"
+    }
+  },
+  "editorial_predicate": {
+    "all": [
+      {
+        "eq": {
+          "signal": "has_body",
+          "value": true,
+          "unit": "flag"
+        }
+      },
+      {
+        "eq": {
+          "signal": "reader_benefit_clear",
+          "value": false,
+          "unit": "flag"
+        }
+      }
+    ]
+  },
+  "required_signals": [
+    "has_body",
+    "reader_benefit_clear"
+  ],
+  "optional_signals": [
+    "internal_mechanism_observed"
+  ],
+  "missing_policy": "editorial_only",
+  "deterministic_checks": [
+    "输入ref与hash完整",
+    "单位与信号类型匹配"
+  ],
+  "semantic_checks": [
+    "has_body",
+    "reader_benefit_clear"
+  ],
+  "action_template": "在首句明确写给谁、解决什么问题；若 reader_benefit_clear=true 则保持。",
+  "counterexamples": [
+    "跨主题本身不证明被处罚",
+    "熟悉语境的连续回复不必重复全部背景"
+  ],
+  "measurement_plan_template": "仅在实际采用与发布后按冻结目标、同口径观察窗口比较；无相容数据时保持未知，不保证增长。",
+  "replay_cases": [
+    {
+      "case_id": "operational-op01-v3-applicable",
+      "expected": "applicable",
+      "signals": {
+        "has_body": {
+          "value": true,
+          "unit": "flag"
+        },
+        "reader_benefit_clear": {
+          "value": false,
+          "unit": "flag"
+        }
+      }
+    },
+    {
+      "case_id": "operational-op01-v3-not_applicable",
+      "expected": "not_applicable",
+      "signals": {
+        "has_body": {
+          "value": false,
+          "unit": "flag"
+        },
+        "reader_benefit_clear": {
+          "value": false,
+          "unit": "flag"
+        }
+      }
+    },
+    {
+      "case_id": "operational-op01-v3-unknown",
+      "expected": "unknown",
+      "signals": {
+        "reader_benefit_clear": {
+          "value": false,
+          "unit": "flag"
+        }
+      }
+    }
+  ],
+  "review_refs": [
+    "spec-next-2.2-section-8.4",
+    "next23-operational-law-groups-candidate-2026-10-27",
+    "root-content-scope-reviewed-2026-10-27",
+    "signal-path-fix-pending-final-gate"
+  ]
+}

@@ -73,7 +73,7 @@ ready 只说明当前稿件符合本次交付要求。用户采用、真实发�
 - 缺图片能力：`collect`，保留文字与 slot 规格，等待实际能力。
 - 图片审核失败：`revise`，只重做受影响 slot。
 - 文件丢失或 hash 变化：`retry` 或 `resume`，不清空整个稿件。
-- 状态版本较旧：`migrate`，先预览并备份，再写 state 3。
+- 状态版本较旧：`migrate`，先预览并备份，再写当前 state 5（contract5 preview/apply）。
 
 所有 next action 只引用登记过的操作；自然语言不能变成任意 shell。自动发布、付费服务和新权限不在本流程内。
 

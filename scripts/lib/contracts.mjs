@@ -7,13 +7,14 @@ import { Temporal } from '@js-temporal/polyfill';
 const schemaUrl = new URL('../../schemas/contracts.schema.json', import.meta.url);
 const schema = JSON.parse(readFileSync(fileURLToPath(schemaUrl), 'utf8'));
 // V2 payloads keep the existing transport envelope and share one strict registry.
-for (const name of ['data-v2.schema.json', 'coaching-v2.schema.json', 'review-v2.schema.json', 'consumer-v2.schema.json', 'runtime-v2.schema.json', 'data-reliability-v3.schema.json', 'coaching-reliability-v3.schema.json', 'content-v3.schema.json', 'reliability-v3.schema.json', 'data-reliability-v4.schema.json', 'coaching-v4.schema.json', 'knowledge-v4.schema.json', 'guidance-v4.schema.json', 'entry-v4.schema.json', 'runtime-v4.schema.json', 'collection-v4.schema.json']) {
+for (const name of ['data-v2.schema.json', 'coaching-v2.schema.json', 'review-v2.schema.json', 'consumer-v2.schema.json', 'runtime-v2.schema.json', 'data-reliability-v3.schema.json', 'coaching-reliability-v3.schema.json', 'content-v3.schema.json', 'reliability-v3.schema.json', 'data-reliability-v4.schema.json', 'coaching-v4.schema.json', 'knowledge-v4.schema.json', 'guidance-v4.schema.json', 'entry-v4.schema.json', 'runtime-v4.schema.json', 'collection-v4.schema.json', 'config-v5.schema.json', 'signals-v5.schema.json', 'actions-v5.schema.json', 'coaching-v5.schema.json', 'guidance-v5.schema.json', 'knowledge-v5.schema.json', 'personal-v5.schema.json', 'runtime-v5.schema.json', 'inspiration-v5.schema.json', 'host-v5.schema.json', 'content-v5.schema.json', 'draft-v5.schema.json', 'personal-entry-v5.schema.json', 'entry-v5.schema.json', 'knowledge-entry-v5.schema.json', 'config-entry-v5.schema.json']) {
   const extension = JSON.parse(readFileSync(new URL(`../../schemas/${name}`, import.meta.url), 'utf8'));
   for (const [key, definition] of Object.entries(extension.definitions)) {
     if (schema.definitions[key]) throw new Error(`Duplicate contract: ${key}`);
     schema.definitions[key] = definition;
   }
 }
+schema.definitions.EffectiveConfig.properties.config={oneOf:[{$ref:'#/definitions/ConfigV1'},{$ref:'#/definitions/ConfigV5'}]};
 const ajv = new Ajv({ strict: true, allErrors: true, coerceTypes: false, removeAdditional: false, useDefaults: false });
 ajv.addFormat('instant', {
   type: 'string',
@@ -76,6 +77,7 @@ function validatorFor(typeName) {
 ajv.addSchema(schema);
 
 export function validate(typeName, value) {
+  if(value?.contract_version===5)typeName=({'coach-stepPayload':'CoachStepPayloadV5','recordPayload':(['host_media_receipt','host_review_receipt','draft_review'].includes(value.operation)?'PersonalDomainRecordPayloadV5':'RecordPayloadV5'),'state-migratePayload':'StateMigratePayloadV5','personal-stepPayload':'PersonalStepEntryPayloadV5','inspiration-stepPayload':'InspirationStepEntryPayloadV5','content-stepPayload':'ContentStepPayloadV5','draft-checkPayload':'DraftCheckPayloadV5','knowledge-stepPayload':'KnowledgeStepPayloadV5','configPayload':'ConfigPayloadV5'})[typeName]??typeName;
   if (value?.contract_version === 4) typeName = ({'doctorPayload':'DoctorPayloadV4','recordPayload':'RecordPayloadV4','state-migratePayload':'StateMigratePayloadV4','coach-stepPayload':'CoachStepPayloadV4','reviewPayload':'ReviewPayloadV4','knowledge-stepPayload':'KnowledgeStepPayloadV4','collection-stepPayload':'CollectionStepPayloadV4'})[typeName] ?? typeName;
   if (value?.contract_version === 3) {
     typeName = ({'draft-checkPayload':'DraftCheckPayloadV3','recordPayload':'RecordPayloadV3','state-migratePayload':'StateMigratePayloadV3','content-stepPayload':'ContentStepPayloadV3','coach-stepPayload':'CoachStepPayloadV3','reviewPayload':'ReviewComputePayloadV3'})[typeName] ?? typeName;
@@ -108,7 +110,7 @@ export function validate(typeName, value) {
 }
 
 function runSemanticChecks(typeName, value) {
-  if (typeName === 'ConfigV1') validateConfigSemantics(value);
+  if (['ConfigV1','ConfigV5'].includes(typeName)) validateConfigSemantics(value);
   if (typeName === 'ConfigPatch') validatePatchSemantics(value);
   if (typeName === 'DraftInput') {
     if (value.original_text === null && value.original_ref === null) throw new ContractError('INVALID_INPUT', '/original_text', 'original_text or original_ref is required');

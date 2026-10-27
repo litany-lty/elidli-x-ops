@@ -1,0 +1,17 @@
+{
+  "$id":"https://x-ops.local/schemas/entry-v5.schema.json",
+  "$schema":"http://json-schema.org/draft-07/schema#",
+  "definitions":{
+    "RecordPayloadV5":{"oneOf":[
+      {"type":"object","additionalProperties":false,"required":["contract_version","operation","data","as_of"],"properties":{"contract_version":{"const":5},"operation":{"const":"guidance_review_result"},"data":{"$ref":"#/definitions/HostReviewReceiptV5"},"as_of":{"$ref":"#/definitions/Instant"}}},
+      {"type":"object","additionalProperties":false,"required":["contract_version","operation","data","as_of"],"properties":{"contract_version":{"const":5},"operation":{"const":"rule_application"},"data":{"$ref":"#/definitions/RuleApplicationV5"},"as_of":{"$ref":"#/definitions/Instant"}}},
+      {"type":"object","additionalProperties":false,"required":["contract_version","operation","data","as_of"],"properties":{"contract_version":{"const":5},"operation":{"const":"guidance_output"},"data":{"$ref":"#/definitions/GuidanceOutputV5"},"as_of":{"$ref":"#/definitions/Instant"}}},
+      {"type":"object","additionalProperties":false,"required":["contract_version","operation","data","as_of"],"properties":{"contract_version":{"const":5},"operation":{"const":"guidance_receipt"},"data":{"$ref":"#/definitions/GuidanceReceiptV5"},"as_of":{"$ref":"#/definitions/Instant"}}},
+      {"type":"object","additionalProperties":false,"required":["contract_version","operation","strategy_version_ref","data","as_of"],"properties":{"contract_version":{"const":5},"operation":{"const":"strategy_definition"},"strategy_version_ref":{"type":"string","minLength":1},"data":{"$ref":"#/definitions/StrategyDefinitionV5"},"as_of":{"$ref":"#/definitions/Instant"}}},
+      {"type":"object","additionalProperties":false,"required":["contract_version","operation","data","as_of"],"properties":{"contract_version":{"const":5},"operation":{"const":"action_decision"},"data":{"$ref":"#/definitions/ActionDecisionV2"},"as_of":{"$ref":"#/definitions/Instant"}}},
+      {"type":"object","additionalProperties":false,"required":["contract_version","operation","data","as_of"],"properties":{"contract_version":{"const":5},"operation":{"const":"non_post_execution"},"data":{"$ref":"#/definitions/ActionExecutionV5"},"as_of":{"$ref":"#/definitions/Instant"}}},
+      {"type":"object","additionalProperties":false,"required":["contract_version","operation","data","as_of"],"properties":{"contract_version":{"const":5},"operation":{"const":"experiment_plan"},"data":{"$ref":"#/definitions/ExperimentPlanV2"},"as_of":{"$ref":"#/definitions/Instant"}}},
+      {"type":"object","additionalProperties":false,"required":["contract_version","operation","data","actual_evidence","as_of"],"properties":{"contract_version":{"const":5},"operation":{"const":"experiment"},"data":{"$ref":"#/definitions/ExperimentTransitionV2"},"actual_evidence":{"$ref":"#/definitions/ExperimentTransitionEvidenceV2"},"as_of":{"$ref":"#/definitions/Instant"}}}
+    ]}
+  }
+}

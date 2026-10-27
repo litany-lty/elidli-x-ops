@@ -1,11 +1,11 @@
 {
   "contract_version": 4,
-  "catalog_id": "x-algorithm-public-v4",
-  "catalog_version": "1.1.2",
-  "catalog_content_hash": "51cef794aba149f525719ee8cc7178cbd4f76353bffff185267e4a38d9d8c5c8",
+  "catalog_id": "x-algorithm-2f252142-signals-candidate-v5",
+  "catalog_version": "1.2.0-candidate.5",
+  "catalog_content_hash": "a649125f8e42e15eee8db940bf4ef646250a48b00a63da708130783b51f47158",
   "upstream": {
     "repo": "xai-org/x-algorithm",
-    "commit": "6258a1549ef808be88fba83d3b2d58364b587ee0"
+    "commit": "2f252142b9284e692ac72851768c8072d045f0d5"
   },
   "files": [
     {
@@ -220,7 +220,7 @@
     },
     {
       "path": "source-snapshots/dependencies.json",
-      "sha256": "d77bfefc4763ea9aa561cea65393d9f009e792b998d4f1cff5763c89db6210aa",
+      "sha256": "9cd7c6b2da35f346a17da1adc5a5d43c93d67fb2b42f6c2ebafc19b3faf71ce3",
       "kind": "dependency_manifest"
     },
     {
@@ -287,12 +287,72 @@
       "path": "source-snapshots/catalogs/x-algorithm-public-v3.json",
       "sha256": "803bc43bdbdf8c147ec8df3c4cc9d4e83b3cef88e1bc5867fd37887cc6b26c68",
       "kind": "historical_catalog"
+    },
+    {
+      "path": "playbooks/v5/operational-op01-v3.json",
+      "sha256": "4af64b753600138914c008a444861c07e655c31f219456c89bd79219826f58bd",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/v5/operational-op02-v3.json",
+      "sha256": "a4da445accbaf6cc0f6c0990ab096e215e87cd2bee981f3c19083ceb520e717a",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/v5/operational-op03-v3.json",
+      "sha256": "aaf04633f0bcb30c6133f5912483d03df26137ba9325c6d2debd0e57be21d678",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/v5/operational-op04-v3.json",
+      "sha256": "28a8baed6c6217f08388f5159c2303bbb17a8a9d81271e146c7f5afea571b3c8",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/v5/operational-op05-v3.json",
+      "sha256": "71f28b71dbaaf7804be9cc41d976a91fba9211dbe003eb948f68c37be2b28876",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/v5/operational-op06-v3.json",
+      "sha256": "acdc862cf555a3831a8817272c7af0ff12774b367fc5cbbe8223902736033526",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/v5/operational-op08-v5.json",
+      "sha256": "bd17af93f58b6bcc29c54eefd3c34d4c59cb9cfff7f34c4daa6eea33324edf84",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "playbooks/v5/operational-op09-v5.json",
+      "sha256": "170c4ac1f8b3145a6a2c9ba76304e32341b6ccb24df9b1627db1807c3d011b22",
+      "kind": "operational_rule"
+    },
+    {
+      "path": "source-snapshots/events/time-errata-v4-current.json",
+      "sha256": "f719a5326b3ac0bcbedc5e80d3c911e8ce0e42ebb24c0ca516743a36cdfd5207",
+      "kind": "knowledge_event"
+    },
+    {
+      "path": "source-snapshots/catalogs/x-algorithm-public-v4.json",
+      "sha256": "670e916a53a89185c0ebfd033a5b0c8276c1eccae004a11a5f54b913e2f2de40",
+      "kind": "historical_catalog"
+    },
+    {
+      "path": "source-snapshots/events/activation-next23-v5.json",
+      "sha256": "3bc6dbc80a5e0ede6fd3ba8459311d3b8157fce4e4daff0e2d0b720f66412a26",
+      "kind": "knowledge_event"
+    },
+    {
+      "path": "source-snapshots/reviews/root-next23-knowledge-review-summary.json",
+      "sha256": "af33038e404581a3d6f5a49b1721ca492b0aa8a8f45f3a32a37afc1582163357",
+      "kind": "review_receipt"
     }
   ],
   "artifact_manifest_path": "source-snapshots/materials-v3.json",
   "dependency_manifest_path": "source-snapshots/dependencies.json",
-  "dependency_manifest_hash": "48fb28275e80ffe4028af7d01b622fad87bae4743fa247c16cbc58d32e734f04",
-  "activation_event_path": "source-snapshots/events/time-errata-v4-current.json",
+  "dependency_manifest_hash": "78f1d0a94c01abb1c174cc628bcda389515c823cf081aa4f5d004a66c69692dc",
+  "activation_event_path": "source-snapshots/events/activation-next23-v5.json",
   "artifact_refs": [
     "artifact-c01",
     "artifact-c02",
@@ -358,15 +418,15 @@
     "fact-sc05-6258a1549ef8"
   ],
   "rule_version_refs": [
-    "operational-op01-v1",
-    "operational-op02-v1",
-    "operational-op03-v1",
-    "operational-op04-v1",
-    "operational-op05-v1",
-    "operational-op06-v1",
+    "operational-op01-v3",
+    "operational-op02-v3",
+    "operational-op03-v3",
+    "operational-op04-v3",
+    "operational-op05-v3",
+    "operational-op06-v3",
     "operational-op07-v1",
-    "operational-op08-v3",
-    "operational-op09-v3",
+    "operational-op08-v5",
+    "operational-op09-v5",
     "operational-op10-v1"
   ],
   "signal_registry": {
@@ -449,6 +509,10 @@
     "internal_mechanism_observed": {
       "type": "boolean",
       "unit": "flag"
+    },
+    "substantive_repeat": {
+      "type": "boolean",
+      "unit": "flag"
     }
   },
   "coverage": {
@@ -470,7 +534,7 @@
       "公开路径相容不证明任一账号或帖子实际命中，也不证明增长因果"
     ]
   },
-  "created_at": "2026-10-26T18:06:00Z",
+  "created_at": "2026-10-27T04:04:59.415Z",
   "dependencies": [
     {
       "dependency_id": "action_consumer:EvaluateTweetsTreatment",
@@ -2348,15 +2412,19 @@
       "review_depth": "effects_verified",
       "disposition": "fact_card",
       "caller_refs": [
+        "home-mixer/params/param.rs",
+        "vm-ranker/params.rs",
+        "vm-ranker/scoring/debias.rs",
+        "vm-ranker/scoring/value_model.rs",
         "xai-value-model/scoring.rs"
       ],
       "consumer_refs": [
         "Home/For You public path"
       ],
       "missing_dependencies": [],
-      "review_note": "预测融合已读，不能用实际互动次数计算积分。",
-      "evidence_material_path": "source-snapshots/review-excerpts/scorer_compute_weighted_score.txt",
-      "evidence_content_hash": "457eab498fbef8f37b1502140b5ee1ce4d961f1666b9ff387fda097540e772ce"
+      "review_note": "2f252142 targeted caller review: VM ranker may recenter prediction heads before weighted scoring only when its separate runtime gates/model/sequence permit; public defaults UserDebiasEnabled=false and alpha=0.0, so no universal score change or author formula is established.",
+      "evidence_material_path": "source-snapshots/review-excerpts/next23_2f252142_targeted.json",
+      "evidence_content_hash": "e55db73207304c156adc66a02d7a6d444bd77883660cd14800b342606b838501"
     },
     {
       "dependency_id": "scorer:ImmersiveVideoScorer",
@@ -2417,15 +2485,19 @@
       "review_depth": "end_to_end_traced",
       "disposition": "dependency_only",
       "caller_refs": [
-        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients",
+        "home-mixer/params/param.rs",
+        "vm-ranker/params.rs",
+        "vm-ranker/scoring/debias.rs",
+        "vm-ranker/scoring/value_model.rs"
       ],
       "consumer_refs": [
         "PhoenixCandidatePipeline::scorer"
       ],
       "missing_dependencies": [],
-      "review_note": "evidence=home-mixer/scorers/vm_ranker.rs:L80-164; when ranking is enabled, computes local weighted/cold-start scores, calls VM ranker, and falls back to local scores on RPC error; public defaults do not reveal a request actual score. public config readers=VMRankerEnableFallback, EnableRanking, VMRankerClusterId; actual per-request values remain unknown.",
-      "evidence_material_path": "source-snapshots/review-excerpts/scorer_VMRanker.txt",
-      "evidence_content_hash": "0f5299ca0343f57550cb73e424d7c3dfb8b9b6786f4c32ed85d4de32751e41ed"
+      "review_note": "2f252142 targeted review: Home mixer sends debias inputs by public default, while VM ranker user debias remains separately disabled by default and alpha is 0.0; production request values, model availability and per-user effects remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/next23_2f252142_targeted.json",
+      "evidence_content_hash": "e55db73207304c156adc66a02d7a6d444bd77883660cd14800b342606b838501"
     },
     {
       "dependency_id": "selector:TopKScoreSelector",

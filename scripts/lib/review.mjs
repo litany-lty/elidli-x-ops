@@ -467,7 +467,7 @@ function selectedSourceRef(state,observationRef){
 
 /** Build a persistable V4 computation with the exact request needed for replay. */
 export function buildReviewComputationV4(state,planView,{as_of,coverage_receipt_refs=[]}={}){
-  if(state?.schema_version!==4)fail('MIGRATION_REQUIRED','/state/schema_version','V4 review computation requires state 4');
+  if(![4,5].includes(state?.schema_version))fail('MIGRATION_REQUIRED','/state/schema_version','V4 review computation requires state 4 or 5');
   validate('ExperimentPlanViewV3',planView);
   if(planView.status==='needs_plan_details')fail('REQUESTED_OUTPUT_INCOMPLETE','/plan_view/status','Plan details must be repaired before V4 computation');
   const {entityType}=validatePlanProjectionV4(state,planView),requirements=structuredClone(planView.metric_requirements);

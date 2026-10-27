@@ -1,0 +1,911 @@
+{
+  "data_mode": "fixture",
+  "scope": "本轮首次现场生成的六组配对；以后复用属于回归，不再声称现场新输入",
+  "inputs": {
+    "created_at": "2026-10-27",
+    "scope": "现场生成质量材料，合成输入；无预写答案",
+    "pairs": [
+      {
+        "pair_id": "goal",
+        "a": {
+          "data_mode": "fixture",
+          "account": "fixture_editor",
+          "voice": "中文短句、克制，保留自己的结论，不写虚构亲测经历",
+          "time_budget_minutes": 15,
+          "draft": "我做了一个小工具：把三份配置文件的不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+          "goal": "获得同领域新读者",
+          "history": [
+            "最近写过配置排错教程，读者常问怎样定位差异"
+          ],
+          "evidence": "有完整正文，无曝光指标"
+        },
+        "b": {
+          "data_mode": "fixture",
+          "account": "fixture_editor",
+          "voice": "中文短句、克制，保留自己的结论，不写虚构亲测经历",
+          "time_budget_minutes": 15,
+          "draft": "我做了一个小工具：把三份配置文件的不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+          "goal": "与已经在讨论的三位开发者继续交流",
+          "parent_post": "有人问：这两份配置到底哪里不一样？",
+          "history": [
+            "已有持续对话"
+          ],
+          "evidence": "有完整正文和父帖，无曝光指标"
+        }
+      },
+      {
+        "pair_id": "maturity",
+        "a": {
+          "data_mode": "fixture",
+          "account": "fixture_editor",
+          "voice": "中文短句、克制，保留自己的结论，不写虚构亲测经历",
+          "time_budget_minutes": 15,
+          "draft": "我做了一个小工具：把三份配置文件的不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+          "goal": "验证新开头是否有用",
+          "observation": {
+            "published_age_hours": 3,
+            "target_hours": 24,
+            "tolerance_hours": 2,
+            "baseline_age_hours": 24,
+            "current_impressions": 80,
+            "baseline_impressions": 100
+          },
+          "execution": "已按计划发布，但尚无24小时观测"
+        },
+        "b": {
+          "data_mode": "fixture",
+          "account": "fixture_editor",
+          "voice": "中文短句、克制，保留自己的结论，不写虚构亲测经历",
+          "time_budget_minutes": 15,
+          "draft": "我做了一个小工具：把三份配置文件的不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+          "goal": "验证新开头是否有用",
+          "observation": {
+            "published_age_hours": 25,
+            "target_hours": 24,
+            "tolerance_hours": 2,
+            "baseline_age_hours": 24,
+            "current_impressions": 80,
+            "baseline_impressions": 100
+          },
+          "execution": "已按计划发布，记录相同主题和自然口径；每组仅一条，可能受发帖日影响"
+        }
+      },
+      {
+        "pair_id": "experience",
+        "a": {
+          "data_mode": "fixture",
+          "account": "fixture_editor",
+          "voice": "中文短句、克制，保留自己的结论，不写虚构亲测经历",
+          "time_budget_minutes": 15,
+          "draft": "我做了一个小工具：把三份配置文件的不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+          "goal": "给实用工具写介绍",
+          "user_experience": "我昨天用这工具查出一处重复字段，有日志截图可读",
+          "source": "用户明确提供的经历，不能外推效率倍数"
+        },
+        "b": {
+          "data_mode": "fixture",
+          "account": "fixture_editor",
+          "voice": "中文短句、克制，保留自己的结论，不写虚构亲测经历",
+          "time_budget_minutes": 15,
+          "draft": "我做了一个小工具：把三份配置文件的不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+          "goal": "给实用工具写介绍",
+          "user_experience": null,
+          "source": "只有作者发布说明，尚未亲测，也没有用户案例"
+        }
+      },
+      {
+        "pair_id": "repetition",
+        "a": {
+          "data_mode": "fixture",
+          "account": "fixture_editor",
+          "voice": "中文短句、克制，保留自己的结论，不写虚构亲测经历",
+          "time_budget_minutes": 15,
+          "draft": "我做了一个小工具：把三份配置文件的不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+          "goal": "解释配置差异",
+          "history": [
+            "昨日已完整发过同一流程和同一例子"
+          ],
+          "external_material": "同一篇旧教程被另一站转载，正文无变化"
+        },
+        "b": {
+          "data_mode": "fixture",
+          "account": "fixture_editor",
+          "voice": "中文短句、克制，保留自己的结论，不写虚构亲测经历",
+          "time_budget_minutes": 15,
+          "draft": "我做了一个小工具：把三份配置文件的不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+          "goal": "解释配置差异",
+          "history": [
+            "昨日已完整发过同一流程和同一例子"
+          ],
+          "external_material": "作者新增明确的错误处理：同名字段现在显示来源行号；有新旧版本差异材料"
+        }
+      },
+      {
+        "pair_id": "edit_scope",
+        "a": {
+          "data_mode": "fixture",
+          "account": "fixture_editor",
+          "voice": "中文短句、克制，保留自己的结论，不写虚构亲测经历",
+          "time_budget_minutes": 15,
+          "draft": "我做了一个小工具：把三份配置文件的不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+          "goal": "保持立场，改善可读性",
+          "request": "只改第一句，其余正文、例子和图片都保留"
+        },
+        "b": {
+          "data_mode": "fixture",
+          "account": "fixture_editor",
+          "voice": "中文短句、克制，保留自己的结论，不写虚构亲测经历",
+          "time_budget_minutes": 15,
+          "draft": "我做了一个小工具：把三份配置文件的不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+          "goal": "保持立场，改善可读性",
+          "request": "仅给建议，不生成替换稿；告诉我是否值得配图"
+        }
+      },
+      {
+        "pair_id": "counter_evidence",
+        "a": {
+          "data_mode": "fixture",
+          "account": "fixture_editor",
+          "voice": "中文短句、克制，保留自己的结论，不写虚构亲测经历",
+          "time_budget_minutes": 15,
+          "draft": "我做了一个小工具：把三份配置文件的不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+          "goal": "节省制作时间同时保持有内容的讨论",
+          "personal_pattern": "经过审核的有限经验：类似教程一张步骤图通常足够；来自两个独立发布，仍tentative",
+          "new_evidence": null
+        },
+        "b": {
+          "data_mode": "fixture",
+          "account": "fixture_editor",
+          "voice": "中文短句、克制，保留自己的结论，不写虚构亲测经历",
+          "time_budget_minutes": 15,
+          "draft": "我做了一个小工具：把三份配置文件的不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+          "goal": "节省制作时间同时保持有内容的讨论",
+          "personal_pattern": "经过审核的有限经验：类似教程一张步骤图通常足够；来自两个独立发布，仍tentative",
+          "new_evidence": "同类最新两条回复明确表示图中文字太小；用户已确认以后图中文字少一点，提供可读原图与对应回复。未有完整效果指标"
+        }
+      }
+    ]
+  },
+  "initial_outputs": [
+    {
+      "pair_id": "goal",
+      "variant": "a",
+      "input_hash": "9a7f60026bba6069d2367af5b82dbc781a5c11e3ecf5ee2998706c38b42ddb6e",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:02:04.915Z",
+      "guidance_text": "主动作：把第一句改成新读者一眼能认出的配置排错问题，再马上说明工具的边界。正文已经完整，不需要为了显得丰富而扩成长线程。",
+      "recommended_text": "三份配置看着差不多，差异到底藏在哪？\n\n我做了一个小工具，把三份配置文件的不同项列成表。输入文件后，它会先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+      "actions": [
+        "用问题式首句承接读者常问的“怎样定位差异”",
+        "保留“先检查字段名”和“不替你判断正确配置”两项边界",
+        "按短帖发布；有真实输出截图时可附一张，否则保留纯文字"
+      ],
+      "rationale": [
+        "目标是获得同领域新读者，首句需要让不了解上下文的人也知道用途",
+        "现有正文已能说明流程和边界，主要缺口是入口价值不够直接",
+        "目前只有正文，没有账号表现数据，不能说这种开头已被数据证明更优"
+      ],
+      "observation_plan": "发布后按既定24小时窗口记录 impressions；若能取得同主题、同帖龄内容，再做描述性比较。至少积累多个独立发布前，不把一次变化写成个人规律。",
+      "gaps": [
+        "没有同主题、同帖龄的曝光或互动数据",
+        "没有实际输出截图可核对，因此配图不是本次必需项"
+      ],
+      "output_hash": "d098628f01ea2ff3466ce9ff1e4fec77872d13c2dace77b63a969e893339b020"
+    },
+    {
+      "pair_id": "goal",
+      "variant": "b",
+      "input_hash": "54344d460e8f76d902c866164f9ec5d7da788ff2fb7b34eaa85cc2ad86fdb963",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:02:04.915Z",
+      "guidance_text": "主动作：直接回复父帖的问题，不另起一个面向陌生读者的工具介绍。先给判断路径，再说明工具不会替人决定正确配置。",
+      "recommended_text": "可以先把两份配置的字段名对齐，再看同名字段的值。\n\n我做的小工具就是按这个顺序：先检查字段名，再把不同项列成表。它能帮你定位差异，但不会替你判断哪个配置正确。",
+      "actions": [
+        "以 reply 形式接在原问题下",
+        "第一句先回答“怎么看差异”，随后再提工具",
+        "继续追问对方是否需要看具体字段，以维持真实交流"
+      ],
+      "rationale": [
+        "目标是继续与正在讨论的三位开发者交流，父帖上下文本身就是必要材料",
+        "直接回答比重新写一个独立获客开头更符合当前对话任务",
+        "没有曝光指标，不把回复形式解释成算法优势"
+      ],
+      "observation_plan": "观察这轮讨论是否出现具体字段、复现材料或后续问题；有新问题就继续回复。不要用单条回复的曝光判断工具介绍策略成败。",
+      "gaps": [
+        "尚未提供两份实际配置，不能替对方判断具体差异",
+        "没有可归因到单条回复的效果数据"
+      ],
+      "output_hash": "7ea82e5a50ad21aa11f69a9a46d3b30bde70746880202e5efa41d3fa79149d65"
+    },
+    {
+      "pair_id": "maturity",
+      "variant": "a",
+      "input_hash": "063776256dc74b96e2ccca09ae0258db9b259598cbbde34230ef0de12e41fe77",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:02:04.915Z",
+      "guidance_text": "主动作：先不判断新开头是否有用，也不改计划。当前帖子只发布了3小时，而目标观测是24小时±2小时；80与基线100不是同帖龄比较。",
+      "recommended_text": null,
+      "actions": [
+        "保持本次已发布内容和原观察计划不变",
+        "在发布后22至26小时内记录同一指标",
+        "记录期间不要把当前80次曝光解释成下降或失败"
+      ],
+      "rationale": [
+        "当前观测尚未进入计划窗口，数据不成熟",
+        "3小时累计值与24小时基线不可直接比较",
+        "提前修改会破坏这次对开头变化的窄验证"
+      ],
+      "observation_plan": "到发布后22至26小时记录 impressions，并确认口径仍为累计曝光。若错过窗口，标记本次不可比，不用更晚累计值补成24小时结果。",
+      "gaps": [
+        "缺少目标窗口内的当前帖子观测",
+        "每组样本数尚未形成可判断的独立发布集合"
+      ],
+      "output_hash": "dd23603944d853187a2f4710db785746a933a8dd0b97e077e1398791cbbbf7fb"
+    },
+    {
+      "pair_id": "maturity",
+      "variant": "b",
+      "input_hash": "31729d9ffa5211904252a438d123aabc7d16e728dba20f43b0a497ef9280c7cf",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:02:04.915Z",
+      "guidance_text": "主动作：把这次结果记为“当前样本未显示改善”，不要升级成“新开头无效”。25小时处于24小时±2小时窗口；当前80、基线100，描述上少20次、约低20%，但每组只有一条且可能受发帖日影响。",
+      "recommended_text": null,
+      "actions": [
+        "保存本次同龄比较及发帖日这一替代解释",
+        "下一条同主题内容若仍值得发，只复用同一开头变化再观察一次",
+        "若连续的可比独立发布仍走低，再停止优先采用该开头"
+      ],
+      "rationale": [
+        "观测已进入冻结窗口，可以做范围受限的描述性比较",
+        "80对100不支持“提高曝光”的方向",
+        "一对单帖没有足够独立样本排除日期、内容细节等影响"
+      ],
+      "observation_plan": "保留这次25小时读数；下一次使用相同指标和22至26小时窗口。至少再取得独立且同主题的可比发布后，复查方向是否一致；若条件不相容则不合并。",
+      "gaps": [
+        "每组仅一条独立发布",
+        "发帖日及其他内容差异尚未排除"
+      ],
+      "output_hash": "80416c1284cbaf37343ee68c71db788d75522a05ba8196195755f9080f7e9b24"
+    },
+    {
+      "pair_id": "experience",
+      "variant": "a",
+      "input_hash": "032d7f3ed82ff86d1d6df227cb80646fed6b1b12241fd8d3e4ab14a2ee08aeb9",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:02:04.915Z",
+      "guidance_text": "主动作：用这次真实经历替代泛泛的“我做了一个工具”，并配可读的日志截图。只陈述查出一处重复字段，不外推节省时间或普遍效果。",
+      "recommended_text": "昨天我用这个小工具查出一处重复字段。\n\n它会把三份配置的不同项列成表：输入文件后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+      "actions": [
+        "首句使用用户明确提供的真实经历",
+        "附一张已读、可辨认且隐去敏感信息的日志截图",
+        "截图只标出重复字段位置，不增加未经证实的效率数字"
+      ],
+      "rationale": [
+        "真实使用结果能具体说明工具解决了什么问题",
+        "日志截图可以支持“一处重复字段”这一有限陈述",
+        "现有材料不能支持效率倍数、普遍准确率或他人同样结果"
+      ],
+      "observation_plan": "发布前复核截图中的字段、行号和隐私；发布后收集读者是否询问复现步骤。若后续有更多独立真实案例，再单独评估可复用经验。",
+      "gaps": [
+        "尚无多个独立用户案例",
+        "没有可支持效率提升幅度的数据"
+      ],
+      "output_hash": "f0e6d04089e08e667b4a50527c767e330e751c6b284ac6896de643b6f7d12fba"
+    },
+    {
+      "pair_id": "experience",
+      "variant": "b",
+      "input_hash": "8504c81a00e10b85793923a9f6b68278e8a5042a970314d68b2a24783c50ab8c",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:02:04.915Z",
+      "guidance_text": "主动作：按发布说明介绍功能，不写“我用它发现了问题”或任何用户成效。把输入、输出和不负责判断正确配置这三点说清楚即可。",
+      "recommended_text": "这个小工具会把三份配置文件的不同项列成表。\n\n输入文件后，它先检查字段名，再输出差异。它不替你决定哪个配置正确；结果仍需要结合项目要求判断。",
+      "actions": [
+        "只写发布说明中能确认的功能流程",
+        "保留人工判断正确配置的边界",
+        "暂不使用案例截图或第一人称亲测结论"
+      ],
+      "rationale": [
+        "当前没有作者亲测或用户案例，不能制造第一人称经历",
+        "功能说明本身已足以形成一条克制的工具介绍",
+        "虚构效果会削弱可信度，也超出来源范围"
+      ],
+      "observation_plan": "先收集一次真实使用记录：问题、输入范围、实际发现和可公开证据。取得材料后再决定是否写案例续篇，不从曝光数反推工具效果。",
+      "gaps": [
+        "尚无真实使用结果",
+        "没有可公开的案例或截图"
+      ],
+      "output_hash": "a0d9717ea93abbebcd2ed1a7b8d08603c01afd9e8747103eda0a12d37f46f44a"
+    },
+    {
+      "pair_id": "repetition",
+      "variant": "a",
+      "input_hash": "411af768ed17ed00a3a11f102f3edc2851074bc86d79bb41dca8215fef7ee738",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:02:04.915Z",
+      "guidance_text": "主动作：今天不再发布这条。昨日已经完整发过同一流程和例子，外部材料只是旧教程转载，没有新增事实、问题或结果。",
+      "recommended_text": null,
+      "actions": [
+        "保留当前草稿，不创建重复发布",
+        "把转载记为同一来源链，不当成新材料",
+        "等待真实更新、读者新问题或复测结果后再写续篇"
+      ],
+      "rationale": [
+        "内容与昨日发布实质相同",
+        "转载没有形成可核查的 NoveltyDelta",
+        "重复包装会消耗一次发布机会，却没有给读者新增价值"
+      ],
+      "observation_plan": "后续只在出现功能变化、纠错、读者问题或实际结果时重开选题；记录新旧材料的具体差异后再决定形式。",
+      "gaps": [
+        "没有新增事实或版本变化",
+        "没有新的读者问题或复测结果"
+      ],
+      "output_hash": "a8dbe761024d9b543272f0ae5e6f781b930d46611394e4be641b8a68db700ff8"
+    },
+    {
+      "pair_id": "repetition",
+      "variant": "b",
+      "input_hash": "df7b75144628200c0b47128574a349236a6aa11cd65027dbde1ab719b58563e0",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:02:04.915Z",
+      "guidance_text": "主动作：不要重发昨日流程，改成一条版本更新。新增价值只聚焦“同名字段现在显示来源行号”，用新旧差异材料证明变化。",
+      "recommended_text": "昨天介绍的配置对比工具，新增了一处更实用的错误处理：\n\n遇到同名字段时，现在会同时显示来源行号。这样能更快定位差异来自哪份文件；至于哪个配置正确，仍需要结合项目要求判断。",
+      "actions": [
+        "把内容定位为 event update，而不是重新介绍完整流程",
+        "附新旧版本中同名字段显示方式的可读对比",
+        "保留工具不负责判断正确配置的边界"
+      ],
+      "rationale": [
+        "来源行号是相对昨日内容的明确功能变化",
+        "新旧材料能形成可追溯的 NoveltyDelta",
+        "聚焦变化可以避免重复，同时给旧读者一个继续关注的理由"
+      ],
+      "observation_plan": "发布前核对新旧版本号、行号显示和截图对应关系；发布后收集是否仍有人无法定位来源。若只是转载再次出现，不另算新更新。",
+      "gaps": [
+        "尚未提供具体版本号或发布日期",
+        "没有该改动对实际排错时间的量化证据"
+      ],
+      "output_hash": "d451bdb5504d8aefaf3e14fe7b43696771f5ded2a91fa4f3286481bdb0609165"
+    },
+    {
+      "pair_id": "edit_scope",
+      "variant": "a",
+      "input_hash": "680c0b72bf39773c9e77e663bf3cffc3495ae62cb9994e187d09b3feb02a2b14",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:02:04.915Z",
+      "guidance_text": "主动作：只替换第一句，后两句、例子和图片保持不变。新首句直接交代读者能得到什么，不改作者对工具边界的立场。",
+      "recommended_text": "想快速看清三份配置哪里不一样，我做了一个小工具，把不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+      "actions": [
+        "仅将第一句替换为用途更直接的表述",
+        "第二、三句逐字保留",
+        "现有例子和图片不调整、不重做"
+      ],
+      "rationale": [
+        "用户明确把编辑范围限制在第一句",
+        "原正文已清楚说明流程和判断边界",
+        "局部修改足以改善入口可读性，无需扩大为整篇重写"
+      ],
+      "observation_plan": "发布前做一次逐句差异检查，确认除第一句外文本、例子和图片哈希均未变化；若还要改其他部分，应作为新的明确请求处理。",
+      "gaps": [],
+      "output_hash": "553ff1d35544d680e855a5e72bedc068df7b6c5d329598e813b0b9d36a91d99e"
+    },
+    {
+      "pair_id": "edit_scope",
+      "variant": "b",
+      "input_hash": "29e712d17c40342b541f5bdf6f96b5a8d4c85cba6e61890d9d8816718319c26d",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:02:04.915Z",
+      "guidance_text": "主动作：保留原稿，只给两项建议，不生成替换稿。原稿已经把功能、顺序和边界说清楚；配图只有在能展示真实输出表时才值得做。",
+      "recommended_text": null,
+      "actions": [
+        "建议第一句以后可更直接点出“查看三份配置差异”的读者任务，但本次不代写",
+        "若已有真实输出表，配一张可读截图并标出一处差异",
+        "若没有真实输出，保持纯文字，不生成装饰图"
+      ],
+      "rationale": [
+        "用户明确只要建议，不能提交替换稿",
+        "当前文字已经完整，继续改写的收益有限",
+        "真实输出图能补充具体性；无证据的示意图不会增加事实价值"
+      ],
+      "observation_plan": "由用户决定是否采纳建议；若配图，发布前检查原图可读性、来源和敏感信息。未采纳不能记为拒绝，也不据此推断偏好。",
+      "gaps": [
+        "不知道是否已有可公开的真实输出截图"
+      ],
+      "output_hash": "fdf0fd01ff5c4e84d41a8e812f88fc972fb15f344416b5d1d022d8ea12a2f425"
+    },
+    {
+      "pair_id": "counter_evidence",
+      "variant": "a",
+      "input_hash": "dec7904e7fa100b5c6dc4031ece99f1b9dcf545c074c98b2c338d4867e090f41",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:02:04.915Z",
+      "guidance_text": "主动作：正文保持短帖，最多配一张步骤图。这个选择可以参考两次独立发布形成的有限经验，但只能作为制作优先级，不能说“一张图一定表现更好”。",
+      "recommended_text": "我做了一个小工具：把三份配置文件的不同项列成表。\n\n输入文件后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+      "actions": [
+        "只做一张三步图：输入文件、检查字段名、输出差异",
+        "图中文字保持精简，正文保留判断边界",
+        "15分钟内素材不够就直接发纯文字，不追加第二张图"
+      ],
+      "rationale": [
+        "两次独立发布的有限经验与当前教程类型相容",
+        "一张步骤图符合节省制作时间的目标",
+        "经验仍是 tentative，不能替代当前内容质量和后续观测"
+      ],
+      "observation_plan": "记录这次是否实际配图及制作耗时；按既定窗口观察讨论和可比指标。后续若出现可读性投诉或相反表现，将其作为相关反证重新选择。",
+      "gaps": [
+        "没有本次配图后的成熟效果数据",
+        "现有经验只有两个独立发布，适用范围有限"
+      ],
+      "output_hash": "95e05b864f89d15f88acfeb0bf7f6a16767facae91036a4abe7d8977031f281e"
+    },
+    {
+      "pair_id": "counter_evidence",
+      "variant": "b",
+      "input_hash": "c4c65db432ea57fe0521c2b72b7cd54941f8ea89190e0615eb908b215201784d",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:02:04.915Z",
+      "guidance_text": "主动作：仍只用一张图，但不沿用原来的文字密集步骤图。优先复用用户提供的可读原图，只加极少标注；明确的长期“少字图”偏好和最新两条可读性反馈，优先于旧的 tentative 经验。",
+      "recommended_text": "我做了一个小工具：把三份配置文件的不同项列成表。\n\n输入文件后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+      "actions": [
+        "复用已提供的可读原图，不重新生成文字卡片",
+        "最多标出输入、差异结果两个区域，其余说明放正文",
+        "保存两条可读性回复为相关反证，暂停把旧步骤图经验用于正向推荐"
+      ],
+      "rationale": [
+        "用户已明确长期偏好图中文字少一点",
+        "最新同类回复直接指出文字太小，和当前媒体选择相关",
+        "旧经验只有两个独立发布且仍属 tentative，不能压过明确偏好与新反证"
+      ],
+      "observation_plan": "发布前在实际显示尺寸查看原图和标注；发布后记录是否仍有看不清的反馈。没有完整效果指标时，只更新可读性判断，不宣称新图提高讨论或曝光。",
+      "gaps": [
+        "缺少新方案的成熟效果指标",
+        "尚不知道原图在最终预览尺寸下是否仍清晰"
+      ],
+      "output_hash": "aa08285c9a26ade7adef3ce0510bd6b137d59cc05e865d390b3f8252869e13e2"
+    }
+  ],
+  "revised_outputs": [
+    {
+      "pair_id": "goal",
+      "variant": "a",
+      "input_hash": "9a7f60026bba6069d2367af5b82dbc781a5c11e3ecf5ee2998706c38b42ddb6e",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:06:43.488Z",
+      "guidance_text": "主动作：把第一句改成新读者一眼能认出的配置排错问题，再马上说明工具的边界。正文已经完整，不需要为了显得丰富而扩成长线程。",
+      "recommended_text": "三份配置看着差不多，差异到底藏在哪？\n\n我做了一个小工具，把三份配置文件的不同项列成表。输入文件后，它会先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+      "actions": [
+        "用问题式首句承接读者常问的“怎样定位差异”",
+        "保留“先检查字段名”和“不替你判断正确配置”两项边界",
+        "按短帖发布；有真实输出截图时可附一张，否则保留纯文字"
+      ],
+      "rationale": [
+        "目标是获得同领域新读者，首句需要让不了解上下文的人也知道用途",
+        "现有正文已能说明流程和边界，主要缺口是入口价值不够直接",
+        "目前只有正文，没有账号表现数据，不能说这种开头已被数据证明更优"
+      ],
+      "observation_plan": "发布后按既定24小时窗口记录 impressions；若能取得同主题、同帖龄内容，再做描述性比较。至少积累多个独立发布前，不把一次变化写成个人规律。",
+      "gaps": [
+        "没有同主题、同帖龄的曝光或互动数据",
+        "没有实际输出截图可核对，因此配图不是本次必需项"
+      ],
+      "revision": 2,
+      "output_hash": "01120a2aa6f98e1c4887ef5ee6b4188219b535193799b94af02086d613fbaab2"
+    },
+    {
+      "pair_id": "goal",
+      "variant": "b",
+      "input_hash": "54344d460e8f76d902c866164f9ec5d7da788ff2fb7b34eaa85cc2ad86fdb963",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:06:43.488Z",
+      "guidance_text": "主动作：直接回复父帖的问题，不另起一个面向陌生读者的工具介绍。先给判断路径，再说明工具不会替人决定正确配置。",
+      "recommended_text": "可以先把两份配置的字段名对齐，再看同名字段的值。\n\n我做的小工具就是按这个顺序：先检查字段名，再把不同项列成表。它能帮你定位差异，但不会替你判断哪个配置正确。",
+      "actions": [
+        "以 reply 形式接在原问题下",
+        "第一句先回答“怎么看差异”，随后再提工具",
+        "继续追问对方是否需要看具体字段，以维持真实交流"
+      ],
+      "rationale": [
+        "目标是继续与正在讨论的三位开发者交流，父帖上下文本身就是必要材料",
+        "直接回答比重新写一个独立获客开头更符合当前对话任务",
+        "没有曝光指标，不把回复形式解释成算法优势"
+      ],
+      "observation_plan": "观察这轮讨论是否出现具体字段、复现材料或后续问题；有新问题就继续回复。不要用单条回复的曝光判断工具介绍策略成败。",
+      "gaps": [
+        "尚未提供两份实际配置，不能替对方判断具体差异",
+        "没有可归因到单条回复的效果数据"
+      ],
+      "revision": 2,
+      "output_hash": "06bbc51f888de2b159d0fb3f82023ab47995a709929cad647e7c306d184ce408"
+    },
+    {
+      "pair_id": "maturity",
+      "variant": "a",
+      "input_hash": "063776256dc74b96e2ccca09ae0258db9b259598cbbde34230ef0de12e41fe77",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:06:43.488Z",
+      "guidance_text": "主动作：先不判断新开头是否有用，也不改计划。当前帖子只发布了3小时，而目标观测是24小时±2小时；80与基线100不是同帖龄比较。",
+      "recommended_text": null,
+      "actions": [
+        "保持本次已发布内容和原观察计划不变",
+        "在发布后22至26小时内记录同一指标",
+        "记录期间不要把当前80次曝光解释成下降或失败"
+      ],
+      "rationale": [
+        "当前观测尚未进入计划窗口，数据不成熟",
+        "3小时累计值与24小时基线不可直接比较",
+        "提前修改会破坏这次对开头变化的窄验证"
+      ],
+      "observation_plan": "到发布后22至26小时记录 impressions，并确认口径仍为累计曝光。若错过窗口，标记本次不可比，不用更晚累计值补成24小时结果。",
+      "gaps": [
+        "缺少目标窗口内的当前帖子观测",
+        "每组样本数尚未形成可判断的独立发布集合"
+      ],
+      "revision": 2,
+      "output_hash": "b228017e82c0d6c6fd572611265a38e00e04bb9b28959dfb05b4cd2645e0f3f9"
+    },
+    {
+      "pair_id": "maturity",
+      "variant": "b",
+      "input_hash": "31729d9ffa5211904252a438d123aabc7d16e728dba20f43b0a497ef9280c7cf",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:06:43.488Z",
+      "guidance_text": "主动作：把这次结果记为“当前样本未显示改善”，不要升级成“新开头无效”。25小时处于24小时±2小时窗口；当前80、基线100，描述上少20次、约低20%，但每组只有一条且可能受发帖日影响。",
+      "recommended_text": null,
+      "actions": [
+        "保存本次同龄比较及发帖日这一替代解释",
+        "下一条同主题内容若仍值得发，只复用同一开头变化再观察一次",
+        "若连续的可比独立发布仍走低，再停止优先采用该开头"
+      ],
+      "rationale": [
+        "观测已进入冻结窗口，可以做范围受限的描述性比较",
+        "80对100不支持“提高曝光”的方向",
+        "一对单帖没有足够独立样本排除日期、内容细节等影响"
+      ],
+      "observation_plan": "保留这次25小时读数；下一次使用相同指标和22至26小时窗口。至少再取得独立且同主题的可比发布后，复查方向是否一致；若条件不相容则不合并。",
+      "gaps": [
+        "每组仅一条独立发布",
+        "发帖日及其他内容差异尚未排除"
+      ],
+      "revision": 2,
+      "output_hash": "0bea8225bb677d80bbb0eff308b64b1be51969a5fb5412598fbbe0d67d926a87"
+    },
+    {
+      "pair_id": "experience",
+      "variant": "a",
+      "input_hash": "032d7f3ed82ff86d1d6df227cb80646fed6b1b12241fd8d3e4ab14a2ee08aeb9",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:06:43.488Z",
+      "guidance_text": "主动作：用这次真实经历替代泛泛的“我做了一个工具”。发布前先实际读取并核对日志截图；确认内容可读、与陈述一致且无敏感信息后再附。只陈述查出一处重复字段，不外推节省时间或普遍效果。",
+      "recommended_text": "昨天我用这个小工具查出一处重复字段。\n\n它会把三份配置的不同项列成表：输入文件后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+      "actions": [
+        "首句使用用户明确提供的真实经历",
+        "发布前实际读取并核对日志截图；确认可辨认、对应这次经历且已隐去敏感信息后再附",
+        "截图只标出重复字段位置，不增加未经证实的效率数字"
+      ],
+      "rationale": [
+        "真实使用结果能具体说明工具解决了什么问题",
+        "日志截图只有在实际读取并核对后，才能支持“一处重复字段”这一有限陈述",
+        "现有材料不能支持效率倍数、普遍准确率或他人同样结果"
+      ],
+      "observation_plan": "发布前复核截图中的字段、行号和隐私；发布后收集读者是否询问复现步骤。若后续有更多独立真实案例，再单独评估可复用经验。",
+      "gaps": [
+        "尚无多个独立用户案例",
+        "没有可支持效率提升幅度的数据"
+      ],
+      "revision": 2,
+      "output_hash": "1504685ae3b4c937a63695a5cda66f4d592bfa34fbdc62d9580cc20aeea5c2ba"
+    },
+    {
+      "pair_id": "experience",
+      "variant": "b",
+      "input_hash": "8504c81a00e10b85793923a9f6b68278e8a5042a970314d68b2a24783c50ab8c",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:06:43.488Z",
+      "guidance_text": "主动作：按发布说明介绍功能，不写“我用它发现了问题”或任何用户成效。把输入、输出和不负责判断正确配置这三点说清楚即可。",
+      "recommended_text": "这个小工具会把三份配置文件的不同项列成表。\n\n输入文件后，它先检查字段名，再输出差异。它不替你决定哪个配置正确；结果仍需要结合项目要求判断。",
+      "actions": [
+        "只写发布说明中能确认的功能流程",
+        "保留人工判断正确配置的边界",
+        "暂不使用案例截图或第一人称亲测结论"
+      ],
+      "rationale": [
+        "当前没有作者亲测或用户案例，不能制造第一人称经历",
+        "功能说明本身已足以形成一条克制的工具介绍",
+        "虚构效果会削弱可信度，也超出来源范围"
+      ],
+      "observation_plan": "先收集一次真实使用记录：问题、输入范围、实际发现和可公开证据。取得材料后再决定是否写案例续篇，不从曝光数反推工具效果。",
+      "gaps": [
+        "尚无真实使用结果",
+        "没有可公开的案例或截图"
+      ],
+      "revision": 2,
+      "output_hash": "a3e80f1f72c18124df330a2ad6d0452e7700682b9efaaf94deac3ef5f8a3628a"
+    },
+    {
+      "pair_id": "repetition",
+      "variant": "a",
+      "input_hash": "411af768ed17ed00a3a11f102f3edc2851074bc86d79bb41dca8215fef7ee738",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:06:43.488Z",
+      "guidance_text": "主动作：今天不再发布这条。昨日已经完整发过同一流程和例子，外部材料只是旧教程转载，没有新增事实、问题或结果。",
+      "recommended_text": null,
+      "actions": [
+        "保留当前草稿，不创建重复发布",
+        "把转载记为同一来源链，不当成新材料",
+        "等待真实更新、读者新问题或复测结果后再写续篇"
+      ],
+      "rationale": [
+        "内容与昨日发布实质相同",
+        "转载没有形成可核查的 NoveltyDelta",
+        "重复包装会消耗一次发布机会，却没有给读者新增价值"
+      ],
+      "observation_plan": "后续只在出现功能变化、纠错、读者问题或实际结果时重开选题；记录新旧材料的具体差异后再决定形式。",
+      "gaps": [
+        "没有新增事实或版本变化",
+        "没有新的读者问题或复测结果"
+      ],
+      "revision": 2,
+      "output_hash": "cc40c3a97f31856af94b93640320176a6e799645de99dc91607c7dc180891ce6"
+    },
+    {
+      "pair_id": "repetition",
+      "variant": "b",
+      "input_hash": "df7b75144628200c0b47128574a349236a6aa11cd65027dbde1ab719b58563e0",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:06:43.488Z",
+      "guidance_text": "主动作：不要重发昨日流程，改成一条版本更新。新增价值只聚焦“同名字段现在显示来源行号”，用新旧差异材料证明变化。",
+      "recommended_text": "昨天介绍的配置对比工具，新增了一处更实用的错误处理：\n\n遇到同名字段时，现在会同时显示来源行号。这样能更快定位差异来自哪份文件；至于哪个配置正确，仍需要结合项目要求判断。",
+      "actions": [
+        "把内容定位为 event update，而不是重新介绍完整流程",
+        "附新旧版本中同名字段显示方式的可读对比",
+        "保留工具不负责判断正确配置的边界"
+      ],
+      "rationale": [
+        "来源行号是相对昨日内容的明确功能变化",
+        "新旧材料能形成可追溯的 NoveltyDelta",
+        "聚焦变化可以避免重复，同时给旧读者一个继续关注的理由"
+      ],
+      "observation_plan": "发布前核对新旧版本号、行号显示和截图对应关系；发布后收集是否仍有人无法定位来源。若只是转载再次出现，不另算新更新。",
+      "gaps": [
+        "尚未提供具体版本号或发布日期",
+        "没有该改动对实际排错时间的量化证据"
+      ],
+      "revision": 2,
+      "output_hash": "37be00c6dfc1caa295fa6f8f4ecb9b310cc01644ab8b80a51253ad3fd5597245"
+    },
+    {
+      "pair_id": "edit_scope",
+      "variant": "a",
+      "input_hash": "680c0b72bf39773c9e77e663bf3cffc3495ae62cb9994e187d09b3feb02a2b14",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:06:43.488Z",
+      "guidance_text": "主动作：只替换第一句，后两句、例子和图片保持不变。新首句直接交代读者能得到什么，不改作者对工具边界的立场。",
+      "recommended_text": "想快速看清三份配置哪里不一样，我做了一个小工具，把不同项列成表。输入文件以后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+      "actions": [
+        "仅将第一句替换为用途更直接的表述",
+        "第二、三句逐字保留",
+        "现有例子和图片不调整、不重做"
+      ],
+      "rationale": [
+        "用户明确把编辑范围限制在第一句",
+        "原正文已清楚说明流程和判断边界",
+        "局部修改足以改善入口可读性，无需扩大为整篇重写"
+      ],
+      "observation_plan": "发布前做一次逐句差异检查，确认除第一句外文本、例子和图片哈希均未变化；若还要改其他部分，应作为新的明确请求处理。",
+      "gaps": [],
+      "revision": 2,
+      "output_hash": "07b9bee717e836cd4c76b903c8ceb12af67e4db4f161624485145c04cbe4140c"
+    },
+    {
+      "pair_id": "edit_scope",
+      "variant": "b",
+      "input_hash": "29e712d17c40342b541f5bdf6f96b5a8d4c85cba6e61890d9d8816718319c26d",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:06:43.488Z",
+      "guidance_text": "主动作：保留原稿，只给两项建议，不生成替换稿。原稿已经把功能、顺序和边界说清楚；配图只有在能展示真实输出表时才值得做。",
+      "recommended_text": null,
+      "actions": [
+        "建议第一句以后可更直接点出“查看三份配置差异”的读者任务，但本次不代写",
+        "若已有真实输出表，配一张可读截图并标出一处差异",
+        "若没有真实输出，保持纯文字，不生成装饰图"
+      ],
+      "rationale": [
+        "用户明确只要建议，不能提交替换稿",
+        "当前文字已经完整，继续改写的收益有限",
+        "真实输出图能补充具体性；无证据的示意图不会增加事实价值"
+      ],
+      "observation_plan": "由用户决定是否采纳建议；若配图，发布前检查原图可读性、来源和敏感信息。未采纳不能记为拒绝，也不据此推断偏好。",
+      "gaps": [
+        "不知道是否已有可公开的真实输出截图"
+      ],
+      "revision": 2,
+      "output_hash": "f2d467037afef5b94b9c7004a3a3ca72ae50c245381cf3d1ed1ce65a5c5cb046"
+    },
+    {
+      "pair_id": "counter_evidence",
+      "variant": "a",
+      "input_hash": "dec7904e7fa100b5c6dc4031ece99f1b9dcf545c074c98b2c338d4867e090f41",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:06:43.488Z",
+      "guidance_text": "主动作：正文保持短帖，最多配一张步骤图。这个选择可以参考两次独立发布形成的有限经验，但只能作为制作优先级，不能说“一张图一定表现更好”。",
+      "recommended_text": "我做了一个小工具：把三份配置文件的不同项列成表。\n\n输入文件后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+      "actions": [
+        "只做一张三步图：输入文件、检查字段名、输出差异",
+        "图中文字保持精简，正文保留判断边界",
+        "15分钟内素材不够就直接发纯文字，不追加第二张图"
+      ],
+      "rationale": [
+        "两次独立发布的有限经验与当前教程类型相容",
+        "一张步骤图符合节省制作时间的目标",
+        "经验仍是 tentative，不能替代当前内容质量和后续观测"
+      ],
+      "observation_plan": "记录这次是否实际配图及制作耗时；按既定窗口观察讨论和可比指标。后续若出现可读性投诉或相反表现，将其作为相关反证重新选择。",
+      "gaps": [
+        "没有本次配图后的成熟效果数据",
+        "现有经验只有两个独立发布，适用范围有限"
+      ],
+      "revision": 2,
+      "output_hash": "d2943ef9b1b62e145abafb02132bed77ecb9f1772434d8accffd8cca4dc2babe"
+    },
+    {
+      "pair_id": "counter_evidence",
+      "variant": "b",
+      "input_hash": "c4c65db432ea57fe0521c2b72b7cd54941f8ea89190e0615eb908b215201784d",
+      "generator_ref": "agent-v23-personal-live",
+      "generated_at": "2026-10-27T04:06:43.488Z",
+      "guidance_text": "主动作：仍只用一张图，但不沿用原来的文字密集步骤图。优先复用用户提供的可读原图，只加极少标注；明确的长期“少字图”偏好和最新两条可读性反馈，优先于旧的 tentative 经验。",
+      "recommended_text": "我做了一个小工具：把三份配置文件的不同项列成表。\n\n输入文件后，先检查字段名，再输出差异。它不替你决定哪个配置正确。",
+      "actions": [
+        "复用已提供的可读原图，不重新生成文字卡片",
+        "最多标出输入、差异结果两个区域，其余说明放正文",
+        "保存两条可读性回复为相关反证，暂停把旧步骤图经验用于正向推荐"
+      ],
+      "rationale": [
+        "用户已明确长期偏好图中文字少一点",
+        "最新同类回复直接指出文字太小，和当前媒体选择相关",
+        "旧经验只有两个独立发布且仍属 tentative，不能压过明确偏好与新反证"
+      ],
+      "observation_plan": "发布前在实际显示尺寸查看原图和标注；发布后记录是否仍有看不清的反馈。没有完整效果指标时，只更新可读性判断，不宣称新图提高讨论或曝光。",
+      "gaps": [
+        "缺少新方案的成熟效果指标",
+        "尚不知道原图在最终预览尺寸下是否仍清晰"
+      ],
+      "revision": 2,
+      "output_hash": "ab92b6968815a55e5e2e105b301059d091aa08d0ee6d24a1c5903aa2b1882bbf"
+    }
+  ],
+  "independent_review": {
+    "reviewer": "root-independent-next23",
+    "generator_ref": "agent-v23-personal-live",
+    "reviewed_at": "2026-10-27T04:15:41.013Z",
+    "data_mode": "fixture",
+    "scope": "六组未预写答案的现场生成，合成材料，不代表真实账号效果",
+    "prior_revision_issue": {
+      "output": "experience/a v1",
+      "decision": "revision_required",
+      "issue": "输入只称有截图可读，输出不可冒称实际已读；v1保留"
+    },
+    "results": [
+      {
+        "pair_id": "goal",
+        "input_hashes": [
+          "9a7f60026bba6069d2367af5b82dbc781a5c11e3ecf5ee2998706c38b42ddb6e",
+          "54344d460e8f76d902c866164f9ec5d7da788ff2fb7b34eaa85cc2ad86fdb963"
+        ],
+        "output_hashes": [
+          "01120a2aa6f98e1c4887ef5ee6b4188219b535193799b94af02086d613fbaab2",
+          "06bbc51f888de2b159d0fb3f82023ab47995a709929cad647e7c306d184ce408"
+        ],
+        "decision": "approved",
+        "checks": {
+          "source_facts": true,
+          "scope_and_voice": true,
+          "goal_specific_action": true,
+          "alternative_choice_explained": true,
+          "uncertainty_and_observation": true
+        },
+        "comment": "主动作随目标由陌生读者独立短帖变为父帖回复；没有虚构算法形式优势。"
+      },
+      {
+        "pair_id": "maturity",
+        "input_hashes": [
+          "063776256dc74b96e2ccca09ae0258db9b259598cbbde34230ef0de12e41fe77",
+          "31729d9ffa5211904252a438d123aabc7d16e728dba20f43b0a497ef9280c7cf"
+        ],
+        "output_hashes": [
+          "b228017e82c0d6c6fd572611265a38e00e04bb9b28959dfb05b4cd2645e0f3f9",
+          "0bea8225bb677d80bbb0eff308b64b1be51969a5fb5412598fbbe0d67d926a87"
+        ],
+        "decision": "approved",
+        "checks": {
+          "source_facts": true,
+          "scope_and_voice": true,
+          "goal_specific_action": true,
+          "alternative_choice_explained": true,
+          "uncertainty_and_observation": true
+        },
+        "comment": "3小时等待窗口，25小时允许80对100的有限描述，保留单条和日期混杂。"
+      },
+      {
+        "pair_id": "experience",
+        "input_hashes": [
+          "032d7f3ed82ff86d1d6df227cb80646fed6b1b12241fd8d3e4ab14a2ee08aeb9",
+          "8504c81a00e10b85793923a9f6b68278e8a5042a970314d68b2a24783c50ab8c"
+        ],
+        "output_hashes": [
+          "1504685ae3b4c937a63695a5cda66f4d592bfa34fbdc62d9580cc20aeea5c2ba",
+          "a3e80f1f72c18124df330a2ad6d0452e7700682b9efaaf94deac3ef5f8a3628a"
+        ],
+        "decision": "approved",
+        "checks": {
+          "source_facts": true,
+          "scope_and_voice": true,
+          "goal_specific_action": true,
+          "alternative_choice_explained": true,
+          "uncertainty_and_observation": true
+        },
+        "comment": "有经历可写有限案例；无经历只介绍功能。v1冒称已读截图已纠正，v2先实际查看再附。"
+      },
+      {
+        "pair_id": "repetition",
+        "input_hashes": [
+          "411af768ed17ed00a3a11f102f3edc2851074bc86d79bb41dca8215fef7ee738",
+          "df7b75144628200c0b47128574a349236a6aa11cd65027dbde1ab719b58563e0"
+        ],
+        "output_hashes": [
+          "cc40c3a97f31856af94b93640320176a6e799645de99dc91607c7dc180891ce6",
+          "37be00c6dfc1caa295fa6f8f4ecb9b310cc01644ab8b80a51253ad3fd5597245"
+        ],
+        "decision": "approved",
+        "checks": {
+          "source_facts": true,
+          "scope_and_voice": true,
+          "goal_specific_action": true,
+          "alternative_choice_explained": true,
+          "uncertainty_and_observation": true
+        },
+        "comment": "同稿转载停止；有新行号信息才写更新，日期版本缺口明确。"
+      },
+      {
+        "pair_id": "edit_scope",
+        "input_hashes": [
+          "680c0b72bf39773c9e77e663bf3cffc3495ae62cb9994e187d09b3feb02a2b14",
+          "29e712d17c40342b541f5bdf6f96b5a8d4c85cba6e61890d9d8816718319c26d"
+        ],
+        "output_hashes": [
+          "07b9bee717e836cd4c76b903c8ceb12af67e4db4f161624485145c04cbe4140c",
+          "f2d467037afef5b94b9c7004a3a3ca72ae50c245381cf3d1ed1ce65a5c5cb046"
+        ],
+        "decision": "approved",
+        "checks": {
+          "source_facts": true,
+          "scope_and_voice": true,
+          "goal_specific_action": true,
+          "alternative_choice_explained": true,
+          "uncertainty_and_observation": true
+        },
+        "comment": "仅第一句变更，其余原文逐字保留；仅建议情景没有替换稿。"
+      },
+      {
+        "pair_id": "counter_evidence",
+        "input_hashes": [
+          "dec7904e7fa100b5c6dc4031ece99f1b9dcf545c074c98b2c338d4867e090f41",
+          "c4c65db432ea57fe0521c2b72b7cd54941f8ea89190e0615eb908b215201784d"
+        ],
+        "output_hashes": [
+          "d2943ef9b1b62e145abafb02132bed77ecb9f1772434d8accffd8cca4dc2babe",
+          "ab92b6968815a55e5e2e105b301059d091aa08d0ee6d24a1c5903aa2b1882bbf"
+        ],
+        "decision": "approved",
+        "checks": {
+          "source_facts": true,
+          "scope_and_voice": true,
+          "goal_specific_action": true,
+          "alternative_choice_explained": true,
+          "uncertainty_and_observation": true
+        },
+        "comment": "少量tentative经验限定优先级；明确偏好和相关可读性反证改变素材选择，未宣称提升曝光。"
+      }
+    ]
+  }
+}

@@ -10,7 +10,7 @@ const {createDefaultConfig}=await import(runtimeUrl('scripts/lib/config.mjs'));
 const {initializeState,loadState,registerSources}=await import(runtimeUrl('scripts/lib/state.mjs'));
 const {canonicalHash,textHash}=await import(runtimeUrl('scripts/lib/contracts.mjs'));
 const {validate,ContractError}=await import(runtimeUrl('scripts/lib/contracts.mjs'));
-const {previewMigrationV4,migrateStateV4}=await import(runtimeUrl('scripts/lib/migrations.mjs'));
+const {previewMigrationV5,migrateStateV5,applyMigrationV5}=await import(runtimeUrl('scripts/lib/migrations.mjs'));
 const T='2026-10-26T04:00:00Z';
 const account={handle:'fixture_runtime',profile_url:'https://x.com/fixture_runtime',user_id:null,identity_basis:'user_provided'};
 test('all V2 command validators compile with strict schemas',()=>{
@@ -20,7 +20,7 @@ test('all V2 command validators compile with strict schemas',()=>{
 });
 async function isolated(version=4) {
   const dir=await mkdtemp(join(tmpdir(),'xops-v2-runtime-'));
-  const state=initializeState(createDefaultConfig(account),version);state.revision=1;
+  let state=initializeState(createDefaultConfig(account),version);state.revision=1;if(version===4)state=applyMigrationV5(state,previewMigrationV5(state));
   await writeFile(join(dir,'account-state.json'),JSON.stringify(state)+'\n');return{dir,state};
 }
 async function invoke(command,payload,dir,{run_id=null,revision}={}) {
@@ -30,18 +30,18 @@ async function invoke(command,payload,dir,{run_id=null,revision}={}) {
   assert.equal(proc.error,undefined);return{exit_code:proc.status,envelope:JSON.parse(proc.stdout)};
 }
 
-test('V2-38 migration enters through V1, preserves bytes on failure, backs up and reapplies idempotently',async()=>{
+test('V2-38 migration enters through V1 to current state5, preserves bytes on failure, backs up and reapplies idempotently',async()=>{
   const {dir,state}=await isolated(1),before=await readFile(join(dir,'account-state.json'),'utf8');
   const legacy=await invoke('state-migrate',{contract_version:2,operation:'preview'},dir);assert.equal(legacy.exit_code,4);assert.equal(legacy.envelope.errors[0].code,'MIGRATION_REQUIRED');
-  const preview=previewMigrationV4(state);
-  const cliPreview=await invoke('state-migrate',{contract_version:4,operation:'preview'},dir);
+  const preview=previewMigrationV5(state);
+  const cliPreview=await invoke('state-migrate',{contract_version:5,operation:'preview'},dir);
   assert.equal(cliPreview.exit_code,0,JSON.stringify(cliPreview.envelope.errors));assert.equal(cliPreview.envelope.data.migration_preview.preview_hash,preview.preview_hash);
-  await assert.rejects(migrateStateV4(dir,{operation:'apply',preview:{...preview,source_hash:'changed'},backup_directory:join(dir,'backups')},1),/Frozen preview is stale/);
+  await assert.rejects(migrateStateV5(dir,{contract_version:5,operation:'apply',preview:{...preview,source_hash:'changed'},backup_directory:join(dir,'backups')},1),/Frozen preview is stale/);
   assert.equal(await readFile(join(dir,'account-state.json'),'utf8'),before);
-  const first=await migrateStateV4(dir,{operation:'apply',preview,backup_directory:join(dir,'backups')},1);
-  assert.equal(first.state.schema_version,4);assert.equal(first.state.revision,2);
+  const first=await migrateStateV5(dir,{contract_version:5,operation:'apply',preview,backup_directory:join(dir,'backups')},1);
+  assert.equal(first.state.schema_version,5);assert.equal(first.state.revision,2);
   assert.equal(await readFile(first.data.migration_receipt.backup_path,'utf8'),before);
-  const second=await migrateStateV4(dir,{operation:'apply',preview,backup_directory:join(dir,'backups')},1);
+  const second=await migrateStateV5(dir,{contract_version:5,operation:'apply',preview,backup_directory:join(dir,'backups')},1);
   assert.equal(second.data.idempotent,true);assert.equal(second.state.revision,2);
   const {dir:old}=await isolated(1);
   const blocked=await invoke('config',{operation:'update',patch:{schema_version:1,scope:'persistent',expected_revision:1,operations:[{op:'set',path:'/content/primary_goal',value:'clicks'}]},as_of:T},old);
@@ -65,10 +65,10 @@ test('V2-01/02/19 CLI imports preserve byte identity, repeat idempotently and in
   assert.equal(empty.exit_code,4);assert.equal(empty.envelope.data.run_result.result_kind,'undetermined');
 });
 
-test('V2-37/39/42 state4 rejects creation of a new V2 coaching run without mutating state',async()=>{
+test('V2-37/39/42 state5 rejects creation of a new V2 coaching run without mutating state',async()=>{
   const {dir}=await isolated();
   const request={contract_version:2,account_identity:account,requested_scope:{mode:'full'},requested_deliverables:['account_period','historical_content','next_actions'],analysis_cutoff:T,analysis_request:{requested_outputs:['account_period'],requested_metric_definition_ids:['account.impressions']},goal_snapshot:{primary_goal:'relevant_reach',goal_notes:null,source:'temporary_assumption'},constraint_snapshot:{time_budget:null,content_preferences:[],rejected_tactics:[]},selection_policy_version:'v2',requested_post_version_refs:[],available_material_refs:[],rule_version_refs:[],content_analysis_version:'reader-1',content_budget:{max_items:0},unresolved_questions:['尚未取得历史材料']};
   const before=canonicalHash(await loadState(dir)),prepared=await invoke('coach-step',{contract_version:2,operation:'prepare',request,as_of:T},dir,{run_id:'coach-runtime'});
   assert.equal(prepared.exit_code,4);assert.equal(prepared.envelope.errors[0].code,'MIGRATION_REQUIRED');assert.equal(canonicalHash(await loadState(dir)),before);
-  // State4 V4 prepare persistence and fresh-process review continuation are covered by next22-coach-cli.test.mjs.
+  // Current V4-compatible prepare persistence and fresh-process review continuation are covered by next22-coach-cli.test.mjs.
 });

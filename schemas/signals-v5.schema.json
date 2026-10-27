@@ -1,0 +1,46 @@
+{
+  "$id": "https://x-ops.local/schemas/signals-v5.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "SignalValueV5": {
+      "type": "object", "additionalProperties": false,
+      "required": ["value", "unit", "status", "basis_kind", "source_refs", "locator", "observed_at", "review_refs"],
+      "properties": {
+        "value": {"oneOf": [{"type": "boolean"}, {"type": "number"}, {"type": "string"}, {"type": "null"}]},
+        "unit": {"type": "string", "minLength": 1},
+        "status": {"enum": ["observed", "reviewed", "unknown"]},
+        "basis_kind": {"enum": ["deterministic_extraction", "semantic_review", "mechanism_observation", "unknown"]},
+        "source_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "locator": {"oneOf": [{"type": "string"}, {"type": "null"}]},
+        "observed_at": {"$ref": "#/definitions/Instant"},
+        "review_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "SignalSetV5": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contract_version", "subject_ref", "subject_hash", "cutoff", "extractor_version", "signals", "selected_evidence_refs", "signal_set_hash"],
+      "properties": {
+        "contract_version": {"const": 5},
+        "subject_ref": {"type": "string", "minLength": 1},
+        "subject_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "cutoff": {"$ref": "#/definitions/Instant"},
+        "extractor_version": {"type": "string", "minLength": 1},
+        "signals": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/definitions/SignalValueV5"}},
+        "selected_evidence_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "signal_set_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "SemanticSignalAssessmentV5": {
+      "type": "object", "additionalProperties": false,
+      "required": ["assessment_id", "signal", "value", "unit", "subject_ref", "subject_hash", "assessment_hash", "review_receipt_ref", "reviewed_at", "source_refs", "locator"],
+      "properties": {
+        "assessment_id": {"type": "string", "minLength": 1}, "signal": {"type": "string", "minLength": 1},
+        "value": {"oneOf": [{"type": "boolean"}, {"type": "number"}, {"type": "string"}]}, "unit": {"type": "string", "minLength": 1},
+        "subject_ref": {"type": "string", "minLength": 1}, "subject_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "assessment_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "review_receipt_ref": {"type": "string", "minLength": 1},
+        "reviewed_at": {"$ref": "#/definitions/Instant"}, "source_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "locator": {"oneOf": [{"type": "string"}, {"type": "null"}]}
+      }
+    }
+  }
+}

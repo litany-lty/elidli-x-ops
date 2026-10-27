@@ -1,3 +1,5 @@
+import { approvedActionView } from './v4-dispatch.mjs';
+import {actionRequiresCurrentApproval} from './actions.mjs';
 import { canonicalStateInput } from './state-input.mjs';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -80,14 +82,17 @@ export async function dispatchV2(command,request,stateDir,state) {
     return{state:next,data};
   }
   if(command==='record') {
+    const actionId=payload.operation==='action_decision'?payload.data.action_id:payload.operation==='experiment'?state.experiments?.[payload.data.experiment_id]?.originating_action_id:null;
+    const needsApproval=actionId&&actionRequiresCurrentApproval(state,actionId)&&((payload.operation==='action_decision'&&payload.data.decision==='accepted')||(payload.operation==='experiment'&&payload.data.type==='accept'));
+    const approval=needsApproval?await approvedActionView(state,actionId):null;
     let refs=[];
     if(payload.operation==='collection_receipt')await verifyCollectionReceipt(payload.data,state.account);
     const next=await commitState(stateDir,request.expected_revision,working=>{
       if(payload.operation==='rule_version') {const rule=validateRuleVersionV2(payload.data,working);working.rule_versions_v2[rule.rule_version_id]=rule;refs=[rule.rule_version_id];return working;}
       if(payload.operation==='collection_receipt') {const receipt=payload.data,previous=working.collection_receipts[receipt.receipt_id];if(previous&&canonicalHash(previous)!==canonicalHash(receipt))fail('RECEIPT_CONFLICT','/receipt_id','Collection receipt is immutable');working.collection_receipts[receipt.receipt_id]=receipt;refs=[receipt.receipt_id];return working;}
-      if(payload.operation==='experiment') {const result=applyExperimentTransition(working,payload.data,payload.actual_evidence);refs=[payload.data.experiment_id];return result;}
+      if(payload.operation==='experiment') {const result=applyExperimentTransition(working,payload.data,{...payload.actual_evidence,approved_guidance:approval});refs=[payload.data.experiment_id];return result;}
       if(payload.operation==='action_decision') {
-        const result=applyActionDecision(working,payload.data);refs=[payload.data.action_id];return result;
+        const result=applyActionDecision(working,payload.data,{approved_guidance:approval});refs=[payload.data.action_id];return result;
       }
       fail('INVALID_INPUT','/operation','Unsupported V2 record operation');
     });

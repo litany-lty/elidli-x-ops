@@ -97,6 +97,24 @@ test('HOST: exact raw slices, unsupported shapes, URLs and snippet boundary',()=
   assert.equal(normalizeUrl('https://example.com/update?version=2&utm_source=a#top'),'https://example.com/update?version=2');
 });
 
+test('HOST: legacy local public_page locator is preserved while a new legal web read is saved',()=>{
+  const {state,run,context}=setup(),legacyId='source-legacy-local';
+  const legacy={record:{source_id:legacyId,kind:'public_page',locator:'/private/archive/profile.json',retrieved_at:T,description:'legacy local capture',metric_mapping:{},raw_material:{}},versions:{},latest_version_id:null};
+  state.sources[legacyId]=structuredClone(legacy);
+  const task={logical_task_id:'read-official',operation:'read',purpose:'discover',request:{ref_id:'https://example.com/official'},scope_refs:[],coverage_ids:['core-api']};
+  advanceNews(run,'plan',{plan:{...run.plan,tasks:[task]}},context);
+  const ticket=advanceNews(run,'reserve',{logical_task_ids:[task.logical_task_id]},context).tickets[0];
+  const raw='Official documentation (https://example.com/official)';
+  const extraction={kind:'source',block_index:0,start:0,end:raw.length,url:'https://example.com/official',title:'Official documentation',source_ref:'fixture-official',material_kind:'official_document',captured_text:raw};
+  const actual_call={tool_name:'web__run',request:ticket.request,executed_at:T,returned_at:T,host_call_ref:'fixture:official'};
+  const result=advanceNews(run,'ingest',{ticket_id:ticket.ticket_id,raw_object:raw,extractions:[extraction],actual_call},context);
+  assert.deepEqual(state.sources[legacyId],legacy);
+  const versionId=result.created_refs[0],saved=Object.values(state.sources).find(item=>item.versions?.[versionId]);
+  assert.ok(saved);assert.notEqual(saved.record.source_id,legacyId);assert.equal(saved.record.locator,'https://example.com/official');
+  assert.equal(saved.versions[versionId].raw_receipt_ref,result.receipt_id);assert.equal(saved.versions[versionId].captured_text,raw);
+  assert.throws(()=>ingestHostResult(ticket,raw,[{...extraction,url:'/private/new-invalid.json'}],actual_call),/Invalid URL/);
+});
+
 test('STATUS: bounded real empty fixture is no_findings, pending calls and actual failure remain distinct',()=>{
   const {run,context}=setup();let {tickets}=advanceNews(run,'reserve',{logical_task_ids:['search-0']},context);ingestEmpty(run,tickets[0],context);
   const result=advanceNews(run,'finalize',{cards:[],draft_inputs:[],coverage:[{coverage_id:'core-api',status:'completed',searched_ticket_ids:[tickets[0].ticket_id],read_ticket_ids:[],limitations:[]}],stop_reason:'bounded_search_complete'},{...context,persistence_status:'saved'});

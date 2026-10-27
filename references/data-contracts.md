@@ -1,5 +1,7 @@
 # 数据合同速查
 
+> 当前写入容器、命令版本与最终审核门以 [NEXT-2.3 运行合同](next23-runtime.md) 为准；本页保留所注明版本的对象与兼容细节。
+
 规范 schema 位于 `schemas/contracts.schema.json`；本文件解释使用约束，不替代 schema。
 
 ## 通用规则

@@ -4,8 +4,11 @@ import { prepareContentAnalysis, validateContentAnalysis, isContentAnalysisCurre
 import { priorActionOutcome, validateExperimentPlan } from './experiments.mjs';
 import { selectMetricObservations } from './observation-selection.mjs';
 import { canonicalStateInput } from './state-input.mjs';
-import { buildRuleContextV4 } from './knowledge.mjs';
-import { validatePersonalContextSelection } from './consumer-context.mjs';
+import { buildRuleContextV4, buildRuleContextV5 } from './knowledge.mjs';
+import { buildSignalSetV5 } from './signals.mjs';
+import { buildOperationalContext, validatePersonalContextSelection } from './consumer-context.mjs';
+import { actionPlanHash, validateActionRecommendationV5, validateStrategyDefinitionV5 } from './actions.mjs';
+import { resolveSubject } from './subjects.mjs';
 
 const fail = (code, path, message) => { throw new ContractError(code, path, message, false); };
 const values = value => Object.values(value ?? {});
@@ -184,9 +187,26 @@ export function buildEvidenceBundleV4(state,{target,baseline=null,background_ref
   return validate('EvidenceBundleV4',bundle);
 }
 
+/** Resolve only actual stored subject bytes; absent text remains explicitly unread. */
+export function resolveCoachingSubject(state, ref) {
+  return resolveSubject(state, ref);
+}
+
+function signalInputs(state, request, subject, actualReviews = request.actual_review_receipts ?? []) {
+  const contentRefs = currentContentRefs(state, request.coaching_request?.requested_post_version_refs ?? [], request.coaching_request?.content_analysis_version);
+  const signalSet = buildSignalSetV5({ subject, cutoff: request.as_of, semantic_evidence: request.semantic_evidence ?? [], actual_reviews: actualReviews, selected_evidence_refs: [...contentRefs, ...(request.selected_evidence_refs ?? [])] });
+  const predicateSignals = Object.fromEntries(Object.entries(signalSet.signals).filter(([, item]) => item.value !== null).map(([name, item]) => [name, { value: item.value, unit: item.unit }]));
+  return { signalSet, predicateSignals, contentRefs };
+}
+
+export function buildCoachingSignalContext(state, request, { actual_review_receipts = request.actual_review_receipts ?? [] } = {}) {
+  const subject = resolveCoachingSubject(state, request.subject_ref), built = signalInputs(state, request, subject, actual_review_receipts);
+  return { ...built, subject, surface: request.surface ?? request.evidence_request?.target?.scope?.surface ?? null, post_type: request.post_type ?? subject.post_type ?? null };
+}
+
 /** Build a state-4 coaching run from the same canonical input used by account analysis. */
 export function prepareCoachingV4(state,request,{catalog,max_new_items}={}) {
-  if(state?.schema_version!==4)fail('MIGRATION_REQUIRED','/state/schema_version','V4 coaching requires state 4');
+  if(![4,5].includes(state?.schema_version))fail('MIGRATION_REQUIRED','/state/schema_version','V4-compatible coaching requires state 4 or 5');
   if(!request?.run_id||!request.intent||!request.use||!request.subject_ref||!request.as_of)fail('INVALID_INPUT','/request','V4 coaching requires run, intent, use, subject and cutoff');
   const coachingRequest=request.coaching_request;
   if(!coachingRequest)fail('INVALID_INPUT','/coaching_request','V4 coaching requires the deterministic account-analysis request');
@@ -199,10 +219,71 @@ export function prepareCoachingV4(state,request,{catalog,max_new_items}={}) {
     const personal=validatePersonalContextSelection(state,request.personal_context_selection,{goal_hash:goalHash,brief_or_use_hash:useHash,requested_use:request.use,post_version_refs:coachingRequest.requested_post_version_refs??[],selection_policy_version:request.personal_selection_policy_version});
     personalHash=personal.selection_hash;personalRef=request.personal_context_selection_ref??`personal-selection-${personalHash.slice(0,24)}`;
   }
-  const ruleInput={run_id:request.run_id,intent:request.intent,goal:coachingRequest.goal_snapshot,use:request.use,subject_ref:request.subject_ref,cutoff:request.as_of,personal_context_selection:request.personal_context_selection??null,personal_context_selection_ref:personalRef,personal_context_selection_hash:personalHash,evidence_bundle_ref:evidenceBundle.bundle_id,evidence_bundle_hash:evidenceBundle.evidence_bundle_hash,explicit_rule_version_refs:[...(coachingRequest.rule_version_refs??[])]};
+  const {subject,signalSet,predicateSignals,surface,post_type:postType}=buildCoachingSignalContext(state,request);
+  const ruleInput={run_id:request.run_id,intent:request.intent,goal:coachingRequest.goal_snapshot,use:request.use,surface,post_type:postType,subject_ref:request.subject_ref,cutoff:request.as_of,signals:predicateSignals,personal_context_selection:request.personal_context_selection??null,personal_context_selection_ref:personalRef,personal_context_selection_hash:personalHash,evidence_bundle_ref:evidenceBundle.bundle_id,evidence_bundle_hash:evidenceBundle.evidence_bundle_hash,explicit_rule_version_refs:[...(coachingRequest.rule_version_refs??[])]};
   const ruleContext=buildRuleContextV4(ruleInput,catalog);
   const runBase={contract_version:4,run_id:request.run_id,intent:request.intent,goal:coachingRequest.goal_snapshot.primary_goal,use:request.use,subject_ref:request.subject_ref,cutoff:request.as_of,canonical_state_input_hash:canonicalHash(canonical),evidence_bundle_ref:evidenceBundle.bundle_id,evidence_bundle_hash:evidenceBundle.evidence_bundle_hash,personal_context_selection_ref:personalRef,personal_context_selection_hash:personalHash,rule_context_ref:ruleContext.context_id??ruleContext.rule_context_id,selected_rule_context_hash:ruleContext.selected_rule_context_hash,status:prepared.content_work_items.work_items?.length?'awaiting_content':'awaiting_proposal'};
-  return{run:validate('CoachingRunV4',runBase),content_work_items:prepared.content_work_items,evidence_bundle:evidenceBundle,rule_context:ruleContext,analysis_view:{account_period_results:prepared.bundle.account_period_results,publication_structure:prepared.bundle.publication_structure,post_cohort_results:prepared.bundle.post_cohort_results,age_matched_results:prepared.bundle.age_matched_results,comparison_results:prepared.bundle.comparison_results,derived_metrics:prepared.bundle.derived_metrics,deliverable_status:prepared.bundle.deliverable_status,computed_limitations:prepared.bundle.computed_limitations}};
+  return{run:validate('CoachingRunV4',runBase),content_work_items:prepared.content_work_items,evidence_bundle:evidenceBundle,rule_context:ruleContext,signal_set:signalSet,analysis_view:{account_period_results:prepared.bundle.account_period_results,publication_structure:prepared.bundle.publication_structure,post_cohort_results:prepared.bundle.post_cohort_results,age_matched_results:prepared.bundle.age_matched_results,comparison_results:prepared.bundle.comparison_results,derived_metrics:prepared.bundle.derived_metrics,deliverable_status:prepared.bundle.deliverable_status,computed_limitations:prepared.bundle.computed_limitations}};
+}
+
+/** Prepare state-5 coaching from exact subject signals and one shared operational context. */
+export function prepareCoachingV5(state, request, { catalog, max_new_items, actual_review_receipts = [] } = {}) {
+  if (state?.schema_version !== 5) fail('MIGRATION_REQUIRED', '/state/schema_version', 'V5 coaching requires state 5');
+  validate('CoachingPrepareRequestV5', request);
+  const actualReviews = Array.isArray(actual_review_receipts) ? actual_review_receipts : Object.values(actual_review_receipts ?? {});
+  const actualRefs = actualReviews.map(item => item.receipt_id).sort(), requestedActualRefs = [...request.actual_review_receipt_refs].sort();
+  if (canonicalHash(actualRefs) !== canonicalHash(requestedActualRefs)) fail('INVALID_EVIDENCE_REF', '/actual_review_receipt_refs', 'Resolved actual signal reviews must exactly match requested receipt references');
+  const coachingRequest = request.coaching_request, canonical = analysisDataset(state, coachingRequest.analysis_request, request.as_of);
+  const prepared = prepareCoaching(state, coachingRequest, { max_new_items });
+  const evidenceBundle = buildEvidenceBundleV4(state, { ...request.evidence_request, as_of: request.as_of });
+  const {subject,signalSet,contentRefs,surface,post_type:postType}=buildCoachingSignalContext(state,request,{actual_review_receipts:actualReviews});
+  const metricRefs = Object.keys(evidenceBundle.evidence_index).filter(ref => evidenceBundle.evidence_index[ref].evidence_role === 'target');
+  const operationalContext = buildOperationalContext(state, { intent: 'coach', use: request.use, goal: coachingRequest.goal_snapshot, cutoff: request.as_of, subject_descriptor: subject, subject_ref: request.subject_ref, topic_refs: request.topic_refs, format: request.format, surface, task_constraints: request.task_constraints, temporary_overrides: request.temporary_overrides, content_evidence_refs: contentRefs, metric_evidence_refs: metricRefs, selected_signals: Object.keys(signalSet.signals).map(name => `${signalSet.signal_set_hash}:${name}`), knowledge_dependency_versions: { catalog_ref: catalog.catalog.catalog_id, catalog_content_hash: catalog.catalog.catalog_content_hash }, selection_policy_version: request.selection_policy_version });
+  const personalRef = `operational-context-${operationalContext.selected_context_hash.slice(0, 24)}`;
+  const ruleContext = buildRuleContextV5({ run_id: request.run_id, intent: request.intent, goal: coachingRequest.goal_snapshot, use: request.use, surface, post_type: postType, subject_ref: request.subject_ref, subject_hash: subject.content_hash, cutoff: request.as_of, signal_set: signalSet, personal_context_selection_ref: personalRef, personal_context_selection_hash: operationalContext.selected_context_hash, operational_context:operationalContext, explicit_rule_version_refs: coachingRequest.rule_version_refs }, catalog);
+  const runBase = { contract_version: 5, run_id: request.run_id, intent: request.intent, goal: coachingRequest.goal_snapshot, use: request.use, subject_ref: request.subject_ref, subject_hash: subject.content_hash, cutoff: request.as_of, canonical_state_input_hash: canonicalHash(canonical), evidence_bundle_ref: evidenceBundle.bundle_id, evidence_bundle_hash: evidenceBundle.evidence_bundle_hash, operational_context: operationalContext, selected_operational_context_hash: operationalContext.selected_context_hash, rule_context_ref: ruleContext.context_id, selected_rule_context_hash: ruleContext.selected_rule_context_hash, status: prepared.content_work_items.work_items?.length ? 'awaiting_content' : 'awaiting_proposal' };
+  return { run: validate('CoachingRunV5', runBase), content_work_items: prepared.content_work_items, evidence_bundle: evidenceBundle, rule_context: ruleContext, signal_set: signalSet, analysis_view: { account_period_results: prepared.bundle.account_period_results, publication_structure: prepared.bundle.publication_structure, post_cohort_results: prepared.bundle.post_cohort_results, age_matched_results: prepared.bundle.age_matched_results, comparison_results: prepared.bundle.comparison_results, derived_metrics: prepared.bundle.derived_metrics, deliverable_status: prepared.bundle.deliverable_status, computed_limitations: prepared.bundle.computed_limitations } };
+}
+
+export function coachingProposalHashV5(proposal) {
+  const frozen = clone(proposal); delete frozen.proposal_hash;
+  return canonicalHash(frozen);
+}
+
+export function validateCoachingProposalV5(proposal, { run, evidence_bundle: evidenceBundle, rule_context: ruleContext, state }) {
+  validate('CoachingProposalV5', proposal);
+  if (proposal.run_ref !== run.run_id || proposal.evidence_bundle_ref !== evidenceBundle.bundle_id || proposal.evidence_bundle_hash !== evidenceBundle.evidence_bundle_hash) fail('STALE_BUNDLE', '/evidence_bundle_ref', 'Proposal is not bound to prepared evidence');
+  if (proposal.rule_context_ref !== ruleContext.context_id || proposal.selected_rule_context_hash !== ruleContext.selected_rule_context_hash || proposal.selected_operational_context_hash !== run.selected_operational_context_hash) fail('STALE_BUNDLE', '/rule_context_ref', 'Proposal is not bound to current rule and operational selections');
+  if (proposal.proposal_hash !== coachingProposalHashV5(proposal)) fail('STALE_BUNDLE', '/proposal_hash', 'Proposal content changed after freezing');
+  const evidence = ref => evidenceBundle.evidence_index[ref] ?? fail('INVALID_EVIDENCE_REF', '/evidence_refs', `Evidence is not in the prepared bundle: ${ref}`);
+  for (const finding of proposal.findings) for (const ref of finding.evidence_refs) evidence(ref);
+  for (const action of proposal.actions) {
+    if (action.originating_proposal_ref !== proposal.proposal_id || action.goal !== run.goal.primary_goal || action.use !== run.use) fail('INVALID_EVIDENCE_REF', '/actions', 'Action identity, goal and use must match its proposal');
+    const strategy = state.strategy_definitions?.[action.strategy_version_ref];
+    if (!strategy) fail('MISSING_EVIDENCE', '/strategy_version_ref', 'Action strategy version is missing');
+    const strategyAliases = Object.entries(state.strategy_definitions ?? {}).filter(([, candidate]) => candidate.strategy_hash === strategy.strategy_hash).map(([ref]) => ref);
+    if (strategyAliases.length !== 1 || strategyAliases[0] !== action.strategy_version_ref) fail('STATE_CONFLICT', '/strategy_version_ref', 'Strategy version must resolve to one exact immutable collection key');
+    validateStrategyDefinitionV5(strategy); validateActionRecommendationV5(action, state);
+    for (const ref of [...action.account_evidence_refs, ...action.content_evidence_refs, ...action.rule_version_refs, ...action.guardrail_metric_refs]) evidence(ref);
+    const prior = Object.values(state.actions ?? {}).filter(item => item.strategy_version_ref === action.strategy_version_ref && item.action_id !== action.action_id), failureRefs = [];
+    for (const item of prior) {
+      if (item.status === 'declined') failureRefs.push(item.action_id);
+      for (const exp of Object.values(state.experiments ?? {}).filter(exp => exp.originating_action_id === item.action_id)) {
+        const review = state.experiment_reviews?.[exp.review_ref], conclusion = review?.interpretation?.conclusion ?? review?.conclusion;
+        if (review && ['revise', 'stop', 'inconclusive'].includes(conclusion)) failureRefs.push(review.review_id);
+      }
+    }
+    if (failureRefs.length) {
+      const priorRefs = new Set(prior.flatMap(item => [...(item.account_evidence_refs ?? []), ...(item.content_evidence_refs ?? []), ...(item.rule_version_refs ?? [])]));
+      const newRefs = [...action.account_evidence_refs, ...action.content_evidence_refs, ...action.rule_version_refs].filter(ref => !priorRefs.has(ref));
+      if (!action.retry_reason?.trim() || !action.addresses_failure_refs?.length || action.addresses_failure_refs.some(ref => !failureRefs.includes(ref))) fail('INVALID_INPUT', '/actions/addresses_failure_refs', 'Retrying an adverse strategy must identify the actual prior failure');
+      if (!action.new_relevant_evidence_refs?.length || action.new_relevant_evidence_refs.some(ref => !newRefs.includes(ref))) fail('INVALID_INPUT', '/actions/new_relevant_evidence_refs', 'Retrying an adverse strategy requires declared evidence that is both relevant and new');
+    } else if (action.addresses_failure_refs.length || action.new_relevant_evidence_refs.length || action.retry_reason !== null) {
+      fail('INVALID_INPUT', '/actions/retry_reason', 'Retry metadata is allowed only when this stable strategy addresses an actual prior failure');
+    }
+    if (action.plan_hash !== actionPlanHash(action)) fail('STALE_BUNDLE', '/actions/plan_hash', 'Action plan hash changed');
+  }
+  return clone(proposal);
 }
 
 export function coachingProposalHashV4(proposal){
@@ -233,7 +314,7 @@ export function prepareCoaching(state, request, options = {}) {
   const analysisResults = analyzeAccountV2(canonicalInput(state, request), request.analysis_request);
   const requestedPostRefs = request.requested_post_version_refs ?? [];
   const contentAnalysisRefs = currentContentRefs(state, requestedPostRefs, request.content_analysis_version);
-  const content = [3,4].includes(state.schema_version)?prepareContentAnalysisV3(state,requestedPostRefs,{analysis_version:request.content_analysis_version,max_items:options.max_new_items??request.content_budget.max_items}):prepareContentAnalysis(values(state.post_versions).filter(item => requestedPostRefs.includes(item.post_version_id ?? item.version_id)), {
+  const content = [3,4,5].includes(state.schema_version)?prepareContentAnalysisV3(state,requestedPostRefs,{analysis_version:request.content_analysis_version,max_items:options.max_new_items??request.content_budget.max_items}):prepareContentAnalysis(values(state.post_versions).filter(item => requestedPostRefs.includes(item.post_version_id ?? item.version_id)), {
     requested_post_version_refs: requestedPostRefs,
     analysis_version: request.content_analysis_version,
     max_items: options.max_new_items ?? request.content_budget.max_items
@@ -469,7 +550,8 @@ function contentRunStatus(work) {
 }
 
 export function advanceCoaching(state, payload, runId = null) {
-  if (!state || ![2,3,4].includes(state.schema_version)) fail('MIGRATION_REQUIRED', '/state/schema_version', 'Coaching requires a supported state');
+  if (!state || ![2,3,4,5].includes(state.schema_version)) fail('MIGRATION_REQUIRED', '/state/schema_version', 'Coaching requires a supported state');
+  if (state.schema_version === 5) fail('MIGRATION_REQUIRED', '/contract_version', 'State 5 coaching mutations must use the V5 prepare/propose/materialize/finalize route');
   for (const key of ['content_analyses', 'content_review_receipts', 'coaching_runs', 'evidence_bundles', 'diagnoses', 'actions', 'experiments', 'experiment_reviews', 'rule_versions_v2']) state[key] ??= {};
   if (payload.operation === 'prepare') {
     if(state.schema_version===4)fail('MIGRATION_REQUIRED','/contract_version','State 4 coaching preparation must use the V4 guidance route');

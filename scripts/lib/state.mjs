@@ -4,8 +4,9 @@ import { canonicalHash, textHash, validate, ContractError } from './contracts.mj
 import { analysisProposalHash } from './post-content.mjs';
 import { resolvePostIdentity, resolveVersionPostKey } from './post-identity.mjs';
 import { validateMetricObservation } from './metrics.mjs';
-import { isReliableState } from './state-version.mjs';
+import { CURRENT_STATE_VERSION, hasKnowledgeState, isReliableState } from './state-version.mjs';
 import { seedKnowledgeState } from './knowledge-state.mjs';
+import { migrateConfigV5 } from './config.mjs';
 
 const fail = (code, path, message) => { throw new ContractError(code, path, message, false); };
 const collections = ['runs','sources','raw_receipts','user_facts','events','claims','drafts','adoptions','publications','posts','snapshots','reviews','rule_versions'];
@@ -13,10 +14,11 @@ export const v2Collections = ['import_batches','source_series','post_entities','
 
 export const v3Collections = ['post_metadata_facts','draft_review_receipts','content_briefs','recipe_versions','media_assets','asset_review_receipts','content_packs','preview_artifacts','pack_review_receipts','content_runs','review_computations','experiment_plan_views','host_media_receipts'];
 export const v4Collections = ['knowledge_artifacts','knowledge_catalogs','knowledge_events','operational_rules','rule_contexts','rule_applications','guidance_outputs','guidance_receipts','personal_patterns','collection_runs','collection_scopes','collection_receipts_v4'];
+export const v5Collections = ['strategy_definitions','feedback_events','inspiration_sessions'];
 
 export function validateState(state) {
-  if (![1,2,3,4].includes(state.schema_version)) fail('SCHEMA_VERSION','/schema_version','Unsupported state version');
-  validate('ConfigV1',state.config);
+  if (![1,2,3,4,5].includes(state.schema_version)) fail('SCHEMA_VERSION','/schema_version','Unsupported state version');
+  validate(state.schema_version===5?'ConfigV5':'ConfigV1',state.config);
   if(canonicalHash(state.account)!==canonicalHash(state.config.account))fail('IDENTITY_MISMATCH','/account','State identity must match its configuration');
   for(const key of collections)if(!state[key]||typeof state[key]!=='object'||Array.isArray(state[key]))fail('INVALID_INPUT',`/${key}`,'Expected an ID-indexed state collection');
   for(const [id,source] of Object.entries(state.sources)) {
@@ -48,20 +50,22 @@ export function validateState(state) {
   for(const run of Object.values(state.runs))if(run.binding)validate('NewsRun',run);else {validate('RunContext',run.run_context);validate('RunResult',run.run_result);}
   if (state.schema_version >= 2) validateV2State(state);
   if(isReliableState(state))validateV3State(state);
-  if(state.schema_version===4)validateV4State(state);
+  if(hasKnowledgeState(state))validateV4State(state);
+  if(state.schema_version===5)validateV5State(state);
   return state;
 }
 
-export function initializeState(config, version = 4) {
-  const state={ schema_version: version, revision: 0, account: structuredClone(config.account), config: structuredClone(config),
-    preference_meta: {}, ...Object.fromEntries([...collections,...(version>=2?v2Collections:[]),...(isReliableState(version)?v3Collections:[]),...(version===4?v4Collections:[])].map(key => [key, {}])) };
-  return version===4?seedKnowledgeState(state):state;
+export function initializeState(config, version = CURRENT_STATE_VERSION) {
+  const selectedConfig=version===5?migrateConfigV5(config):config;
+  const state={ schema_version: version, revision: 0, account: structuredClone(selectedConfig.account), config: structuredClone(selectedConfig),
+    preference_meta: {}, ...Object.fromEntries([...collections,...(version>=2?v2Collections:[]),...(isReliableState(version)?v3Collections:[]),...(hasKnowledgeState(version)?v4Collections:[]),...(version===5?v5Collections:[])].map(key => [key, {}])) };
+  return hasKnowledgeState(version)?seedKnowledgeState(state):state;
 }
 
 function validateV2State(state) {
   for (const key of v2Collections) if(!state[key] || typeof state[key]!=='object' || Array.isArray(state[key])) fail('INVALID_INPUT',`/${key}`,'Expected a V2 ID-indexed collection');
   const types = {import_batches:'ImportBatchV2',source_series:'SourceSeriesV2',post_entities:'PostEntityV2',post_versions:'PostVersionV2',snapshots_v2:'SnapshotV2',content_analyses:'PostContentAnalysisV2',content_review_receipts:'ContentSemanticReceiptV2',coaching_runs:'CoachingRunV2',coaching_reports:'CoachingReportV2',evidence_bundles:'EvidenceBundleV2',diagnoses:'AccountDiagnosisV2',actions:'ActionRecommendationV2',action_decisions:'ActionDecisionV2',experiments:'ExperimentPlanV2',experiment_reviews:'ReviewResultV2',rule_versions_v2:'RuleVersionV2',collection_receipts:'CollectionReceiptV2'};
-  const mixed={3:{coaching_runs:'CoachingRunV3',content_review_receipts:'ContentSemanticReceiptV3',content_analyses:'PostContentAnalysisV3',experiment_reviews:'ReviewResultV3'},4:{coaching_runs:'CoachingRunV4',coaching_reports:'CoachingProposalV4',evidence_bundles:'EvidenceBundleV4',experiment_reviews:'ExperimentReviewV4'}};
+  const mixed={3:{coaching_runs:'CoachingRunV3',content_review_receipts:'ContentSemanticReceiptV3',content_analyses:'PostContentAnalysisV3',experiment_reviews:'ReviewResultV3'},4:{coaching_runs:'CoachingRunV4',coaching_reports:'CoachingProposalV4',evidence_bundles:'EvidenceBundleV4',experiment_reviews:'ExperimentReviewV4'},5:{coaching_runs:'CoachingRunV5',coaching_reports:'CoachingProposalV5',actions:'ActionRecommendationV5',action_decisions:'ActionExecutionV5'}};
   for (const [collection,type] of Object.entries(types)) for (const value of Object.values(state[collection])) validate(mixed[value.contract_version]?.[collection]??type,value);
   const hasMaterial = ref => Boolean(state.sources[ref] || Object.values(state.import_artifacts).some(a=>(a.source_refs??[a.source_ref]).includes(ref)));
   for(const analysis of Object.values(state.content_analyses)) {
@@ -90,7 +94,7 @@ function validateV3State(state) {
   const types={post_metadata_facts:'PostMetadataFactV3',draft_review_receipts:'DraftReviewReceiptV3',content_briefs:'ContentBriefV3',recipe_versions:'ContentRecipeSnapshotV3',media_assets:'MediaAssetEntryV3',asset_review_receipts:'AssetReviewReceiptV3',content_packs:'ContentPackEntryV3',preview_artifacts:'PreviewArtifactV3',pack_review_receipts:'PackReviewReceiptV3',content_runs:'ContentRunV3',review_computations:'ReviewComputationV3',experiment_plan_views:'ExperimentPlanViewV3',host_media_receipts:'HostMediaReceiptV3'};
   for(const [collection,type] of Object.entries(types)){
     if(!state[collection]||typeof state[collection]!=='object'||Array.isArray(state[collection]))fail('INVALID_INPUT',`/${collection}`,'Expected state 3 collection');
-    for(const value of Object.values(state[collection])){const mixed=value.contract_version===4?({review_computations:'ReviewComputationV4',host_media_receipts:'HostGuidanceReviewReceiptV4'}[collection]??type):collection==='experiment_plan_views'&&!value.source_semantic_hash?'ExperimentPlanViewLegacyV3':type;validate(mixed,value);}
+    for(const value of Object.values(state[collection])){const current=value.contract_version===5?({content_briefs:'ContentBriefV5',content_runs:'ContentRunV5',draft_review_receipts:'DraftReviewReceiptV5',host_media_receipts:value.operation?'HostMediaReceiptV5':'HostReviewReceiptV5'}[collection]??type):value.contract_version===4?({review_computations:'ReviewComputationV4',host_media_receipts:'HostGuidanceReviewReceiptV4'}[collection]??type):collection==='experiment_plan_views'&&!value.source_semantic_hash?'ExperimentPlanViewLegacyV3':type;validate(current,value);}
   }
   for(const adoption of Object.values(state.adoptions))if(adoption.draft_ref){
     const review=state.draft_review_receipts[adoption.draft_review_ref];
@@ -127,13 +131,23 @@ function validateV3State(state) {
 function validateV4State(state) {
   const types={knowledge_artifacts:'KnowledgeArtifactV4',knowledge_catalogs:'RuleCatalogSnapshotV4',knowledge_events:'KnowledgeEventV4',operational_rules:'OperationalRuleV4',rule_contexts:'RuleContextV4',rule_applications:'RuleApplicationV4',guidance_outputs:'GuidanceOutputV4',guidance_receipts:'GuidanceReceiptV4',personal_patterns:'PersonalPatternV4',collection_runs:'CollectionRunV4',collection_scopes:'CollectionScopeV4',collection_receipts_v4:'CollectionReceiptV4'};
   for(const key of v4Collections)if(!state[key]||typeof state[key]!=='object'||Array.isArray(state[key]))fail('INVALID_INPUT',`/${key}`,'Expected state 4 collection');
+  const v5Types={rule_contexts:'RuleContextV5',rule_applications:'RuleApplicationV5',guidance_outputs:'GuidanceOutputV5',guidance_receipts:'GuidanceReceiptV5',personal_patterns:'PersonalPatternV5'};
+  for(const [collection,type] of Object.entries(types))for(const value of Object.values(state[collection])){
+    const current=collection==='knowledge_events'&&value.contract_version===5?(value.check_id?'KnowledgeCheckV5':value.proposal_id?'KnowledgeUpdateProposalV5':value.replay_id?'KnowledgeReplayResultV5':'KnowledgeEventV5'):value.contract_version===5?(v5Types[collection]??type):type;
+    validate(current,value);
+  }
+}
+
+function validateV5State(state) {
+  const types={strategy_definitions:'StrategyDefinitionV5',feedback_events:'FeedbackEventV5',inspiration_sessions:'InspirationSessionEntryV5'};
+  for(const key of v5Collections)if(!state[key]||typeof state[key]!=='object'||Array.isArray(state[key]))fail('INVALID_INPUT',`/${key}`,'Expected state 5 collection');
   for(const [collection,type] of Object.entries(types))for(const value of Object.values(state[collection]))validate(type,value);
 }
 
 export async function loadState(dir) {
   try {
     const state = JSON.parse(await readFile(join(dir, 'account-state.json'), 'utf8'));
-    if (![1,2,3,4].includes(state.schema_version)) fail('SCHEMA_VERSION', '/schema_version', 'Unsupported state version');
+    if (![1,2,3,4,5].includes(state.schema_version)) fail('SCHEMA_VERSION', '/schema_version', 'Unsupported state version');
     if (!Number.isSafeInteger(state.revision) || state.revision < 1) fail('INVALID_INPUT', '/revision', 'Invalid state revision');
     return validateState(state);
   } catch (error) {
@@ -152,12 +166,12 @@ export async function commitState(dir, expectedRevision, mutation, { migration =
   const temporary = join(dir, `.account-state.${process.pid}.${crypto.randomUUID()}.tmp`);
   try {
     const previous = await loadState(dir);
-    if (previous && previous.schema_version !== 4 && !migration) fail('MIGRATION_REQUIRED','/schema_version','Preview and apply the state 4 migration before writing this account');
+    if (previous && previous.schema_version !== CURRENT_STATE_VERSION && !migration) fail('MIGRATION_REQUIRED','/schema_version',`Preview and apply the state ${CURRENT_STATE_VERSION} migration before writing this account`);
     if ((previous?.revision ?? 0) !== expectedRevision) fail('STATE_CONFLICT', '/expected_revision', 'State changed; read the current revision before writing');
     const working = previous ? structuredClone(previous) : null;
     const result = await mutation(working);
     const next = result?.state ?? result;
-    if (!next || next.schema_version!==4) fail('SCHEMA_VERSION', '/state/schema_version', 'Every commit must target state 4');
+    if (!next || next.schema_version!==CURRENT_STATE_VERSION) fail('SCHEMA_VERSION', '/state/schema_version', `Every normal commit must target state ${CURRENT_STATE_VERSION}`);
     if (previous && canonicalHash(previous) === canonicalHash(next)) return previous;
     next.revision = expectedRevision + 1;
     validateState(next);

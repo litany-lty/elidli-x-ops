@@ -9,6 +9,7 @@ import { runtimeUrl } from './helpers/runtime.mjs';
 
 const { createDefaultConfig } = await import(runtimeUrl('scripts/lib/config.mjs'));
 const { initializeState, loadState, persistenceStatus } = await import(runtimeUrl('scripts/lib/state.mjs'));
+const { previewMigrationV5, applyMigrationV5 } = await import(runtimeUrl('scripts/lib/migrations.mjs'));
 const { canonicalHash, textHash } = await import(runtimeUrl('scripts/lib/contracts.mjs'));
 const { analysisProposalHash } = await import(runtimeUrl('scripts/lib/post-content.mjs'));
 const { coachingRunResult } = await import(runtimeUrl('scripts/lib/v2-dispatch.mjs'));
@@ -17,7 +18,7 @@ const account = { handle: 'fixture_coach_cli', profile_url: 'https://x.com/fixtu
 
 async function isolated() {
   const dir = await mkdtemp(join(tmpdir(), 'xops-v2-coach-'));
-  const state = initializeState(createDefaultConfig(account), 4); state.revision = 1;
+  const source = initializeState(createDefaultConfig(account), 4); source.revision = 1; const state = applyMigrationV5(source, previewMigrationV5(source));
   await writeFile(join(dir, 'account-state.json'), `${JSON.stringify(state)}\n`);
   return dir;
 }
@@ -42,7 +43,7 @@ function coachingProposal(bundle) {
   return { contract_version: 2, bundle_id: bundle.bundle_id, bundle_hash: bundle.bundle_hash, diagnosis: { diagnosis_id: 'diagnosis-cli-1', bundle_id: bundle.bundle_id, bundle_hash: bundle.bundle_hash, primary_question_or_bottleneck: '先验证开头承诺是否更具体', findings: [{ finding_id: 'finding-cli-1', statement: '当前期间曝光有可用观测', finding_type: 'observation', evidence_refs: [metric], applicable_scope: 'current period', interpretation: '该值可作为后续同口径观察基线', alternative_explanations: [], confidence_level: 'supported', confidence_basis: '平台期间观测', what_would_change_this_finding: '平台更正或发现口径冲突' }], computed_limitations_hash: canonicalHash(bundle.computed_limitations), analyst_limitations: [] }, actions: [action], experiment: { contract_version: 2, experiment_id: 'experiment-cli-1', originating_action_id: action.action_id, goal: '验证更具体的开头', hypothesis: '具体问题开头可能帮助目标读者理解承诺', single_primary_change: '只修改开头承诺', baseline_scope: { description: '已有同主题原创', refs: [] }, target_scope: { description: '下一条同主题原创', refs: [] }, inclusion_exclusion_rules: ['排除突发热点'], planned_primary_metric: { definition_id: 'account.impressions', evidence_ref: metric }, guardrails: [], age_window_or_period: { kind: 'age_window', value: '24h' }, planned_review_condition: '发布24小时且覆盖已核查', assignment_or_selection_method: '观察性前后比较', known_confounders: ['主题和发布时间'], success_interpretation: '主要指标改善且守护指标不降时继续观察', stop_condition: '两个可比样本无改善时修订', status: 'proposed', status_history: [{ status: 'proposed', at: '2026-10-26T04:20:00Z', basis_refs: [action.action_id], reason: null }], linked_publication_ids: [] } };
 }
 
-test('state4 rejects a new legacy coaching run before the V4 prepare/review replacement path', async () => {
+test('state5 rejects a new legacy coaching run before the current prepare/review replacement path', async () => {
   const dir = await isolated(), material = join(dir, 'material.json');
   const content = { posts: [{ post_id: '201', text: '先说明一个具体问题，再给出三个可核查步骤。', post_type: 'original', created_at: '2026-10-25T00:00:00Z' }], observations: [{ entity_type: 'account', entity_id: 'handle:fixture_coach_cli', metric_key: 'account.impressions', value: 1800, value_kind: 'count', unit: 'count', precision: 'exact', observed_at: T, period: { start: '2026-10-19T04:00:00Z', end_exclusive: T, timezone: 'UTC', source_date_start: '2026-10-19', source_date_end_inclusive: '2026-10-25', raw_period_label: '7d', completeness: 'complete' }, aggregation_basis: 'event_period', distribution: 'total', surface: 'all' }] };
   const bytes = `${JSON.stringify(content)}\n`; await writeFile(material, bytes);
@@ -77,7 +78,7 @@ test('state4 rejects a new legacy coaching run before the V4 prepare/review repl
   assert.equal(coachingRunResult(saved, runId, 'saved').execution_status, 'complete');
 });
 
-test('state4 rejects legacy empty-history preparation instead of treating missing evidence as complete', async () => {
+test('state5 rejects legacy empty-history preparation instead of treating missing evidence as complete', async () => {
   const dir = await isolated(), runId = 'coach-empty';
   const request = { contract_version: 2, account_identity: account, requested_scope: { mode: 'full' }, requested_deliverables: ['account_period', 'historical_content', 'next_actions'], analysis_cutoff: T, analysis_request: { requested_outputs: ['account_period'], periods: [], age_windows: [], requested_metric_definition_ids: ['account.impressions'], target_post_keys: [], cohort: null, selection_policy: { version: 'policy-v1' } }, goal_snapshot: { primary_goal: 'relevant_reach', goal_notes: null, source: 'temporary_assumption' }, constraint_snapshot: { time_budget: null, content_preferences: [], rejected_tactics: [] }, selection_policy_version: 'policy-v1', requested_post_version_refs: [], available_material_refs: [], rule_version_refs: [], content_analysis_version: 'reader-v1', content_budget: { max_items: 0 }, unresolved_questions: ['尚未取得私有数据'] };
   const before=canonicalHash(await loadState(dir)),prepared = await invoke('coach-step', { contract_version: 3, operation: 'prepare', request, as_of: T }, dir, runId);

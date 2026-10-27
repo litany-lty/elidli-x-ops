@@ -1,6 +1,7 @@
 import { canonicalHash, ContractError, validate } from './contracts.mjs';
-import { buildReviewComputation, buildReviewComputationV4, validateReviewInterpretation } from './review.mjs';
+import { buildExperimentPlanView, buildReviewComputation, buildReviewComputationV4, validateReviewInterpretation } from './review.mjs';
 import { personalPatternHash } from './guidance.mjs';
+import { actionPlanHash, actionRequiresCurrentApproval, actionSupportsPublication, assertActionCurrentlyApproved } from './actions.mjs';
 import { resolvePostMetadataView } from './imports.mjs';
 
 const fail = (code, path, message) => { throw new ContractError(code, path, message, false); };
@@ -34,7 +35,7 @@ function canonicalPostKey(state, key) {
   return state.post_aliases?.[key] ?? key;
 }
 
-function publicationCreatedAt(state, publication) {
+export function publicationCreatedAtV4(state, publication) {
   if(publication.published_at)return publication.published_at;
   const key = canonicalPostKey(state, `x:${publication.post_id}`);
   const entity = state.post_entities?.[key];
@@ -54,7 +55,7 @@ export function observationWindowStatusV4(state,planView,cutoff){
   if(window?.kind!=='age_window'||!Number.isFinite(window.target_hours)||!Number.isFinite(window.tolerance_hours))return{status:'missing',reason_code:'WINDOW_MISSING',required_at:null,cutoff};
   const publications=(planView.linked_publication_ids??[]).map(id=>state.publications?.[id]);
   if(!publications.length||publications.some(item=>!item))return{status:'missing',reason_code:'WINDOW_MISSING',required_at:null,cutoff};
-  const created=publications.map(item=>publicationCreatedAt(state,item)),createdMs=created.map(value=>Date.parse(value));
+  const created=publications.map(item=>publicationCreatedAtV4(state,item)),createdMs=created.map(value=>Date.parse(value));
   if(createdMs.some(value=>!Number.isFinite(value)))return{status:'missing',reason_code:'WINDOW_MISSING',required_at:null,cutoff};
   const requiredMs=Math.max(...createdMs.map(value=>value+(window.target_hours+window.tolerance_hours)*3_600_000)),requiredAt=new Date(requiredMs).toISOString();
   return cutoffMs<requiredMs?{status:'pending',reason_code:'WINDOW_PENDING',required_at:requiredAt,cutoff}:{status:'mature',reason_code:null,required_at:requiredAt,cutoff};
@@ -71,7 +72,7 @@ function validateMatureObservations(state, experiment, refs) {
   const tolerance = experiment.age_window_or_period.tolerance_hours ?? 2;
   const publications = experiment.linked_publication_ids.map(id => state.publications?.[id]).filter(Boolean);
   for (const publication of publications) {
-    const createdAt = publicationCreatedAt(state, publication);
+    const createdAt = publicationCreatedAtV4(state, publication);
     if (!createdAt) fail('REQUESTED_OUTPUT_INCOMPLETE', '/publication/created_at', 'A recorded publication time is not a post creation time; age maturity remains unknown');
     const expectedKey = canonicalPostKey(state, `x:${publication.post_id}`);
     const matching = observations.filter(item => item.snapshot.entity_type === 'post' && canonicalPostKey(state, item.snapshot.entity_id) === expectedKey);
@@ -96,7 +97,7 @@ function conditionReached(state, experiment, event, actualEvidence) {
   if (!publications.length) return false;
   const hours = plannedHours(experiment);
   if (hours !== null) return publications.every(item => {
-    const createdAt = publicationCreatedAt(state, item);
+    const createdAt = publicationCreatedAtV4(state, item);
     return createdAt && Date.parse(event.at) >= Date.parse(createdAt) + hours * 3_600_000;
   });
   const ref = actualEvidence.condition_evidence_ref;
@@ -116,6 +117,29 @@ export function validateExperimentPlan(plan, state = {}) {
   return structuredClone(plan);
 }
 
+export function actionPlanOf(action) {
+  return { contract_version: action.contract_version ?? 2, action_id: action.action_id, plan_hash: action.plan_hash ?? actionPlanHash(action), plan: structuredClone(action) };
+}
+
+export function strategyVersionOf(state, action) {
+  const ref = action?.strategy_version_ref ?? null;
+  return ref ? state.strategy_definitions?.[ref] ?? null : null;
+}
+
+/** Create the proposed experiment from an accepted, currently approved canonical action. */
+export function createExperimentFromAction(state, { experiment, approved_guidance = null } = {}) {
+  const action = state.actions?.[experiment?.originating_action_id];
+  if (!action) fail('MISSING_EVIDENCE', '/originating_action_id', 'Experiment action does not exist');
+  if (action.status !== 'accepted') fail('STATE_CONFLICT', '/originating_action_id', 'An experiment can be created only after explicit action acceptance');
+  if (actionRequiresCurrentApproval(state, action.action_id)) assertActionCurrentlyApproved(state, action.action_id, { approved_guidance });
+  const plan = validateExperimentPlan(experiment, state), next = structuredClone(state);
+  next.experiments ??= {};
+  const existing = next.experiments[plan.experiment_id];
+  if (existing && canonicalHash(existing) !== canonicalHash(plan)) fail('STATE_CONFLICT', '/experiment_id', 'Experiment ID identifies different content');
+  next.experiments[plan.experiment_id] = existing ?? plan;
+  return { nextState: next, result: { experiment: structuredClone(next.experiments[plan.experiment_id]), originating_action_plan_hash: action.plan_hash ?? actionPlanHash(action) } };
+}
+
 export function applyExperimentTransition(state, event, actualEvidence = {}) {
   const next = structuredClone(state);
   const experiment = next.experiments?.[event.experiment_id];
@@ -127,6 +151,11 @@ export function applyExperimentTransition(state, event, actualEvidence = {}) {
 
   if (event.type === 'accept') {
     if (experiment.status !== 'proposed') fail('STATE_CONFLICT', '/status', 'Only a proposed experiment can be accepted');
+    const action = next.actions?.[experiment.originating_action_id];
+    if (actionRequiresCurrentApproval(next, experiment.originating_action_id)) {
+      assertActionCurrentlyApproved(next, experiment.originating_action_id, { approved_guidance: actualEvidence.approved_guidance });
+      if (action?.status !== 'accepted') fail('STATE_CONFLICT', '/originating_action_id', 'Experiment acceptance requires an accepted originating action');
+    }
     const adoptionRefs = event.adoption_ids ?? [];
     if (!adoptionRefs.length && !actualEvidence.user_acceptance_ref) fail('MISSING_EVIDENCE', '/adoption_ids', 'Acceptance requires explicit user or adoption evidence');
     requireRefs(adoptionRefs, next.adoptions, '/adoption_ids');
@@ -136,12 +165,20 @@ export function applyExperimentTransition(state, event, actualEvidence = {}) {
     appended = true;
   } else if (event.type === 'publish') {
     if (experiment.status !== 'accepted' && experiment.status !== 'running') fail('STATE_CONFLICT', '/status', 'Publication can start only an accepted experiment');
+    const action = next.actions?.[experiment.originating_action_id];
+    if (action?.target && !actionSupportsPublication(action)) fail('INVALID_INPUT', '/publication_ids', 'This action is not a post-publication action; record its execution without fabricating a publication');
     const ids = event.publication_ids ?? [];
     if (!ids.length) fail('MISSING_EVIDENCE', '/publication_ids', 'A real publication record is required');
     requireRefs(ids, next.publications, '/publication_ids');
     experiment.linked_publication_ids = [...new Set([...experiment.linked_publication_ids, ...ids])];
     statusEvent.basis_refs = [...(event.basis_refs ?? []), ...ids];
-    appendStatus(experiment, 'running', statusEvent); appended = true;
+    appendStatus(experiment, 'running', statusEvent);
+    next.experiment_plan_views ??= {};
+    const planView = buildExperimentPlanView(next, experiment);
+    const priorView = next.experiment_plan_views[planView.plan_view_id];
+    if (priorView && canonicalHash(priorView) !== canonicalHash(planView)) fail('STATE_CONFLICT', '/experiment_plan_views', 'Experiment plan view ID identifies different content');
+    next.experiment_plan_views[planView.plan_view_id] = priorView ?? planView;
+    appended = true;
   } else if (event.type === 'check_maturity') {
     if (experiment.status !== 'running') fail('STATE_CONFLICT', '/status', 'Only a running experiment can become reviewable');
     if (!conditionReached(next, experiment, event, actualEvidence) || !hasCoverageReceipt(next, actualEvidence.coverage_receipt_ref)) fail('REQUESTED_OUTPUT_INCOMPLETE', '/actual_evidence', 'The declared review condition and coverage require actual evidence');
@@ -178,12 +215,13 @@ export function applyExperimentTransition(state, event, actualEvidence = {}) {
   return next;
 }
 
-export function applyActionDecision(state, decision) {
+export function applyActionDecision(state, decision, { approved_guidance = null } = {}) {
   const next = structuredClone(state);
   const action = next.actions?.[decision.action_id];
   if (!action) fail('MISSING_EVIDENCE', '/action_id', 'Action does not exist');
   if (!['accepted', 'declined'].includes(decision.decision) || !decision.basis?.trim() || !decision.decided_at || !decision.decision_id) fail('INVALID_INPUT', '/decision', 'Action decision requires explicit basis, identity and time');
   if (action.status !== 'proposed') fail('STATE_CONFLICT', '/status', 'Only a proposed action can be accepted or declined');
+  if (decision.decision === 'accepted' && actionRequiresCurrentApproval(next, decision.action_id)) assertActionCurrentlyApproved(next, decision.action_id, { approved_guidance });
   action.status = decision.decision;
   action.decision_ref = decision.decision_id;
   next.action_decisions ??= {};
@@ -191,6 +229,24 @@ export function applyActionDecision(state, decision) {
   if (existing && canonicalHash(existing) !== canonicalHash(decision)) fail('STATE_CONFLICT', '/decision_id', 'Decision ID identifies different content');
   next.action_decisions[decision.decision_id] = structuredClone(decision);
   return next;
+}
+
+/** Count cadence groups, not posts, as independent strategy samples. */
+export function experimentEvidenceSummary(state, experimentId) {
+  const experiment = state.experiments?.[experimentId];
+  if (!experiment) fail('MISSING_EVIDENCE', '/experiment_id', 'Experiment does not exist');
+  const action = state.actions?.[experiment.originating_action_id];
+  const strategyRef = action?.strategy_version_ref ?? `legacy-action:${experiment.originating_action_id}`;
+  const groups = new Map();
+  for (const publicationId of experiment.linked_publication_ids ?? []) {
+    const publication = state.publications?.[publicationId];
+    if (!publication) continue;
+    const cadenceRef = experiment.cadence_group_ref ?? publication.cadence_group_ref ?? publication.series_execution_ref ?? publicationId;
+    const key = `${strategyRef}:${cadenceRef}`;
+    const entry = groups.get(key) ?? { sample_key: key, strategy_version_ref: strategyRef, cadence_group_ref: cadenceRef, publication_ids: [] };
+    entry.publication_ids.push(publicationId); groups.set(key, entry);
+  }
+  return { experiment_id: experimentId, strategy_version_ref: strategyRef, independent_sample_n: groups.size, sample_groups: [...groups.values()].map(group => ({ ...group, publication_ids: group.publication_ids.sort() })).sort((a, b) => a.sample_key.localeCompare(b.sample_key)) };
 }
 
 export function priorActionOutcome(state, action) {

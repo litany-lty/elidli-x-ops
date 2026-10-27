@@ -17,6 +17,7 @@ import {
 
 const packageDir = new URL('../assets/algorithm-knowledge', import.meta.url).pathname;
 const H = value => canonicalHash(value);
+const ACTIVE_CATALOG='x-algorithm-2f252142-signals-candidate-v5',ACTIVE_OP01='operational-op01-v3',ACTIVE_OP02='operational-op02-v3',ACTIVE_OP08='operational-op08-v5',ACTIVE_OP09='operational-op09-v5';
 
 test('A-K01 installed package verifies exact offline bytes and does not hide damage', () => {
   const bundle = loadKnowledgeCatalog();
@@ -33,8 +34,10 @@ test('A-K01 installed package verifies exact offline bytes and does not hide dam
   assert.equal(bundle.dependencies.find(item => item.dependency_id === 'selector:TopKScoreSelector').path, 'home-mixer/selectors/top_k_score_selector.rs');
   assert(bundle.facts[`fact-c16-6258a1549ef8-timefix1`]);
   assert(bundle.facts[`fact-c19-6258a1549ef8-timefix1`]);
-  assert(bundle.rules['operational-op08-v3']);
-  assert(bundle.rules['operational-op09-v3']);
+  assert(bundle.rules[ACTIVE_OP08]);
+  assert(bundle.rules[ACTIVE_OP09]);
+  assert(bundle.history.catalogs['x-algorithm-public-v4']);
+  assert(bundle.history.rules['operational-op08-v3']);
   const temp = mkdtempSync(join(tmpdir(), 'xops-knowledge-'));
   try {
     cpSync(packageDir, temp, { recursive: true });
@@ -49,8 +52,8 @@ function knowledgeState(bundle = loadKnowledgeCatalog()) {
 
 test('active state bundle is derived from one activation chain and never falls back to bundled files', () => {
   const state = knowledgeState(), active = knowledgeBundleFromState(state);
-  assert.equal(active.catalog.catalog_id, 'x-algorithm-public-v4');
-  assert.equal(active.rules['operational-op09-v3'].rule_id, 'OP09');
+  assert.equal(active.catalog.catalog_id, ACTIVE_CATALOG);
+  assert.equal(active.rules[ACTIVE_OP09].rule_id, 'OP09');
   state.knowledge_events.candidate={contract_version:4,event_id:'candidate',event_type:'candidate_update',catalog_ref:active.catalog.catalog_id,prior_catalog_ref:active.catalog.catalog_id,checked_at:'2026-10-27T01:00:00Z',observed_head_commit:active.catalog.upstream.commit,affected_rule_version_refs:[],gaps:[]};
   assert.equal(knowledgeBundleFromState(state).event.event_id, active.event.event_id);
   const nextCatalog={...structuredClone(active.catalog),catalog_id:'x-algorithm-next-fixture',catalog_version:'1.2.0'};nextCatalog.catalog_content_hash=catalogContentHash(nextCatalog,nextCatalog.dependencies);state.knowledge_catalogs[nextCatalog.catalog_id]=nextCatalog;
@@ -63,7 +66,7 @@ test('active state bundle rejects ambiguous events, hash drift and unsupported g
   const ambiguous=structuredClone(state),other={...structuredClone(bundle.catalog),catalog_id:'unrelated'};other.catalog_content_hash=catalogContentHash(other,other.dependencies);ambiguous.knowledge_catalogs.unrelated=other;ambiguous.knowledge_events.other={...structuredClone(bundle.event),event_id:'other',catalog_ref:'unrelated',prior_catalog_ref:null};
   assert.throws(()=>knowledgeBundleFromState(ambiguous),/one active catalog event/);
   const drift=structuredClone(state);drift.knowledge_catalogs[bundle.catalog.catalog_id].dependencies[0].review_note+=' changed';assert.throws(()=>knowledgeBundleFromState(drift),/dependency snapshot hash mismatch/);
-  const missing=structuredClone(state);delete missing.operational_rules['operational-op09-v3'];assert.throws(()=>knowledgeBundleFromState(missing),/operational rule is missing/);
+  const missing=structuredClone(state);delete missing.operational_rules[ACTIVE_OP09];assert.throws(()=>knowledgeBundleFromState(missing),/operational rule is missing/);
   const gap=structuredClone(state);gap.knowledge_events[bundle.event.event_id].gaps.push('not-a-dependency');assert.throws(()=>knowledgeBundleFromState(gap),/unsupported gap/);
   const legacy=structuredClone(state);delete legacy.knowledge_catalogs[bundle.catalog.catalog_id].dependencies;assert.throws(()=>knowledgeBundleFromState(legacy),/lacks its immutable dependency snapshot/);
 });
@@ -103,14 +106,14 @@ function contextFixture(bundle) {
     subject_ref: 'draft:1', cutoff: '2026-10-27T00:00:00Z', surface: 'home_for_you', post_type: 'original',
     personal_context_selection_ref: 'selection-1', personal_context_selection_hash: H('personal'),
     evidence_bundle_ref: 'bundle-1', evidence_bundle_hash: H('bundle'),
-    explicit_rule_version_refs: ['operational-op01-v1'],
+    explicit_rule_version_refs: [ACTIVE_OP01],
     signals: { has_body: { value: true, unit: 'flag' }, reader_benefit_clear: { value: false, unit: 'flag' } }
   }, bundle);
 }
 
 test('A-K04/A-K05 selection applies editorial evidence without upgrading unknown mechanism', () => {
   const bundle = loadKnowledgeCatalog(), context = contextFixture(bundle);
-  assert.deepEqual(context.selections.map(item => item.rule_version_ref), ['operational-op01-v1']);
+  assert.deepEqual(context.selections.map(item => item.rule_version_ref), [ACTIVE_OP01]);
   assert.equal(context.selections[0].mechanism_applicability.status, 'unknown');
   assert.equal(context.selections[0].editorial_applicability.status, 'applicable');
   assert.equal(ruleContextHash(context), context.selected_rule_context_hash);
@@ -122,9 +125,9 @@ function applicationFixture(context) {
   const application = {
     contract_version: 4, application_id: 'application-1', context_ref: context.context_id,
     selected_rule_context_hash: context.selected_rule_context_hash, subject_ref: 'draft:1', actual_input_hash: H('actual draft'),
-    rule_version_refs: ['operational-op01-v1'],
+    rule_version_refs: [ACTIVE_OP01],
     checks: [{ check_id: 'reader-benefit', check_type: 'semantic', status: 'applicable', reviewed_input_hash: H('actual draft'), inspected_refs: ['draft:1'], finding: '开头未说明读者收益' }],
-    findings: ['开头未说明读者收益'], actions: [{ action_id: 'rewrite-opening', rule_version_ref: 'operational-op01-v1', disposition: 'modify', text: '明确目标读者和收益', deliverable_refs: ['draft:1'] }],
+    findings: ['开头未说明读者收益'], actions: [{ action_id: 'rewrite-opening', rule_version_ref: ACTIVE_OP01, disposition: 'modify', text: '明确目标读者和收益', deliverable_refs: ['draft:1'] }],
     keep_unchanged_reason: null, validation_plan: '核对开头与正文兑现', deliverable_refs: ['draft:1'], application_proposal_hash: ''
   };
   application.application_proposal_hash = applicationProposalHash(application);
@@ -137,7 +140,7 @@ test('A-K06 application binds actual semantic input and frozen proposal', () => 
   assert.throws(() => validateRuleApplication({ ...application, actual_input_hash: H('changed') }, context, bundle), /actual input|proposal hash/);
   const empty={...structuredClone(application),rule_version_refs:[],actions:[],keep_unchanged_reason:'未使用任何规则'};empty.application_proposal_hash=applicationProposalHash(empty);
   assert.throws(()=>validateRuleApplication(empty,context,bundle),/cannot be recorded as applied without an actual rule/);
-  const wrongAction={...structuredClone(application),actions:[{...application.actions[0],rule_version_ref:'operational-op02-v1'}]};wrongAction.application_proposal_hash=applicationProposalHash(wrongAction);
+  const wrongAction={...structuredClone(application),actions:[{...application.actions[0],rule_version_ref:ACTIVE_OP02}]};wrongAction.application_proposal_hash=applicationProposalHash(wrongAction);
   assert.throws(()=>validateRuleApplication(wrongAction,context,bundle),/not actually selected and applied/);
   const noSelection=buildRuleContextV4({run_id:'run-none',intent:'draft',goal:{primary_goal:'relevant_reach'},use:'operational_guidance',subject_ref:'draft:1',cutoff:'2026-10-27T00:00:00Z',explicit_rule_version_refs:['not-a-rule'],signals:{}},bundle);
   const bounded={...structuredClone(application),context_ref:noSelection.context_id,selected_rule_context_hash:noSelection.selected_rule_context_hash,rule_version_refs:[],actions:[],keep_unchanged_reason:'当前范围没有选中规则，只保留一般编辑边界'};bounded.application_proposal_hash=applicationProposalHash(bounded);
@@ -198,10 +201,10 @@ test('A-K08 update is append-only and affected rules require exact review plus t
   candidate.catalog = { ...candidate.catalog, catalog_id: 'x-algorithm-next-fixture', catalog_content_hash: H('candidate catalog') };
   candidate.dependencies = candidate.dependencies.map(item => item.dependency_id === 'scorer:compute_weighted_score' ? { ...item, review_note: `${item.review_note} updated` } : item);
   const proposal = proposeKnowledgeUpdate(current, candidate, { checked_at: '2026-10-27T01:00:00Z', head_commit: 'f'.repeat(40) });
-  assert(proposal.affected_rule_version_refs.includes('operational-op01-v1'));
+  assert(proposal.affected_rule_version_refs.includes(ACTIVE_OP01));
   assert.throws(() => activateKnowledgeCatalog(current, proposal, { review_receipt: { receipt_id: 'review', subject_hash: candidate.catalog.catalog_content_hash, decision: 'approved' }, case_results: [] }), /three replay cases/);
   const cases = proposal.affected_rule_version_refs.map(rule_version_ref => ({ rule_version_ref, applicable: true, not_applicable: true, unknown: true }));
   const activated = activateKnowledgeCatalog(current, proposal, { review_receipt: { receipt_id: 'review', subject_hash: candidate.catalog.catalog_content_hash, decision: 'approved' }, case_results: cases });
   assert.equal(activated.event.event_type, 'activated');
-  assert.equal(current.catalog.catalog_id, 'x-algorithm-public-v4');
+  assert.equal(current.catalog.catalog_id, ACTIVE_CATALOG);
 });

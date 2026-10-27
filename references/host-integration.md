@@ -1,5 +1,7 @@
 # Codex desktop 绑定
 
+> 当前写入容器、命令版本与最终审核门以 [NEXT-2.3 运行合同](next23-runtime.md) 为准；本页保留所注明版本的对象与兼容细节。
+
 绑定版本为 `codex-desktop-web-local-v1` / `1.0.0`，机器读取模板在 [host-binding.codex-desktop.json](../assets/host-binding.codex-desktop.json)。目标 Node 为 24.x。这是宿主配方，Node 进程中不存在 `tools.web__run`。安装后将 working_directory 设为技能的实际绝对路径，并按当前宿主可用工具核对映射；模板本身不是能力已通过的证明。
 
 ## 搜索、读取及保存原始返回

@@ -9,6 +9,7 @@ import { runtimeUrl } from './helpers/runtime.mjs';
 
 const { createDefaultConfig }=await import(runtimeUrl('scripts/lib/config.mjs'));
 const { initializeState, loadState }=await import(runtimeUrl('scripts/lib/state.mjs'));
+const { previewMigrationV5, applyMigrationV5 }=await import(runtimeUrl('scripts/lib/migrations.mjs'));
 const account={handle:'fixture_v22_cli',profile_url:'https://x.com/fixture_v22_cli',user_id:'220001',identity_basis:'user_provided'},entry=fileURLToPath(runtimeUrl('scripts/x-ops.mjs'));
 
 async function invoke(command,payload,dir,allowed=[0]){
@@ -16,7 +17,7 @@ async function invoke(command,payload,dir,allowed=[0]){
  await writeFile(input,JSON.stringify({schema_version:1,run_id:null,expected_revision:state.revision,payload}));
  const proc=spawnSync(process.execPath,[entry,command,'--input',input,'--output',output,'--state-dir',dir],{encoding:'utf8'}),envelope=JSON.parse(proc.stdout);assert.equal(proc.error,undefined);assert.ok(allowed.includes(proc.status),JSON.stringify(envelope.errors));return envelope;
 }
-async function init(prefix){const dir=await mkdtemp(join(tmpdir(),prefix)),state=initializeState(createDefaultConfig(account),4);state.revision=1;await writeFile(join(dir,'account-state.json'),`${JSON.stringify(state)}\n`);return dir;}
+async function init(prefix){const dir=await mkdtemp(join(tmpdir(),prefix)),source=initializeState(createDefaultConfig(account),4);source.revision=1;const state=applyMigrationV5(source,previewMigrationV5(source));await writeFile(join(dir,'account-state.json'),`${JSON.stringify(state)}\n`);return dir;}
 async function commitFile(dir,path,source_ref,declared_context,material_kind='canonical_json'){
  const base={contract_version:2,operation:'preview',material_path:path,material_kind,source_ref,declared_context},preview=await invoke('data-import',base,dir);return invoke('data-import',{...base,operation:'commit',preview_hash:preview.data.import_preview.preview_hash},dir);
 }

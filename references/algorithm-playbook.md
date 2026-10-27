@@ -1,6 +1,6 @@
 # 算法运营规则
 
-本说明与 `assets/algorithm-knowledge/catalog.json` 的当前目录 `x-algorithm-public-v2` 对齐。固定上游为 `xai-org/x-algorithm@6258a1549ef808be88fba83d3b2d58364b587ee0`。
+本说明与当前默认目录 `x-algorithm-2f252142-signals-candidate-v5` 对齐。固定上游为 `xai-org/x-algorithm@2f252142b9284e692ac72851768c8072d045f0d5`，稳定内容哈希为 `a649125f8e42e15eee8db940bf4ef646250a48b00a63da708130783b51f47158`。名称保留候选阶段标识以维持 root 已审核的不可变身份；实际 lifecycle event 已正式激活。
 
 ## 使用边界
 
@@ -17,7 +17,7 @@
 | OP02 | 承诺未兑现时补内容或缩小承诺 | 语义检查必须绑定真实原文 |
 | OP03 | 面向新读者但依赖上文时给独立版本 | 回复并非永远不能圈外展示 |
 | OP04 | 可复用信息分散时整理为清单/步骤 | 不用空口号诱导分享 |
-| OP05 | 计划内容高度重复时合并或区分贡献 | 同作者衰减不是每日发帖上限 |
+| OP05 | 实际历史审核确认实质重复时增加新贡献或停止重复包装 | 无实际历史引用保持 unknown；同作者衰减不是每日发帖上限 |
 | OP06 | 事实、图片或上下文未齐时先补齐 | 两小时冷启动不等于24小时训练标签 |
 | OP07 | 有真实问题或讨论时先作针对性回复 | 不把回复次数换算权重 |
 | OP08 | 事实敏感、证据薄弱或有警示时核查 | C14 精确动作依赖仓库外 policy bundle |
@@ -30,3 +30,9 @@
 - C17：limited-actions 代码按具体 reason 和请求 feature switches 解析动作；空动作不生成 policy。生产动作清单文件不在固定仓库。
 - C18：新用户最低互动 filter 中的“新用户”是观看者或复活窗口内观看者，不能推成作者统一门槛。
 - C19：soft-NSFW 新用户 filter 同样绑定观看者路径、For You 请求、开关和实际标签；低曝光不能证明标签存在。
+
+## NEXT-2.3 已审核操作法则
+
+八组法则的具体观察条件、作者动作、反例和停止条件保存在 `assets/algorithm-knowledge/v5/operational-law-groups.json`，并已物化为当前目录中的严格 operational rules。实际使用先由 `SignalSetV5` 从完整读取的正文提取确定性信号；语义信号必须绑定相同正文 hash 的真实宿主审核。机制未知但编辑适用明确时可以给编辑建议；机制和编辑均未知时只能保持或补读，不能修改。
+
+每个 `RuleApplicationV5` 动作必须同时指向具体法则、信号和检查，并标明 `public_mechanism`、`editorial_inference`、`personal_observation` 或 `user_preference`。公开源码事实不等于当前账号命中，用户偏好也不得包装成算法支持。

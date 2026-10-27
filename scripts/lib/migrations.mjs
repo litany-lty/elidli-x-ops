@@ -2,7 +2,9 @@ import { createHash } from 'node:crypto';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve, relative } from 'node:path';
 import { canonicalHash, textHash, validate, ContractError } from './contracts.mjs';
-import { validateState, commitState, v2Collections, v3Collections, v4Collections } from './state.mjs';
+import { validateState, commitState, v2Collections, v3Collections, v4Collections, v5Collections } from './state.mjs';
+import { CURRENT_STATE_VERSION } from './state-version.mjs';
+import { migrateConfigV5 } from './config.mjs';
 import { legacyImportFromState, mergeImport } from './imports.mjs';
 
 import { buildExperimentPlanView } from './review.mjs';
@@ -171,6 +173,7 @@ async function verifyMigrationReceipt(receipt) {
 }
 
 export async function migrateStateV4(dir,payload,expectedRevision,{verifyReadback=null}={}) {
+  if(CURRENT_STATE_VERSION!==4)fail('MIGRATION_REQUIRED','/contract_version','The current writer requires the contract 5 migration; contract 4 cannot change a state 5 account');
   const file=join(dir,'account-state.json'),raw=await readFile(file,'utf8'),state=validateState(JSON.parse(raw));
   if(state.schema_version===4){
     const receipt=Object.values(state.migration_receipts).find(item=>item.target_version===4&&payload.preview&&item.preview_hash===payload.preview.preview_hash);
@@ -189,6 +192,58 @@ export async function migrateStateV4(dir,payload,expectedRevision,{verifyReadbac
   for(const entry of inventory.artifacts){if(!entry.ref?.startsWith('/'))continue;const bytes=await readFile(entry.ref);if(byteHash(bytes)!==entry.sha256)fail('PERSIST_FAILED','/inventory','Dependency bytes changed before migration');}
   for(const [path,data] of [[backupPath,raw],[inventoryPath,inventoryText]])try{await writeFile(path,data,{flag:'wx',mode:0o600});}catch(error){if(error.code!=='EEXIST'||byteHash(await readFile(path))!==byteHash(data))throw error;}
   const next=await commitState(dir,expectedRevision,current=>{const migrated=applyMigrationV4(current,payload.preview);Object.assign(migrated.migration_receipts[preview.preview_id],{backup_path:backupPath,backup_sha256:byteHash(raw),inventory_path:inventoryPath,inventory_hash:canonicalHash(inventory)});return migrated;},{migration:true});
+  try{if(verifyReadback)await verifyReadback(next);const readback=validateState(JSON.parse(await readFile(file,'utf8')));if(canonicalHash(next)!==canonicalHash(readback))throw Error('Readback mismatch');return{state:readback,data:{migration_status:'verified',migration_receipt:readback.migration_receipts[preview.preview_id],idempotent:false,persistence_status:'saved'}};}
+  catch{return{state:next,data:{migration_status:'committed_unverified',migration_receipt:next.migration_receipts[preview.preview_id],idempotent:false,persistence_status:'unverified',next_actions:[{kind:'migrate',target_ref:preview.preview_id,required_inputs:[],can_resume:true,requires_user_input:false,reason:'转换已提交，仅续做回读验证',operation:'resume_verify'}]}};}
+}
+
+export function previewMigrationV5(state) {
+  validateState(state);
+  if(![1,2,3,4].includes(state.schema_version))fail('SCHEMA_VERSION','/schema_version','State 5 needs no conversion');
+  const recheck_items=[];
+  if(Object.values(state.personal_patterns??{}).some(pattern=>pattern.contract_version===4))recheck_items.push('legacy_personal_patterns_read_only_pending_review');
+  if(Object.values(state.actions??{}).some(action=>action.contract_version!==5))recheck_items.push('legacy_actions_keep_historical_status');
+  if(Object.keys(state.adoptions??{}).length||Object.keys(state.publications??{}).length)recheck_items.push('legacy_adoption_and_publication_facts_preserved');
+  const preview={contract_version:5,preview_id:`migration5:${canonicalHash(state)}`,source_hash:canonicalHash(state),source_revision:state.revision,source_version:state.schema_version,target_version:5,rule_version:'state5@1',counts:Object.fromEntries(Object.entries(state).filter(([,value])=>value&&typeof value==='object'&&!Array.isArray(value)).map(([key,value])=>[key,Object.keys(value).length])),recheck_items,limitations:['历史对象、ID、采用、发布与审核状态原样保留；V4 pattern 只读待复核，不自动升级为 active。','配置显式升级为 ConfigV5；只新增 strategy_definitions、feedback_events、inspiration_sessions 三个长期集合。'],preview_hash:''};
+  preview.preview_hash=canonicalHash({...preview,preview_hash:undefined});
+  return validate('MigrationPreviewV5',preview);
+}
+
+export function applyMigrationV5(state,preview) {
+  if(canonicalHash(previewMigrationV5(state))!==canonicalHash(preview))fail('STATE_CONFLICT','/preview','Migration source changed');
+  const source=structuredClone(state),originalReceipts=structuredClone(state.migration_receipts??{});
+  let next=state.schema_version===4?structuredClone(state):applyMigrationV4(state,previewMigrationV4(state));
+  next.schema_version=5;
+  next.config=migrateConfigV5(next.config);
+  next.account=structuredClone(next.config.account);
+  for(const key of [...v2Collections,...v3Collections,...v4Collections,...v5Collections])next[key]??={};
+  next.migration_receipts={...next.migration_receipts,...originalReceipts};
+  const allowedChanged=new Set(['schema_version','config','account','migration_receipts','rule_versions_v2','import_artifacts']);
+  for(const [key,value] of Object.entries(source))if(value&&typeof value==='object'&&!allowedChanged.has(key)&&canonicalHash(value)!==canonicalHash(next[key]))fail('STATE_CONFLICT',`/${key}`,'Legacy objects must not change during state 5 migration');
+  for(const collection of v5Collections)if(Object.keys(next[collection]).length)fail('STATE_CONFLICT',`/${collection}`,'Migration must not manufacture state 5 history');
+  next.migration_receipts[preview.preview_id]={migration_id:preview.preview_id,preview_hash:preview.preview_hash,source_hash:preview.source_hash,source_revision:preview.source_revision,source_version:preview.source_version,target_revision:preview.source_revision+1,target_version:5,rule_version:preview.rule_version,recheck_items:structuredClone(preview.recheck_items)};
+  return validateState(next);
+}
+
+export async function migrateStateV5(dir,payload,expectedRevision,{verifyReadback=null}={}) {
+  const file=join(dir,'account-state.json'),raw=await readFile(file,'utf8'),state=validateState(JSON.parse(raw));
+  if(state.schema_version===5){
+    const receipt=Object.values(state.migration_receipts).find(item=>item.target_version===5&&payload.preview&&item.preview_hash===payload.preview.preview_hash);
+    if(!receipt)fail('STATE_CONFLICT','/preview','No matching state 5 migration receipt');
+    const verified=await verifyMigrationReceipt(receipt);
+    return {state,data:{migration_status:verified?'verified':'committed_unverified',migration_receipt:receipt,idempotent:payload.operation==='apply',persistence_status:verified?'saved':'unverified'}};
+  }
+  const preview=previewMigrationV5(state);
+  if(payload.operation==='preview')return{state,data:{migration_preview:preview}};
+  if(CURRENT_STATE_VERSION!==5)fail('MIGRATION_REQUIRED','/schema_version','State 5 apply is disabled until the current writer is promoted after phase-A evidence');
+  if(payload.operation!=='apply'||!payload.preview||!payload.backup_directory)fail('INVALID_INPUT','/payload','Apply needs frozen preview and private backup directory');
+  if(canonicalHash(preview)!==canonicalHash(payload.preview))fail('STATE_CONFLICT','/preview','Frozen preview is stale');
+  const backupDir=resolve(payload.backup_directory),rel=relative(resolve(dir),backupDir);
+  if(rel.startsWith('..')||!rel)fail('INVALID_INPUT','/backup_directory','Backup must be inside private account state');
+  await mkdir(backupDir,{recursive:true,mode:0o700});
+  const backupPath=join(backupDir,`state${state.schema_version}-${byteHash(raw)}.json`),inventory=migrationInventory(state,raw),inventoryPath=`${backupPath}.inventory.json`,inventoryText=JSON.stringify(inventory,null,2);
+  for(const entry of inventory.artifacts){if(!entry.ref?.startsWith('/'))continue;const bytes=await readFile(entry.ref);if(byteHash(bytes)!==entry.sha256)fail('PERSIST_FAILED','/inventory','Dependency bytes changed before migration');}
+  for(const [path,data] of [[backupPath,raw],[inventoryPath,inventoryText]])try{await writeFile(path,data,{flag:'wx',mode:0o600});}catch(error){if(error.code!=='EEXIST'||byteHash(await readFile(path))!==byteHash(data))throw error;}
+  const next=await commitState(dir,expectedRevision,current=>{const migrated=applyMigrationV5(current,payload.preview);Object.assign(migrated.migration_receipts[preview.preview_id],{backup_path:backupPath,backup_sha256:byteHash(raw),inventory_path:inventoryPath,inventory_hash:canonicalHash(inventory)});return migrated;},{migration:true});
   try{if(verifyReadback)await verifyReadback(next);const readback=validateState(JSON.parse(await readFile(file,'utf8')));if(canonicalHash(next)!==canonicalHash(readback))throw Error('Readback mismatch');return{state:readback,data:{migration_status:'verified',migration_receipt:readback.migration_receipts[preview.preview_id],idempotent:false,persistence_status:'saved'}};}
   catch{return{state:next,data:{migration_status:'committed_unverified',migration_receipt:next.migration_receipts[preview.preview_id],idempotent:false,persistence_status:'unverified',next_actions:[{kind:'migrate',target_ref:preview.preview_id,required_inputs:[],can_resume:true,requires_user_input:false,reason:'转换已提交，仅续做回读验证',operation:'resume_verify'}]}};}
 }

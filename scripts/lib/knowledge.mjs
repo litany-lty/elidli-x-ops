@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { canonicalHash, ContractError } from './contracts.mjs';
+export { buildSignalSetV5, SIGNAL_DEFINITIONS_V5 } from './signals.mjs';
+export { inspectKnowledgeCheckoutV5, dependencyDiffV5, computeKnowledgeImpactV5, proposeKnowledgeUpdateV5, knowledgeReplayResultHashV5, activateKnowledgeUpdateV5 } from './knowledge-updates.mjs';
 
 export const KNOWLEDGE_COLLECTIONS = Object.freeze([
   'knowledge_artifacts', 'knowledge_catalogs', 'knowledge_events',
@@ -119,7 +121,7 @@ export function loadKnowledgeCatalog(packageDir = defaultPackageDir, { now = new
 }
 
 export function knowledgeBundleFromState(state, { now = new Date() } = {}) {
-  if (state?.schema_version !== 4) fail('/schema_version', 'Active knowledge requires state version 4', 'SCHEMA_VERSION');
+  if (![4, 5].includes(state?.schema_version)) fail('/schema_version', 'Active knowledge requires state version 4 or 5', 'SCHEMA_VERSION');
   for (const key of ['knowledge_artifacts','knowledge_catalogs','knowledge_events','operational_rules','rule_versions_v2']) if (!state[key] || typeof state[key] !== 'object' || Array.isArray(state[key])) fail(`/${key}`, `State knowledge collection is missing: ${key}`, 'MISSING_EVIDENCE');
   const events = Object.values(state.knowledge_events);
   const activations = events.filter(event => event.event_type === 'activated');
@@ -282,6 +284,33 @@ export function buildRuleContextV4(input, bundle) {
   return Object.freeze({ ...context, selected_rule_context_hash: ruleContextHash(context) });
 }
 
+export function buildRuleContextV5(input, bundle) {
+  const signalSet = input.signal_set;
+  if (!signalSet || signalSet.contract_version !== 5 || signalSet.subject_ref !== input.subject_ref || signalSet.subject_hash !== input.subject_hash) fail('/signal_set', 'RuleContextV5 requires an exact subject-bound SignalSetV5', 'INVALID_EVIDENCE_REF');
+  const signalBase = Object.fromEntries(Object.entries(signalSet).filter(([key]) => key !== 'signal_set_hash'));
+  if (canonicalHash(signalBase) !== signalSet.signal_set_hash) fail('/signal_set/signal_set_hash', 'Signal set hash mismatch', 'RECEIPT_CONFLICT');
+  const predicateSignals = Object.fromEntries(Object.entries(signalSet.signals).map(([name, item]) => [name, item.value === null ? null : { value: item.value, unit: item.unit }]));
+  const selection = selectOperationalRules({ ...input, signals: predicateSignals }, bundle);
+  const selectedRuleHashes=Object.fromEntries(selection.selected.map(item=>[item.rule_version_ref,canonicalHash(bundle.rules[item.rule_version_ref])]));
+  const selectedFactHashes=Object.fromEntries([...new Set(selection.selected.flatMap(item=>item.fact_version_refs))].sort().map(ref=>[ref,canonicalHash(bundle.facts[ref])]));
+  const selectedDependencyHashes=Object.fromEntries([...new Set(selection.selected.flatMap(item=>item.dependency_ids))].sort().map(ref=>[ref,canonicalHash(bundle.dependencies.find(item=>item.dependency_id===ref))]));
+  const context = {
+    contract_version: 5,
+    context_id: input.context_id ?? `rule-context-${canonicalHash({ run_id: input.run_id, subject_ref: input.subject_ref, subject_hash: input.subject_hash, signal_set_hash: signalSet.signal_set_hash, catalog_content_hash: bundle.catalog.catalog_content_hash, cutoff: input.cutoff }).slice(0, 24)}`,
+    run_id: input.run_id, intent: input.intent, goal: structuredClone(input.goal), use: input.use,
+    surface: input.surface ?? null, post_type: input.post_type ?? null,
+    subject_ref: input.subject_ref, subject_hash: input.subject_hash, cutoff: input.cutoff,
+    signal_set: structuredClone(signalSet), catalog_ref: bundle.catalog.catalog_id,
+    catalog_content_hash: bundle.catalog.catalog_content_hash,
+    selections: selection.selected, not_selected: selection.not_selected, missing_signals: selection.missing_signals,
+    explicit_rule_version_refs:[...(input.explicit_rule_version_refs??[])].sort(),selected_rule_hashes:selectedRuleHashes,selected_fact_hashes:selectedFactHashes,selected_dependency_hashes:selectedDependencyHashes,
+    personal_context_selection_ref: input.personal_context_selection_ref ?? null,
+    personal_context_selection_hash: input.personal_context_selection_hash ?? null,
+    operational_context:structuredClone(input.operational_context??null)
+  };
+  return Object.freeze({ ...context, selected_rule_context_hash: canonicalHash(context) });
+}
+
 export function applicationProposalHash(application) {
   return canonicalHash({
     context_ref: application.context_ref,
@@ -310,6 +339,28 @@ export function validateRuleApplication(application, context, bundle) {
   if (!application.checks.length) fail('/checks', 'A rule application must record actual checks', 'REQUESTED_OUTPUT_INCOMPLETE');
   for (const check of application.checks) if (check.check_type === 'semantic' && check.reviewed_input_hash !== application.actual_input_hash) fail('/checks', 'Semantic check is not bound to actual input', 'INVALID_EVIDENCE_REF');
   if (!application.actions.length && !application.keep_unchanged_reason) fail('/keep_unchanged_reason', 'Record actions or why the deliverable remains unchanged', 'REQUESTED_OUTPUT_INCOMPLETE');
+  if (applicationProposalHash(application) !== application.application_proposal_hash) fail('/application_proposal_hash', 'Application proposal hash mismatch', 'RECEIPT_CONFLICT');
+  return structuredClone(application);
+}
+
+export function validateRuleApplicationV5(application, context, bundle) {
+  if (application.contract_version !== 5 || context.contract_version !== 5) fail('/contract_version', 'RuleApplicationV5 requires V5 application and context', 'SCHEMA_VERSION');
+  if (application.context_ref !== context.context_id || application.selected_rule_context_hash !== context.selected_rule_context_hash || application.subject_ref !== context.subject_ref || application.actual_input_hash !== context.subject_hash) fail('/context_ref', 'Application is not bound to exact V5 context and subject', 'INVALID_EVIDENCE_REF');
+  const selections = new Map(context.selections.map(item => [item.rule_version_ref, item])), checks = new Map(application.checks.map(item => [item.check_id, item]));
+  for (const [index, action] of application.actions.entries()) {
+    const selected = selections.get(action.rule_version_ref);
+    if (!selected || !bundle.rules[action.rule_version_ref]) fail(`/actions/${index}/rule_version_ref`, 'Action uses an unselected rule', 'INVALID_EVIDENCE_REF');
+    if (!['public_mechanism', 'editorial_inference', 'personal_observation', 'user_preference'].includes(action.basis_kind)) fail(`/actions/${index}/basis_kind`, 'Unsupported action basis');
+    if (!action.supporting_check_refs.length || action.supporting_check_refs.some(ref => !checks.has(ref))) fail(`/actions/${index}/supporting_check_refs`, 'Every action must bind actual supporting checks', 'INVALID_EVIDENCE_REF');
+    if (action.signal_refs.some(ref => !Object.hasOwn(context.signal_set.signals, ref))) fail(`/actions/${index}/signal_refs`, 'Action references an unavailable signal', 'INVALID_EVIDENCE_REF');
+    if (action.disposition === 'modify') {
+      if (selected.mechanism_applicability.status === TRI.UNKNOWN && selected.editorial_applicability.status === TRI.UNKNOWN) fail(`/actions/${index}`, 'A double-unknown rule cannot support modification', 'MISSING_EVIDENCE');
+      if (action.basis_kind === 'public_mechanism' && selected.mechanism_applicability.status !== TRI.TRUE) fail(`/actions/${index}/basis_kind`, 'Public mechanism basis requires observed mechanism applicability', 'MISSING_EVIDENCE');
+      if (action.basis_kind === 'editorial_inference' && selected.editorial_applicability.status !== TRI.TRUE) fail(`/actions/${index}/basis_kind`, 'Editorial modification requires affirmative editorial applicability', 'MISSING_EVIDENCE');
+    }
+  }
+  for (const check of application.checks) if (check.check_type === 'semantic' && (check.reviewed_input_hash !== context.subject_hash || !check.review_ref)) fail('/checks', 'Semantic check must bind a real review to exact subject', 'INVALID_EVIDENCE_REF');
+  if (!application.actions.length && !application.keep_unchanged_reason) fail('/keep_unchanged_reason', 'Record actions or explicit keep/limitation reason', 'REQUESTED_OUTPUT_INCOMPLETE');
   if (applicationProposalHash(application) !== application.application_proposal_hash) fail('/application_proposal_hash', 'Application proposal hash mismatch', 'RECEIPT_CONFLICT');
   return structuredClone(application);
 }

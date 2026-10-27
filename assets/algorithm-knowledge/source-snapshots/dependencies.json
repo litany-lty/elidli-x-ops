@@ -1881,15 +1881,19 @@
       "review_depth": "effects_verified",
       "disposition": "fact_card",
       "caller_refs": [
+        "home-mixer/params/param.rs",
+        "vm-ranker/params.rs",
+        "vm-ranker/scoring/debias.rs",
+        "vm-ranker/scoring/value_model.rs",
         "xai-value-model/scoring.rs"
       ],
       "consumer_refs": [
         "Home/For You public path"
       ],
       "missing_dependencies": [],
-      "review_note": "预测融合已读，不能用实际互动次数计算积分。",
-      "evidence_material_path": "source-snapshots/review-excerpts/scorer_compute_weighted_score.txt",
-      "evidence_content_hash": "457eab498fbef8f37b1502140b5ee1ce4d961f1666b9ff387fda097540e772ce"
+      "review_note": "2f252142 targeted caller review: VM ranker may recenter prediction heads before weighted scoring only when its separate runtime gates/model/sequence permit; public defaults UserDebiasEnabled=false and alpha=0.0, so no universal score change or author formula is established.",
+      "evidence_material_path": "source-snapshots/review-excerpts/next23_2f252142_targeted.json",
+      "evidence_content_hash": "e55db73207304c156adc66a02d7a6d444bd77883660cd14800b342606b838501"
     },
     {
       "dependency_id": "scorer:ImmersiveVideoScorer",
@@ -1950,15 +1954,19 @@
       "review_depth": "end_to_end_traced",
       "disposition": "dependency_only",
       "caller_refs": [
-        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients",
+        "home-mixer/params/param.rs",
+        "vm-ranker/params.rs",
+        "vm-ranker/scoring/debias.rs",
+        "vm-ranker/scoring/value_model.rs"
       ],
       "consumer_refs": [
         "PhoenixCandidatePipeline::scorer"
       ],
       "missing_dependencies": [],
-      "review_note": "evidence=home-mixer/scorers/vm_ranker.rs:L80-164; when ranking is enabled, computes local weighted/cold-start scores, calls VM ranker, and falls back to local scores on RPC error; public defaults do not reveal a request actual score. public config readers=VMRankerEnableFallback, EnableRanking, VMRankerClusterId; actual per-request values remain unknown.",
-      "evidence_material_path": "source-snapshots/review-excerpts/scorer_VMRanker.txt",
-      "evidence_content_hash": "0f5299ca0343f57550cb73e424d7c3dfb8b9b6786f4c32ed85d4de32751e41ed"
+      "review_note": "2f252142 targeted review: Home mixer sends debias inputs by public default, while VM ranker user debias remains separately disabled by default and alpha is 0.0; production request values, model availability and per-user effects remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/next23_2f252142_targeted.json",
+      "evidence_content_hash": "e55db73207304c156adc66a02d7a6d444bd77883660cd14800b342606b838501"
     },
     {
       "dependency_id": "selector:TopKScoreSelector",

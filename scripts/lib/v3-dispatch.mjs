@@ -61,6 +61,12 @@ const fail=(code,path,message)=>{
 }
 ;
 export async function verifyHostMediaReceipt(receipt) {
+  if(receipt?.contract_version===5){
+    if(receipt.purpose){const {verifyHostReviewReceiptV5}=await import('./host-review-v5.mjs');return verifyHostReviewReceiptV5(receipt);}
+    validate('HostMediaReceiptV5',receipt);const bytes=await readFile(receipt.actual_result_ref);
+    if(byteHash(bytes)!==receipt.actual_result_sha256)fail('RECEIPT_CONFLICT','/actual_result_sha256','Actual media result changed');
+    return receipt;
+  }
   validate('HostMediaReceiptV3',receipt);
   const bytes=await readFile(receipt.actual_result_ref);
   if(byteHash(bytes)!==receipt.actual_result_sha256)fail('RECEIPT_CONFLICT','/actual_result_sha256','Actual host result changed');
@@ -231,7 +237,7 @@ export async function contentContext(state,dir,payload={
 export async function dispatchV3(command,request,dir,state) {
   const p=request.payload;
   if(command==='state-migrate')return migrateStateV3(dir,p,request.expected_revision);
-  if(!state||![3,4].includes(state.schema_version))fail('MIGRATION_REQUIRED','/schema_version','Preview and apply state 3 migration before new work');
+  if(!state||![3,4,5].includes(state.schema_version))fail('MIGRATION_REQUIRED','/schema_version','Preview and apply state 3 migration before new work');
   if(command==='coach-step'){
     let data;
     const next=await commitState(dir,request.expected_revision,working=>{
@@ -389,7 +395,7 @@ export async function dispatchV3(command,request,dir,state) {
       else if(p.operation==='adoption'){
         const data=p.data;
         const draftReview=working.draft_review_receipts[data.draft_review_ref];
-        if(working.schema_version===4){const run=data.pack_ref?Object.values(working.content_runs).find(r=>r.active_pack_ref===data.pack_ref):null;const intent=run?.delivery_intent??draftReview?.delivery_intent??'operational_optimize';const gate=await currentGuidance(working,data.pack_ref??`${data.draft_ref.draft_id}:${data.draft_ref.revision}`,{intent,use:intent==='plain_edit'?'plain_edit':'operational_guidance',content_readiness:{readiness:'ready'}});if(gate.task_readiness!=='ready')fail('REQUESTED_OUTPUT_INCOMPLETE','/guidance','Adoption requires current approval of the complete operational guidance');}
+        if([4,5].includes(working.schema_version)){const run=data.pack_ref?Object.values(working.content_runs).find(r=>r.active_pack_ref===data.pack_ref):null;const intent=run?.delivery_intent??draftReview?.delivery_intent??'operational_optimize';const gate=await currentGuidance(working,data.pack_ref??`${data.draft_ref.draft_id}:${data.draft_ref.revision}`,{intent,use:intent==='plain_edit'?'plain_edit':'operational_guidance',content_readiness:{readiness:'ready'}});if(gate.task_readiness!=='ready')fail('REQUESTED_OUTPUT_INCOMPLETE','/guidance','Adoption requires current approval of the complete operational guidance');}
         if(draftReview?.actual_review_receipt_ref)await verifyHostMediaReceipt(working.host_media_receipts[draftReview.actual_review_receipt_ref]);
         if(evaluateDraftReadiness(data.draft_ref,data.draft_review_ref,working).readiness!=='ready')fail('STALE_DRAFT','/draft_ref','Adoption needs the current exact draft review');
         if(data.pack_ref){

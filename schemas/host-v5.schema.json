@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "HostReviewReceiptV5": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "receipt_id",
+        "purpose",
+        "subject_ref",
+        "subject_hash",
+        "subject_content_hash",
+        "actual_result_ref",
+        "actual_result_sha256",
+        "actual_result_hash",
+        "decision",
+        "checks",
+        "issues",
+        "reviewer",
+        "generator_ref",
+        "data_mode",
+        "reviewed_at",
+        "tool_name",
+        "host_call_ref"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 5
+        },
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "enum": [
+            "review_signals",
+            "review_guidance",
+            "review_pattern",
+            "review_knowledge",
+            "review_edit_prescription",
+            "review_novelty"
+          ]
+        },
+        "subject_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "subject_content_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "actual_result_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actual_result_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "actual_result_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "decision": {
+          "enum": [
+            "approved",
+            "revision_required"
+          ]
+        },
+        "checks": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generator_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "data_mode": {
+          "enum": [
+            "live",
+            "fixture"
+          ]
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "instant"
+        },
+        "tool_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "host_call_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

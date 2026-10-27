@@ -5,6 +5,7 @@ import { ingestHostResult, normalizeUrl } from './host-results.mjs';
 import { findSourceVersion, saveSourceVersion, reviseClaimStatus, saveDraft } from './state.mjs';
 import { checkDraft } from './draft.mjs';
 import { buildConsumerContext, goalSnapshotFromState } from './consumer-context.mjs';
+import { assertParentNewsReserve, recordParentNewsTickets, syncParentNewsTicket } from './inspiration.mjs';
 
 const fail = (code,path,message) => { throw new ContractError(code,path,message,false); };
 const iso = value => Temporal.Instant.from(value).toString();
@@ -16,7 +17,7 @@ const sourceAllowed = (url, config) => {
 };
 
 export function initializeNews(request,effectiveConfig,binding,asOf) {
-  validate('NewsRequest',request); validate('EffectiveConfig',effectiveConfig); validate('HostBinding',binding);
+  validate('NewsRequest',request); validate(effectiveConfig?.config?.schema_version===5?'EffectiveConfigV5':'EffectiveConfig',effectiveConfig); validate('HostBinding',binding);
   if (binding.data_mode !== request.data_mode) fail('INVALID_INPUT','/binding/data_mode','Fixture and live bindings cannot be mixed');
   const topics = effectiveConfig.config.news.core_topics ?? effectiveConfig.config.content.topics;
   if (!(topics?.length || effectiveConfig.config.news.exploration_topics.length || effectiveConfig.config.news.entities.length)) fail('MISSING_EVIDENCE','/news/core_topics','Set an explicit task topic or entity before news discovery');
@@ -45,6 +46,14 @@ function checkTask(task,run,state) {
     if (url && !sourceAllowed(url,run.effective_config.config)) fail('CONFIG_CONFLICT','/request/ref_id','Read is outside the current source restrictions');
     if (!url && !Object.values(run.candidates).some(c => c.source_ref === task.request.ref_id)) fail('MISSING_EVIDENCE','/request/ref_id','A read reference must be returned by this run or be an allowed URL');
   }
+}
+
+function normalizedExistingWebLocator(value) {
+  if (typeof value !== 'string') return null;
+  let parsed;
+  try { parsed=new URL(value); } catch { return null; }
+  if (!['https:','http:'].includes(parsed.protocol) || parsed.username || parsed.password) return null;
+  return normalizeUrl(value);
 }
 
 function eventInWindow(event,run) {
@@ -173,6 +182,7 @@ export function advanceNews(run,operation,payload,context) {
     if(!run.plan)fail('MISSING_EVIDENCE','/plan','Register a search plan before issuing tickets');
     if(ms(asOf)>=ms(run.deadline_at))fail('BUDGET_EXHAUSTED','/deadline_at','Run deadline has passed; finish the acquired material');
     if(new Set(payload.logical_task_ids).size!==payload.logical_task_ids.length)fail('INVALID_INPUT','/logical_task_ids','Ticket batch contains duplicate tasks');
+    assertParentNewsReserve(state,run,payload.logical_task_ids);
     const pending=Object.values(run.tickets).filter(t=>t.execution_state === 'reserved').length;
     if(pending+payload.logical_task_ids.length>3)fail('BUDGET_EXHAUSTED','/tickets','At most three independent network tasks may be in flight');
     const config=run.effective_config.config.news,budget=structuredClone(run.budget),tickets=[];
@@ -197,7 +207,7 @@ export function advanceNews(run,operation,payload,context) {
       else if(['verify','assess'].includes(run.phase))budget.discovery_rounds++;
       if(budget.discovery_rounds>config.max_discovery_rounds)fail('BUDGET_EXHAUSTED','/max_discovery_rounds','Discovery round limit reached');
     }
-    run.budget=budget;for(const ticket of tickets)run.tickets[ticket.ticket_id]=ticket;
+    run.budget=budget;for(const ticket of tickets)run.tickets[ticket.ticket_id]=ticket;recordParentNewsTickets(state,run,tickets);
     run.phase=tickets.some(t=>t.purpose!=='discover')?'verify':'discover';return {tickets};
   }
   if(operation === 'ingest') {
@@ -211,7 +221,7 @@ export function advanceNews(run,operation,payload,context) {
     let result;
     try { result=ingestHostResult(ticket,payload.raw_object,payload.extractions,payload.actual_call); }
     catch(error) { if(!error.raw_receipt)throw error; result={raw_receipt:error.raw_receipt,text_blocks:[],extractions:[]}; }
-    const receipt=result.raw_receipt;state.raw_receipts[receipt.receipt_id]=receipt;ticket.execution_state=receipt.status;
+    const receipt=result.raw_receipt;state.raw_receipts[receipt.receipt_id]=receipt;ticket.execution_state=receipt.status;syncParentNewsTicket(state,run,ticket);
     if(receipt.error)run.errors.push(receipt.error);
     const created=[];
     for(const extraction of result.extractions) {
@@ -222,7 +232,7 @@ export function advanceNews(run,operation,payload,context) {
         if(Object.keys(run.candidates).length>=run.effective_config.config.news.max_candidate_urls)continue;
         const id=newId('candidate');run.candidates[id]={candidate_id:id,url:extraction.url,title:extraction.title,source_ref:extraction.source_ref,receipt_id:receipt.receipt_id,material_kind:extraction.material_kind,locator:{receipt_id:receipt.receipt_id,block_index:extraction.block_index,start:extraction.start,end:extraction.end},status:'discovered'};created.push(id);
       } else {
-        const old=Object.values(state.sources).find(s=>s.record.kind==='public_page' && normalizeUrl(s.record.locator)===extraction.url);
+        const old=Object.values(state.sources).find(s=>s.record.kind==='public_page' && normalizedExistingWebLocator(s.record.locator)===extraction.url);
         const sourceId=old?.record.source_id ?? newId('source');
         const unknown={raw:null,instant:null,timezone:null,precision:'unknown',source_ref:receipt.receipt_id};
         const observed={raw:payload.actual_call.returned_at,instant:iso(payload.actual_call.returned_at),timezone:'UTC',precision:'instant',source_ref:receipt.receipt_id};
@@ -247,9 +257,10 @@ function finishNews(run,payload,context,asOf) {
   for(const proposal of payload.cards) {
     const card=structuredClone(proposal),event=state.events[card.event_id];validate('TopicCard',card);
     if(card.personalization) {
-      const consumer=buildConsumerContext(state,{intent:'news',goal_snapshot:goalSnapshotFromState(state,run.effective_config.config)});
-      if(card.personalization.context_hash!==consumer.context_hash||card.personalization.context_hash!==run.consumer_context?.context_hash)fail('STALE_BUNDLE','/cards/personalization','Personalized angle needs the actual current account context');
-      if(!card.personalization.evidence_refs.length||card.personalization.evidence_refs.some(ref=>!consumer.refs.includes(ref)))fail('INVALID_EVIDENCE_REF','/cards/personalization/evidence_refs','Personalized angle requires actual account evidence');
+      const consumer=state.schema_version===5?context.operational_context:buildConsumerContext(state,{intent:'news',goal_snapshot:goalSnapshotFromState(state,run.effective_config.config)});
+      const contextHash=state.schema_version===5?consumer?.selected_context_hash:consumer?.context_hash,allowedRefs=state.schema_version===5?new Set([...(consumer?.selected_patterns??[]).map(item=>item.pattern_version_ref),...(consumer?.counter_evidence_refs??[]),...(consumer?.content_evidence_refs??[]),...(consumer?.metric_evidence_refs??[])]):new Set(consumer?.refs??[]);
+      if(!consumer||card.personalization.context_hash!==contextHash||(state.schema_version!==5&&card.personalization.context_hash!==run.consumer_context?.context_hash))fail('STALE_BUNDLE','/cards/personalization','Personalized angle needs the actual current relevant account context');
+      if(!card.personalization.evidence_refs.length||card.personalization.evidence_refs.some(ref=>!allowedRefs.has(ref)))fail('INVALID_EVIDENCE_REF','/cards/personalization/evidence_refs','Personalized angle requires selected relevant account evidence');
       card.personalization_basis='account_evidence';
     } else card.personalization_basis='editorial_hypothesis';
     const inWindow=event?eventInWindow(event,run):null,decision=event?decisionForRun(run,event):null;
@@ -264,7 +275,7 @@ function finishNews(run,payload,context,asOf) {
       for(const locator of claim.locators)verifyLocator(locator,state);
     }
     if(card.heat_evidence_ids.some(id=>!run.heat_evidence.some(h=>h.evidence_id===id)))fail('MISSING_EVIDENCE','/heat_evidence_ids','Card heat must link captured observations');
-    const historical=Object.values(state.runs).filter(r=>r.run_id!==run.run_id&&r.card_ids?.length).some(r=>r.event_ids?.includes(event.event_id));
+    const historical=historicalNewsRuns(state,run).some(r=>r.event_ids?.includes(event.event_id));
     if(historical && run.effective_config.config.history.previously_recommended==='require_new_angle_or_update' && !decision.new_angle_or_update)fail('MISSING_EVIDENCE','/event_id','Previously recommended event requires a new angle or update');
     cards.push(card);
   }
@@ -287,6 +298,11 @@ function finishNews(run,payload,context,asOf) {
   run.draft_refs=drafts.map(d=>({draft_id:d.draft.draft_id,revision:d.draft.revision}));
   run.stop_reason=payload.stop_reason;run.phase='finalize';
   return {cards,draft_checks:drafts,run_result:finalizeRun(run,context)};
+}
+
+export function historicalNewsRuns(state,run){
+  if(run.effective_config.config.history.dedupe_scope==='run')return[];
+  return Object.values(state.runs??{}).filter(item=>item.run_id!==run.run_id&&item.card_ids?.length);
 }
 
 export function finalizeRun(run,context) {

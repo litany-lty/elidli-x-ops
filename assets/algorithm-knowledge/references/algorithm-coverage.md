@@ -2,7 +2,7 @@
 
 ## 结论
 
-当前目录固定到 `xai-org/x-algorithm@6258a1549ef808be88fba83d3b2d58364b587ee0`。已逐项读取固定 Home/For You 主链中登记的 query hydrator、9 个来源、candidate hydrator、filter、scorer、selector、post-selection hydrator/filter、side effect、可见性 action 消费端及必要训练标签。26 张起始卡扩充为 30 个当前事实版本。
+当前目录固定到 `xai-org/x-algorithm@2f252142b9284e692ac72851768c8072d045f0d5`。原 110 项 Home/For You 依赖审查仍固定于 `6258a154…`；本次只增量审核内容特征、Home mixer 去偏输入传输及 VM Ranker 用户去偏参数/调用路径五个文件，不把同一提交其余变化冒充已审。
 
 目录共登记 110 项依赖：
 
@@ -30,3 +30,9 @@ README 指向的旧 `registry.rs` 在固定提交不存在；实际调用以 `ru
 ## 时间勘误
 
 `x-algorithm-public-v2` 曾把目录、激活事件、C16–C19 事实及对应材料的审查时间预置为 `2026-10-27T00:00:00Z`，晚于当时实际时钟。原件作为不利历史证据保留，但不再具有 active 资格。`x-algorithm-public-v3` 使用新的 artifact/fact/rule ID，以实际复核时间追加 C16–C19 勘误；新事实通过 `supersedes` 精确指向旧事实，并明确机制解释未变。OP08-v3 与 OP09-v3 仅切换到勘误事实，未宣称算法升级。`x-algorithm-public-v4` 再把生命周期事件移出稳定内容哈希，采用 `exclude-lifecycle-v1`，使审核或激活时间变化不会伪装成知识内容变化；v2/v3 仍按原哈希策略验证。加载器会拒绝任何非回放用途的未来 active 目录；显式 errata 模式只允许读取旧目录以提出修复，不能用于规则选择或指导。
+
+## 2026-10-27 上游候选差异边界
+
+实际比较 `6258a154…` 与 `2f252142…` 后，相关范围确认包含：Home mixer 将 `VMRankerSendDebiasInputs` 默认值由 false 改为 true，并增加一组 Phoenix shadow traffic；VM Ranker 新增用户去偏模型、参数和重排路径，但 `UserDebiasEnabled` 默认 false、`UserDebiasAlpha` 默认 0；内容长度提取实现重写并以测试维持既有参考行为。该提交同时有大量安全与可见性代码变化，本次未逐项审核，不能只替换 catalog commit，也不能声称全仓影响已批准。
+
+修正版目录已绑定实际 remote HEAD 检查、保存候选、独立 proposal 审核、24 个真实 SignalSet 路径案例及 54 个完整三态 replay 后正式激活。旧 V4 catalog、规则和 lifecycle 文件仍保存在 history；未审的同提交范围、生产开关、模型可用性与逐请求效果继续保持未知。

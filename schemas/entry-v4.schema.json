@@ -100,6 +100,12 @@
             "operation",
             "proposal"
           ]
+        },
+        {
+          "$ref": "#/definitions/CoachMaterializePayloadV4"
+        },
+        {
+          "$ref": "#/definitions/CoachFinalizePayloadV4"
         }
       ]
     },
@@ -356,6 +362,31 @@
             "data",
             "as_of"
           ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contract_version",
+            "operation",
+            "data",
+            "as_of"
+          ],
+          "properties": {
+            "contract_version": {
+              "const": 4
+            },
+            "operation": {
+              "const": "experiment_plan"
+            },
+            "data": {
+              "$ref": "#/definitions/ExperimentPlanV2"
+            },
+            "as_of": {
+              "type": "string",
+              "format": "instant"
+            }
+          }
         }
       ]
     },
@@ -378,6 +409,78 @@
           "type": "array",
           "items": {
             "type": "string"
+          }
+        }
+      }
+    },
+    "CoachMaterializePayloadV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "proposal_ref",
+        "as_of",
+        "actions"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 4
+        },
+        "operation": {
+          "const": "materialize"
+        },
+        "proposal_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "as_of": {
+          "type": "string",
+          "format": "instant"
+        },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/definitions/ActionRecommendationV2"
+          }
+        }
+      }
+    },
+    "CoachFinalizePayloadV4": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "operation",
+        "proposal_ref",
+        "as_of",
+        "action_ids"
+      ],
+      "properties": {
+        "contract_version": {
+          "const": 4
+        },
+        "operation": {
+          "const": "finalize"
+        },
+        "proposal_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "as_of": {
+          "type": "string",
+          "format": "instant"
+        },
+        "action_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }

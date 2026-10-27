@@ -27,13 +27,17 @@ description: >
 普通新闻问答、邮件润色、数学变量 X 不属于本技能。
 用户指定账号后不要重复索取；没有完整数据时处理已取得范围并准确标记覆盖。
 
-## NEXT-2.2 执行入口
+## NEXT-2.3 执行入口
 
-开始新工作先读取 [NEXT-2.2运行合同](references/next22-runtime.md)。状态4是唯一写入容器；旧合同仅保留兼容，不能绕过当前运营指导门。先给用户一个首要动作，最多再补两项，明确下一条如何写、为什么、观察窗口及停止条件。普通文字编辑和仅像素修改独立运行，不强迫读取账号。
+开始新工作先读取 [NEXT-2.3运行合同](references/next23-runtime.md)。状态5是唯一写入容器；迁移使用 contract5 preview/apply/resume_verify，保留原ID。旧合同继续兼容，所有交付和采纳都过当前审核门。先给用户一个首要动作，最多再补两项，明确下一条如何写、为什么、观察窗口及停止条件。普通文字编辑和仅像素修改独立运行，不强迫读取账号。
 
 账号分析先运行本机Chrome采集 prepare→material→import→seal→实际回读→finalize；只通过宿主正式浏览器工具操作，分别核实账号和来源日期/时区，不假造工具或导出。后续优先增量，保留未完成项。
 
 运营建议使用当前激活知识包，读取 [算法覆盖](references/algorithm-coverage.md)，取得真实RuleContext、RuleApplication和完整GuidanceOutput，再由独立审核读取实际输出并保存精确GuidanceReceipt。实际审核为否决时不能代写批准。普通交付隐藏内部ID；需要追溯时才展开证据。图文稿件就绪与运营任务完成分别判断。
+
+使用 `personal-step inspect` 查看已确认偏好、个人经验和到期观察。只把用户明确的长期要求写入当前配置；本次例外只覆盖本次，未采用不当成拒绝。复盘经验先形成候选、独立审核再激活；下次建议说明哪些相关正反经验改变了选择。
+
+找素材时优先 `inspiration-step`：从真实历史提取主题、实体、未回答问题和续篇，明确历史如何影响查询；用户本次主题优先。新闻子任务先预留父预算，重启复用原ticket。可交付官方原图、用户图片或可靠数据图，不以生成示意图冒充新闻原件。
 
 ## 共用执行合同
 
@@ -65,7 +69,7 @@ node scripts/x-ops.mjs <command> --input <request.json> --output <result.json> -
 
 V2 新增 `data-import`、`coach-step` 和 `state-migrate`，仍使用同一 CLI 入口。`preview` 不写状态；写入操作必须使用最新 `expected_revision`。`prepare` 或 `ingest` 成功只表示该步骤完成，不能据此把整个运营任务标为 complete。业务返回 `partial/3` 时按返回的缺口继续下一阶段，保留已经取得的材料与结果。
 
-NEXT-2.1 新增 `content-step`；所有新业务写入要求 state 3。文字和教练流程使用 contract 3 的新审核边界，规范导入与账号统计仍复用 contract 2。旧状态先运行迁移 preview/apply；不要直接修改状态版本。自然语言需求由宿主转成可检查的 ContentBrief，并冻结实际 recipe 版本；内部 ID 和 JSON 不要求用户手写。
+当前教练使用 contract5 `prepare→propose→materialize→完整指导审核→finalize`，先保存完整行动再审核；接受不等于发布。内容制作新增真实媒体复用、来源查看和编辑处方；旧 content/collection/review 合同仍可使用。规范导入与账号统计继续 contract2。内部 ID 和 JSON 不要求用户手写。
 
 ## 账号分析
 
@@ -89,7 +93,7 @@ NEXT-2.1 新增 `content-step`；所有新业务写入要求 state 3。文字和
 
 需要持续运营指导时，账号分析还要分别输出账号期间表现、发布队列表现和同帖龄表现。先用 `data-import preview` 核对真实材料、身份、时间和指标口径，再 `commit`；同一材料重复导入应幂等，新导出可追加。正文和指标可以来自不同材料，通过稳定帖子实体关联，不能要求它们共用 source ID。
 
-运行 `coach-step prepare` 后，只分析实际读取的正文、父帖、引用、线程与媒体。将内容分析、有限证据范围、建议提案和实际语义复核按 `ingest kind` 逐步提交，最后 `finalize`。默认输出一个主要问题、最多三项具体动作和一个主要试验；每项动作都要有对象、改法、依据、成本、指标、观察窗口和停止条件。
+运行 `coach-step prepare` 后，只分析实际读取的正文、父帖、引用、线程与媒体。按准备结果补齐实际内容分析，保存有限范围的提案、完整行动和独立指导审核，最后 `finalize`。默认输出一个主要问题、最多三项具体动作和一个主要试验；每项动作都要有对象、改法、依据、成本、指标、观察窗口和停止条件。
 
 ## 原稿优化
 

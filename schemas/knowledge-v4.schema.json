@@ -463,8 +463,9 @@
                   "dependency_manifest",
                   "fact",
                   "operational_rule",
-                "knowledge_event",
-                "historical_catalog"
+                  "knowledge_event",
+                  "historical_catalog",
+                  "review_receipt"
                 ]
               }
             }

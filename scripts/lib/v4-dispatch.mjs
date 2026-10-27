@@ -1,3 +1,4 @@
+import {actionPlanHash,actionPlanContent,actionOriginatingProposalRef,materializeCoachingActions,finalizeMaterializedCoaching} from './actions.mjs';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {goalSnapshotFromState,validatePersonalContextSelection} from './consumer-context.mjs';
@@ -9,7 +10,7 @@ import {seedKnowledgeState} from './knowledge-state.mjs';
 import {validateGuidanceOutput,validateGuidanceReceipt,evaluateCurrentDeliverable} from './guidance.mjs';
 import {prepareCoachingV4,validateCoachingProposalV4} from './coaching.mjs';
 import {buildReviewComputationV4} from './review.mjs';
-import {applyExperimentTransitionV4,buildPersonalPatternFromReviewV4} from './experiments.mjs';
+import {applyExperimentTransitionV4,buildPersonalPatternFromReviewV4,createExperimentFromAction} from './experiments.mjs';
 const fail=(code,path,message)=>{throw new ContractError(code,path,message);};
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 
@@ -21,6 +22,8 @@ function validateContextPersonal(state,context){
 }
 export function resolveGuidanceSubject(state,ref){
   for(const key of ['drafts','content_packs'])for(const [id,entry] of Object.entries(state[key]??{}))for(const [revision,value]of Object.entries(entry.revisions??{}))if(ref===`${id}:${revision}`){if(key==='content_packs')return{ref,content_hash:value.pack_content_hash};const current=evaluateDraftReadiness({draft_id:id,revision:Number(revision)},null,state);return{ref,content_hash:canonicalHash({texts:value.texts,format:value.format,original_text:value.original_text,original_ref:value.original_ref,evidence_mapping_hash:current.evidence_mapping_hash,personal_context_selection_hash:current.personal_context_selection_hash})};}
+  const report=state.coaching_reports?.[ref];
+  if(report?.actions)return{ref,content_hash:canonicalHash({report,action_plans:report.actions.map(a=>state.actions[a.action_id]?actionPlanContent(state.actions[a.action_id]):{missing_action:a.action_id})})};
   for(const key of ['coaching_runs','coaching_reports','review_computations','experiment_reviews','topic_cards','analyses','runs'])if(state[key]?.[ref])return{ref,content_hash:canonicalHash(state[key][ref])};
   fail('MISSING_EVIDENCE','/subject_ref','The exact deliverable must exist before guidance is frozen');
 }
@@ -34,6 +37,7 @@ export async function verifyGuidanceActual(receipt){
   return receipt;
 }
 export async function currentGuidance(state,subjectRef,{intent,use,goal=goalSnapshotFromState(state),content_readiness}={}){
+  if(state.schema_version===5){const {currentGuidanceV5}=await import('./v5-dispatch.mjs');const gate=await currentGuidanceV5(state,subjectRef,{intent,use,goal});return{content_readiness,guidance_readiness:gate,guidance_required:use!=='plain_edit',task_readiness:gate.readiness==='ready'&&content_readiness?.readiness==='ready'?'ready':'not_ready',limitations:[]};}
   const subject=resolveGuidanceSubject(state,subjectRef),active=knowledgeBundleFromState(state);
   const contexts=Object.values(state.rule_contexts??{}).filter(c=>{try{validateContextPersonal(state,c);}catch{return false;}if(canonicalHash(c.goal)!==canonicalHash(goal)||c.subject_ref!==subjectRef||intent&&c.intent!==intent||use&&c.use!==use)return false;if(c.catalog_ref===active.catalog.catalog_id&&c.catalog_content_hash===active.catalog.catalog_content_hash)return true;if(!c.signals)return false;return buildRuleContextV4({...c,signals:c.signals},active).selected_rule_context_hash===c.selected_rule_context_hash;});
   const receiptList=Object.values(state.guidance_receipts??{}),superseded=new Set(receiptList.map(r=>r.supersedes_receipt_ref).filter(Boolean));
@@ -46,10 +50,21 @@ export async function currentGuidance(state,subjectRef,{intent,use,goal=goalSnap
   const gate=evaluateCurrentDeliverable({intent:intent??selected?.context.intent,use:use??selected?.context.use,content_readiness,guidance:conflict?{}:{subject,application:selected?.application,context:selected?.context,output:selected?.output,receipts:receiptList,actualReviewReceipts}});
   return{...gate,limitations};
 }
+export async function approvedProposalActionView(state,proposalRef){
+  const report=state.coaching_reports?.[proposalRef];if(!report)fail('MISSING_EVIDENCE','/proposal_ref','Saved proposal is required');
+  const run=state.coaching_runs[report.run_ref],original=state.rule_contexts[run?.rule_context_ref],goal=original?.goal??goalSnapshotFromState(state),use=original?.use??run?.use??'coaching';
+  const gate=await currentGuidance(state,proposalRef,{intent:'coach',use,goal,content_readiness:{readiness:'ready'}});
+  const hashes=report.actions.map(a=>{const action=state.actions[a.action_id];if(!action)fail('MISSING_EVIDENCE','/actions','Complete action plans must be materialized before approval');return actionPlanHash(action);});
+  return {readiness:gate.task_readiness==='ready'?'ready':'needs_review',subject_ref:proposalRef,action_plan_hashes:hashes,active_receipt_ref:gate.guidance_readiness.active_receipt_ref};
+}
+export async function approvedActionView(state,actionId){
+  if(state.schema_version===5){const {approvedActionViewV5}=await import('./v5-dispatch.mjs');return approvedActionViewV5(state,actionId);}
+  const proposalRef=actionOriginatingProposalRef(state,actionId);return proposalRef?approvedProposalActionView(state,proposalRef):null;
+}
 export async function dispatchV4(command,request,dir,state){
   const p=request.payload;
   if(command==='state-migrate'){const {migrateStateV4}=await import('./migrations.mjs');return migrateStateV4(dir,p,request.expected_revision);}
-  if(!state||state.schema_version!==4)fail('MIGRATION_REQUIRED','/schema_version','Preview and apply state 4 migration before new work');
+  if(!state||![4,5].includes(state.schema_version))fail('MIGRATION_REQUIRED','/schema_version','Preview and apply state 4 migration before new work');
   if(command==='review'){
     let result;const next=await commitState(dir,request.expected_revision,working=>{
       if(p.operation==='compute'){const plan=working.experiment_plan_views[p.plan_view_ref];if(!plan)fail('MISSING_EVIDENCE','/plan_view_ref','Plan view missing');result=buildReviewComputationV4(working,plan,p);putImmutable(working.review_computations,result.computation_id,result);return working;}
@@ -57,6 +72,8 @@ export async function dispatchV4(command,request,dir,state){
     });return{state:next,data:p.operation==='compute'?{review_computation:result}:result};
   }
   if(command==='coach-step'){
+    if(p.operation==='finalize'){const proof=await approvedProposalActionView(state,p.proposal_ref);return{state,data:finalizeMaterializedCoaching(state,{proposal_ref:p.proposal_ref,action_ids:p.action_ids,approved_guidance:proof})};}
+    if(p.operation==='materialize'){let result;const next=await commitState(dir,request.expected_revision,working=>{const advanced=materializeCoachingActions(working,{proposal_ref:p.proposal_ref,actions:p.actions,created_at:p.as_of});result=advanced.result;return advanced.nextState;});return{state:next,data:result};}
     let result;const next=await commitState(dir,request.expected_revision,working=>{
       const bundle=knowledgeBundleFromState(working);
       if(p.operation==='prepare'){result=prepareCoachingV4(working,p.request,{catalog:bundle});putImmutable(working.coaching_runs,result.run.run_id,result.run);putImmutable(working.evidence_bundles,result.evidence_bundle.bundle_id,result.evidence_bundle);putImmutable(working.rule_contexts,result.rule_context.context_id,result.rule_context);return working;}
@@ -84,6 +101,7 @@ export async function dispatchV4(command,request,dir,state){
     const next=await commitState(dir,request.expected_revision,()=>advanced.nextState);return{state:next,data:advanced.result};
   }
   if(command==='record'){
+    if(p.operation==='experiment_plan'){const proof=await approvedActionView(state,p.data.originating_action_id);let result;const next=await commitState(dir,request.expected_revision,working=>{const advanced=createExperimentFromAction(working,{experiment:p.data,approved_guidance:proof});result=advanced.result;return advanced.nextState;});return{state:next,data:result};}
     const d=p.data;let next=await commitState(dir,request.expected_revision,async working=>{
       if(p.operation==='guidance_review_result'){await verifyGuidanceActual(d);putImmutable(working.host_media_receipts,d.receipt_id,d);}
       else if(p.operation==='rule_application'){const context=working.rule_contexts[d.context_ref];if(!context)fail('MISSING_EVIDENCE','/context_ref','Rule selection is missing');validateContextPersonal(working,context);const personalUsed=d.checks.some(check=>check.inspected_refs.some(ref=>working.user_facts[ref]||working.post_versions[ref]||working.content_analyses[ref]));if(personalUsed&&!context.personal_context_selection_hash)fail('MISSING_EVIDENCE','/context_ref','Checks consuming personal account material must bind the actual personal selection');const active=knowledgeBundleFromState(working);if(context.catalog_ref!==active.catalog.catalog_id||context.catalog_content_hash!==active.catalog.catalog_content_hash)fail('STALE_BUNDLE','/context_ref','Re-select rules from the active catalog');const subject=resolveGuidanceSubject(working,d.subject_ref);if(subject.content_hash!==d.actual_input_hash)fail('STALE_BUNDLE','/actual_input_hash','Rule checks must bind the current exact deliverable');validateRuleApplication(d,context,knowledgeBundleFromState(working));putImmutable(working.rule_applications,d.application_id,d);}

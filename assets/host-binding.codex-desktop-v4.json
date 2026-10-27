@@ -1,0 +1,165 @@
+{
+  "contract_version": 4,
+  "binding_id": "codex-desktop-browser-v4",
+  "binding_version": "2.3.0",
+  "host_name": "Codex desktop",
+  "data_mode": "live",
+  "search": {
+    "tool_name": "web__run",
+    "request_template": {
+      "search_query": [
+        {
+          "q": "{{query}}",
+          "recency": "{{recency_days}}"
+        }
+      ],
+      "response_length": "short"
+    },
+    "supported_filters": [
+      "recency_days",
+      "query"
+    ]
+  },
+  "read": {
+    "tool_name": "web__run",
+    "request_template": {
+      "open": [
+        {
+          "ref_id": "{{ref_id}}"
+        }
+      ],
+      "response_length": "short"
+    },
+    "supported_filters": [
+      "ref_id"
+    ]
+  },
+  "raw_formats": [
+    "text_string",
+    "call_tool_result"
+  ],
+  "account_collection": {
+    "visible_analytics_read": "unverified",
+    "analytics_export": "unverified",
+    "history_read": "unverified",
+    "official_api_read": "unverified",
+    "current_account_identity": null,
+    "last_verified_receipt_ref": null
+  },
+  "node_execution": "Run Node 24 from the configured skill directory: node scripts/x-ops.mjs",
+  "working_directory": ".",
+  "persistence": {
+    "provider": "local_filesystem",
+    "save_method": "atomic account-state.json in a durable account directory; inspect actual host write/read result and record its revision/hash receipt",
+    "restore_method": "fresh process or Agent reads account-state.json and persistence-receipt.json from that directory",
+    "persistent": true
+  },
+  "media_capabilities": {
+    "image_view": {
+      "declared": "unverified",
+      "binding_version": "2.1.0",
+      "formats": [
+        "image/png"
+      ],
+      "last_success_receipt_ref": null
+    },
+    "image_generate": {
+      "declared": "unverified",
+      "binding_version": "2.1.0",
+      "formats": [
+        "image/png"
+      ],
+      "last_success_receipt_ref": null
+    },
+    "image_edit": {
+      "declared": "unverified",
+      "binding_version": "2.1.0",
+      "formats": [
+        "image/png"
+      ],
+      "last_success_receipt_ref": null
+    },
+    "data_render": {
+      "declared": "unverified",
+      "binding_version": "2.1.0",
+      "formats": [
+        "image/png"
+      ],
+      "last_success_receipt_ref": null
+    },
+    "preview_render": {
+      "declared": "unverified",
+      "binding_version": "2.1.0",
+      "formats": [
+        "local_file"
+      ],
+      "last_success_receipt_ref": null
+    },
+    "artifact_persistence": {
+      "declared": "unverified",
+      "binding_version": "2.1.0",
+      "formats": [
+        "local_file"
+      ],
+      "last_success_receipt_ref": null
+    }
+  },
+  "browser": {
+    "family": "chrome",
+    "browser_ref": "host-selected-chrome",
+    "session_ref": "host-session",
+    "verified_receipt_ref": null
+  },
+  "device": {
+    "device_ref": "local-mac",
+    "kind": "desktop",
+    "os": "macOS"
+  },
+  "runtime": {
+    "runtime_ref": "local-mac-runtime",
+    "location": "local"
+  },
+  "tool_mappings": {
+    "identity_read": "mcp__cua_repl.js",
+    "analytics_export": "mcp__cua_repl.js"
+  },
+  "capabilities": [
+    {
+      "capability": "browser_connection",
+      "declared": "unverified",
+      "verified": "unverified",
+      "last_receipt_ref": null
+    },
+    {
+      "capability": "tab_read",
+      "declared": "unverified",
+      "verified": "unverified",
+      "last_receipt_ref": null
+    },
+    {
+      "capability": "normal_export",
+      "declared": "unverified",
+      "verified": "unverified",
+      "last_receipt_ref": null
+    },
+    {
+      "capability": "download_completion",
+      "declared": "unverified",
+      "verified": "unverified",
+      "last_receipt_ref": null
+    },
+    {
+      "capability": "file_read",
+      "declared": "unverified",
+      "verified": "unverified",
+      "last_receipt_ref": null
+    }
+  ],
+  "file_transfer": {
+    "declared": "unverified",
+    "source_runtime_ref": "local-mac-runtime",
+    "target_runtime_ref": "local-mac-runtime",
+    "method": "same_runtime_download",
+    "last_verified_receipt_ref": null
+  }
+}

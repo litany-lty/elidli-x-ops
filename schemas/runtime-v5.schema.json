@@ -1,0 +1,24 @@
+{
+  "$id": "https://x-ops.local/schemas/runtime-v5.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "MigrationPreviewV5": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contract_version", "preview_id", "source_hash", "source_revision", "source_version", "target_version", "rule_version", "counts", "recheck_items", "limitations", "preview_hash"],
+      "properties": {
+        "contract_version": {"const": 5}, "preview_id": {"type": "string", "minLength": 1}, "source_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "source_revision": {"type": "integer", "minimum": 1}, "source_version": {"enum": [1, 2, 3, 4]}, "target_version": {"const": 5}, "rule_version": {"const": "state5@1"},
+        "counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+        "recheck_items": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "limitations": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "preview_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "StateMigratePayloadV5": {
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["contract_version", "operation"], "properties": {"contract_version": {"const": 5}, "operation": {"const": "preview"}}},
+        {"type": "object", "additionalProperties": false, "required": ["contract_version", "operation", "preview", "backup_directory"], "properties": {"contract_version": {"const": 5}, "operation": {"const": "apply"}, "preview": {"$ref": "#/definitions/MigrationPreviewV5"}, "backup_directory": {"type": "string", "minLength": 1}}},
+        {"type": "object", "additionalProperties": false, "required": ["contract_version", "operation", "preview"], "properties": {"contract_version": {"const": 5}, "operation": {"const": "resume_verify"}, "preview": {"$ref": "#/definitions/MigrationPreviewV5"}}}
+      ]
+    }
+  }
+}
