@@ -11,11 +11,30 @@ node_modules/
 /state/
 /states/
 /.x-ops/
+/.elidli-x-ops/
 **/account-state.json
 **/persistence-receipt.json
 **/raw_receipts/*
 
 # Local evidence and temporary test output
+/materials/
+/acceptance/
+/evidence/
+/exports/
+/trials/
+/downloads/
+/screenshots/
+/artifacts/
+/backups/
+/requests/
+/results/
+*.csv
+*.pem
+*.key
+*.p12
+*.pfx
+*cookies*.json
+*cookies*.txt
 /.serena/
 /.test-artifacts/
 /.local-evidence/

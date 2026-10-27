@@ -1,8 +1,8 @@
-# x-ops
+# elidli-x-ops
 
 当前修订 `2.3.0-rc.4`：修复 NEXT-2.3 的知识包引用完整性、V5 图文保存与恢复、同文重审回读，以及关联素材的持续有效性。详见 [验收与范围](references/next23-acceptance.md)。
 
-x-ops 是一个面向个人 X（Twitter）运营的 Agent 技能。它把账号分析、推文优化、新闻选题和发布后复盘整理为可审计的工作流：真实网页搜索与读取由宿主 Agent 完成，Node.js CLI 负责合同校验、确定性计算、状态管理和结果封装。持续运营会关联完整行动、实际发布、成熟复盘与经过审核的个人经验，并用历史内容生成素材线索，支持真实媒体复用。
+elidli-x-ops 是一个面向个人 X（Twitter）运营的 Agent 技能。它把账号分析、推文优化、新闻选题和发布后复盘整理为可审计的工作流：真实网页搜索与读取由宿主 Agent 完成，Node.js CLI 负责合同校验、确定性计算、状态管理和结果封装。持续运营会关联完整行动、实际发布、成熟复盘与经过审核的个人经验，并用历史内容生成素材线索，支持真实媒体复用。
 
 它不会自行发帖、回复、点赞、购买 API 或创建后台任务，也不承诺流量增长。
 
@@ -16,8 +16,8 @@ x-ops 是一个面向个人 X（Twitter）运营的 Agent 技能。它把账号�
 项目的四个运行依赖均在 `package.json` 中锁定精确版本，安装时请使用 lockfile：
 
 ```bash
-git clone https://github.com/litany-lty/x-ops.git
-cd x-ops
+git clone https://github.com/litany-lty/elidli-x-ops.git
+cd elidli-x-ops
 npm ci
 ```
 
@@ -28,18 +28,18 @@ npm ci
 建议显式调用，避免普通新闻查询或通用文案任务误触发：
 
 ```text
-$x-ops 分析这个 X 账号近 28 天的公开内容与实际可见表现
-$x-ops 优化下面这条推文，保留我的事实与立场
-$x-ops 查找今天适合这个账号发布的 AI 新闻选题
-$x-ops 把这段原稿做成中文工具对比，三张信息卡，语气克制
-$x-ops 只把第二张换成流程图，其他内容保持不变
+$elidli-x-ops 分析这个 X 账号近 28 天的公开内容与实际可见表现
+$elidli-x-ops 优化下面这条推文，保留我的事实与立场
+$elidli-x-ops 查找今天适合这个账号发布的 AI 新闻选题
+$elidli-x-ops 把这段原稿做成中文工具对比，三张信息卡，语气克制
+$elidli-x-ops 只把第二张换成流程图，其他内容保持不变
 ```
 
 不同宿主的技能目录和重载方式不同；本仓库不假设固定的个人目录。
 
 ## 统一 CLI
 
-所有命令使用同一个入口：
+对外技能名为 `elidli-x-ops`。已有 CLI 文件名、`X_OPS_STATE_DIR` 与私有状态目录继续兼容，已有账号无需迁移路径。所有命令使用同一个入口：
 
 ```bash
 node scripts/x-ops.mjs <command> \
@@ -137,6 +137,8 @@ node scripts/x-ops.mjs doctor \
 ```
 
 不要把账号状态、原始回执、凭据或真实账号材料提交到 Git。不要直接编辑 `account-state.json` 绕过 revision 与引用校验。
+
+真实账号状态和材料应保存在仓库外。本仓库只公开技能代码、通用模板、合成测试与附许可证的上游源码节选；本机试用计划、Analytics 导出、浏览器回执和私有审核原件不属于公开交付。`.gitignore` 排除常见材料目录、CSV、密钥和 cookie 文件；打包清单仅包含运行所需目录。发布前仍须核对实际暂存文件，忽略规则不能移除已经跟踪的文件。
 
 state1/2/3/4 在首次 NEXT-2.3 写入前使用 contract5 `state-migrate preview/apply`。迁移先保存原始字节备份与清单，直接原子提交 state5；回读失败仅 `resume_verify`，不重做迁移。不要把备份或实际媒体放进仓库。
 

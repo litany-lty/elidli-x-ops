@@ -1,5 +1,5 @@
 {
-  "name": "x-ops",
+  "name": "elidli-x-ops",
   "version": "2.3.0-rc.4",
   "private": true,
   "type": "module",
@@ -16,12 +16,23 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/litany-lty/x-ops.git"
+    "url": "git+https://github.com/litany-lty/elidli-x-ops.git"
   },
-  "homepage": "https://github.com/litany-lty/x-ops#readme",
+  "homepage": "https://github.com/litany-lty/elidli-x-ops#readme",
   "bugs": {
-    "url": "https://github.com/litany-lty/x-ops/issues"
+    "url": "https://github.com/litany-lty/elidli-x-ops/issues"
   },
+  "files": [
+    "SKILL.md",
+    "agents/",
+    "scripts/",
+    "schemas/",
+    "references/",
+    "assets/",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
   "scripts": {
     "test": "node --test test/*.test.mjs"
   }
