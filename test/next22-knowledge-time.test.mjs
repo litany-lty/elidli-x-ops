@@ -14,18 +14,31 @@ test('active knowledge rejects synthetic future clock while errata mode preserve
 
 test('current bundle seeds reviewed active objects after exact historical ancestors', () => {
   const bundle = loadKnowledgeCatalog();
-  assert.equal(bundle.catalog.catalog_id, 'x-algorithm-2f252142-signals-candidate-v5');
+  assert.equal(bundle.catalog.catalog_id, 'x-algorithm-b220448-editorial-v1');
   assert.equal(bundle.history.catalogs['x-algorithm-public-v4'].catalog_content_hash,'51cef794aba149f525719ee8cc7178cbd4f76353bffff185267e4a38d9d8c5c8');
   assert.equal(bundle.temporal_readiness.status, 'ready');
+  assert.equal(Object.keys(bundle.facts).length, 30);
+  assert.equal(Object.keys(bundle.history.facts).length, 34);
+  const historicalIds = [
+    'c01','c02','c03','c04','c05','c06','c07','c08','c09','c10',
+    'c11','c12','c13','c14','c15','c16','c17','c18','c19',
+    'cf01','cs01','cs02','cs03','dv01','ex01','sc01','sc02','sc03','sc04','sc05'
+  ].map(id => `fact-${id}-6258a1549ef8`);
   assert.deepEqual(Object.keys(bundle.history.facts).sort(), [
-    'fact-c16-6258a1549ef8', 'fact-c17-6258a1549ef8',
-    'fact-c18-6258a1549ef8', 'fact-c19-6258a1549ef8'
-  ]);
+    ...historicalIds,
+    ...['c16','c17','c18','c19'].map(id => `fact-${id}-6258a1549ef8-timefix1`)
+  ].sort());
   const state = initializeState({ account: { user_id: null, handle: 'time-audit-fixture' } }, 4);
   for (const fact of Object.values(bundle.facts).filter(item => item.supersedes)) {
     assert.deepEqual(state.rule_versions_v2[fact.supersedes], bundle.history.facts[fact.supersedes]);
     assert.deepEqual(state.rule_versions_v2[fact.rule_version_id], fact);
     assert.notEqual(fact.source_material_ref, bundle.history.facts[fact.supersedes].source_material_ref);
+  }
+  for (const id of ['c16','c17','c18','c19']) {
+    const corrected = `fact-${id}-6258a1549ef8-timefix1`, original = `fact-${id}-6258a1549ef8`;
+    assert.equal(bundle.facts[`fact-${id}-b220448766ab`].supersedes, corrected);
+    assert.equal(bundle.history.facts[corrected].supersedes, original);
+    assert.deepEqual(state.rule_versions_v2[original], bundle.history.facts[original]);
   }
   assert.equal(state.knowledge_catalogs[bundle.catalog.catalog_id].catalog_content_hash, bundle.catalog.catalog_content_hash);
   assert.deepEqual(state.knowledge_events[bundle.event.event_id], bundle.event);

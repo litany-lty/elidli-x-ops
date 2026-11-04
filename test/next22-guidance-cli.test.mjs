@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { runtimeUrl } from './helpers/runtime.mjs';
+import { createLegacyKnowledgePackage, seedLegacyKnowledgeState } from './helpers/legacy-knowledge-fixture.mjs';
 
 const {createDefaultConfig}=await import(runtimeUrl('scripts/lib/config.mjs'));
 const {initializeState,loadState}=await import(runtimeUrl('scripts/lib/state.mjs'));
@@ -17,18 +18,18 @@ const {resolveGuidanceSubject}=await import(runtimeUrl('scripts/lib/v4-dispatch.
 const {resolveSubject}=await import(runtimeUrl('scripts/lib/subjects.mjs'));
 const {catalogContentHash,applicationProposalHash}=await import(runtimeUrl('scripts/lib/knowledge.mjs'));
 const {guidanceOutputContentHashV5,guidanceReviewSubjectHashV5}=await import(runtimeUrl('scripts/lib/guidance.mjs'));
-const entry=fileURLToPath(runtimeUrl('scripts/x-ops.mjs')),packageDir=fileURLToPath(new URL('../assets/algorithm-knowledge/',import.meta.url));
+const entry=fileURLToPath(runtimeUrl('scripts/x-ops.mjs'));
 const T='2026-10-27T04:50:00Z',CURRENT_CATALOG='x-algorithm-2f252142-signals-candidate-v5',CURRENT_EDITORIAL_RULE='operational-op01-v3',account={handle:'fixture_guidance22',profile_url:'https://x.com/fixture_guidance22',user_id:null,identity_basis:'user_provided'};
 const sha=value=>createHash('sha256').update(value).digest('hex');
 
 function runCli(command,payload,dir,{runId=null}={}){
-  const state=JSON.parse(spawnSync(process.execPath,['-e',`process.stdout.write(require('fs').readFileSync(${JSON.stringify(join(dir,'account-state.json'))},'utf8'))`],{encoding:'utf8'}).stdout),input=join(dir,`request-${randomUUID()}.json`),output=join(dir,`output-${randomUUID()}.json`);
+  const state=JSON.parse(readFileSync(join(dir,'account-state.json'),'utf8')),input=join(dir,`request-${randomUUID()}.json`),output=join(dir,`output-${randomUUID()}.json`);
   writeFileSync(input,JSON.stringify({schema_version:1,run_id:runId,expected_revision:state.revision,payload}));
   const proc=spawnSync(process.execPath,[entry,command,'--input',input,'--output',output,'--state-dir',dir],{encoding:'utf8'});
   assert.equal(proc.error,undefined);return{exitCode:proc.status,envelope:JSON.parse(proc.stdout)};
 }
 
-async function fixture(){const dir=await mkdtemp(join(tmpdir(),'xops-guidance-cli-')),source=initializeState(createDefaultConfig(account),4);source.revision=1;const state=applyMigrationV5(source,previewMigrationV5(source));await writeFile(join(dir,'account-state.json'),`${JSON.stringify(state,null,2)}\n`);return dir;}
+async function fixture(){const dir=await mkdtemp(join(tmpdir(),'xops-guidance-cli-')),source=seedLegacyKnowledgeState(initializeState(createDefaultConfig(account),4));createLegacyKnowledgePackage(join(dir,'legacy-package'));source.revision=1;const state=applyMigrationV5(source,previewMigrationV5(source));await writeFile(join(dir,'account-state.json'),`${JSON.stringify(state,null,2)}\n`);return dir;}
 function semantic(text){return{text_hashes:[textHash(text)],kept_user_fact_ids:[],claim_ids:[],new_claims_check:'未添加未映射主张',stance_voice_notes:['保留原判断'],reviewer:'fixture-draft-reviewer',reviewed_at:T,decision:'approve'};}
 function draftPayload(text,{draftId=null,actual=null,deliveryIntent='operational_optimize'}={}){return{contract_version:3,draft_input:{draft_id:draftId,revision:1,parent_revision:null,card_id:null,original_text:text,original_ref:null,format:'short_post',texts:[text],fact_mapping:[],semantic_review:semantic(text)},personalization_mode:'none',personal_context_selection:null,supersedes_receipt_ref:null,...(actual?{actual_review_receipt_ref:actual}:{}),delivery_intent:deliveryIntent,as_of:T};}
 async function recordDraftActual(dir,subjectHash,id='draft-actual'){
@@ -41,10 +42,10 @@ async function saveOperationalDraft(dir){
   const preview=result.envelope.data,actual=await recordDraftActual(dir,preview.review_receipt.subject_hash);payload=draftPayload(text,{draftId:preview.draft.draft_id,actual:actual.receipt_id});result=runCli('draft-check',payload,dir);assert.equal(result.exitCode,0,JSON.stringify(result.envelope.errors));assert.equal(result.envelope.data.readiness,'ready');assert.equal(result.envelope.data.task_readiness,'not_ready');
   const ready=result.envelope.data;result=runCli('record',{contract_version:3,operation:'draft_review',data:{draft:ready.draft,review_receipt:ready.review_receipt},as_of:T},dir);assert.equal(result.exitCode,0,JSON.stringify(result.envelope.errors));assert.equal(result.envelope.data.guidance_required,true);assert.equal(result.envelope.data.task_readiness,'not_ready');return{draft:ready.draft,review:ready.review_receipt,context:result.envelope.data.rule_context,subjectRef:`${ready.draft.draft_id}:${ready.draft.revision}`};
 }
-async function candidatePackage(dir){const target=join(dir,'candidate-package');await cp(packageDir,target,{recursive:true});const path=join(target,'catalog.json'),catalog=JSON.parse(await readFile(path,'utf8'));catalog.catalog_id='x-algorithm-candidate-fixture';catalog.catalog_version='1.2.0';const eventPath=join(target,catalog.activation_event_path),event=JSON.parse(await readFile(eventPath,'utf8'));event.catalog_ref=catalog.catalog_id;event.event_id='candidate-event-fixture';event.event_type='candidate_update';const eventBytes=JSON.stringify(event);await writeFile(eventPath,eventBytes);catalog.files.find(item=>item.path===catalog.activation_event_path).sha256=sha(eventBytes);catalog.catalog_content_hash=catalogContentHash(catalog,catalog.dependencies);await writeFile(path,`${JSON.stringify(catalog,null,2)}\n`);return{target,catalog};}
+async function candidatePackage(dir){const target=join(dir,'candidate-package');await cp(join(dir,'legacy-package'),target,{recursive:true});const path=join(target,'catalog.json'),catalog=JSON.parse(await readFile(path,'utf8'));catalog.catalog_id='x-algorithm-candidate-fixture';catalog.catalog_version='1.2.0';const eventPath=join(target,catalog.activation_event_path),event=JSON.parse(await readFile(eventPath,'utf8'));event.catalog_ref=catalog.catalog_id;event.event_id='candidate-event-fixture';event.event_type='candidate_update';const eventBytes=JSON.stringify(event);await writeFile(eventPath,eventBytes);catalog.files.find(item=>item.path===catalog.activation_event_path).sha256=sha(eventBytes);catalog.catalog_content_hash=catalogContentHash(catalog,catalog.dependencies);await writeFile(path,`${JSON.stringify(catalog,null,2)}\n`);return{target,catalog};}
 async function recordGuidanceActual(dir,{id,subjectHash,decision,checks,issues,generator='independent-guidance-review'}){const path=join(dir,`${id}.json`),actual={subject_hash:subjectHash,decision,checks,issues,generator_ref:generator},bytes=Buffer.from(JSON.stringify(actual));await writeFile(path,bytes);const receipt={contract_version:4,receipt_id:id,operation:'review_guidance',subject_hash:subjectHash,actual_result_ref:path,actual_result_sha256:sha(bytes),generator_ref:generator,tool_name:'fixture-guidance-review',data_mode:'fixture',decision,checks,issues,reviewed_at:T};const result=runCli('record',{contract_version:4,operation:'guidance_review_result',data:receipt,as_of:T},dir);assert.equal(result.exitCode,0,JSON.stringify(result.envelope.errors));return receipt;}
 
-test('knowledge CLI keeps candidates inactive and guidance records survive a fresh process with an exact task gate',async()=>{
+test('legacy knowledge CLI keeps candidates inactive and guidance records survive a fresh process with an exact task gate',async()=>{
  const dir=await fixture();try{
   let result=runCli('knowledge-step',{contract_version:4,operation:'seed',as_of:T},dir);assert.equal(result.exitCode,0,JSON.stringify(result.envelope.errors));assert.equal(result.envelope.data.catalog.catalog_id,CURRENT_CATALOG);
   result=runCli('knowledge-step',{contract_version:4,operation:'explain',as_of:T},dir);assert.equal(result.exitCode,0);assert.equal(result.envelope.data.catalog.catalog_id,CURRENT_CATALOG);

@@ -39,6 +39,8 @@ OP07/OP10新增的4个语义信号已进入真实V5提取器。缺失证据不�
 
 ## 已有状态更新与回退
 
+运行时代码升级也有兼容影响：即使既有账号未切换catalog，过去保存的V5 context没有本版新增的scope与依赖闭包字段，原有guidance可能转为 `needs_review`。旧证据不被删除或改写；须使用新run重新选择规则并完成应用/交付审核，不能仅复制旧审批或补字段冒充已审。V4历史行为仍由固定历史包验证，新的editorial_only规则必须走V5依据绑定流程。
+
 已有状态按contract5 `knowledge-step` 流程执行：先以实际上游checkout完成check，再从新包propose-update，审核精确proposal与全部受影响版本的三态replays，最后activate-update。不会仅通过修改active标志替换包。不同旧状态或新上游变化必须重新生成相应proposal，不复用本次hash。
 
 回退先调用 `rollback-preview`，指定已实际激活过的 `target_catalog_ref`，读取精确subject_ref/subject_hash/subject。独立审核该完整过渡，记录真实review_knowledge回执，然后调用 `rollback` 并指定 `review_receipt_ref`。

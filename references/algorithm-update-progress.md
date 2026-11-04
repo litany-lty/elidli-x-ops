@@ -81,3 +81,13 @@
 - Final independent read-only verification confirmed actual catalog/event/state/review hashes and forced mechanism unknown. All 15 non-public/partially-public gaps remain; no private data, production weights, deployment flags or account observations were invented.
 - Only changed/associated tests were run. No main change, deployment, upstream service/model execution or complete regression.
 - After the default package switch, the directly affected scope/history/rollback tests were run against the new installed bundle: 17/17 passed. This checks changed package compatibility rather than an unrelated full regression.
+
+## Pre-merge compatibility review
+
+- Read-only merge review found direct fixture drift that prior new-path validation did not cover: obsolete active IDs/counts, old test clocks loading new evidence, and historical V4 tests accidentally using the V5-only editorial release. CI has not passed for this branch; no merge is claimed.
+- Historical protocol tests now use a complete, hash-verified immutable old package rather than cherry-picking old IDs from the new catalog. Current-package tests retain real new identities, scope and ancestry checks. No production rule, guard or approval requirement is relaxed.
+- Added a controlled runtime-upgrade case: a persisted pre-scope V5 context is incompatible even with its original catalog unchanged; stale application is rejected, a new run can select and validate again, and prior evidence remains unchanged. Focused case: 1 passed.
+- This invalidation is a real upgrade effect: old guidance can need review again. Documentation now explains it explicitly; historical account catalog preservation does not imply old guidance remains ready.
+- Compatibility repairs: 29 cases across the five changed legacy knowledge/guidance files passed; 6 affected V5 cases passed (signals 2, support A05 1, update CLI 2, preference 1); the new upgrade case passed. Another 12 unchanged coach cases passed in the initial related run and were not repeated. Total evidence: 48 distinct related cases, not a full-project run.
+- The CLI fixture now reads its local state file directly, avoiding an unrelated child stdout buffer truncating a larger serialized state. Runtime code and the approved catalog remain unchanged.
+- CI is available through the existing pull_request workflow (Node 24, npm ci, npm test), or a later main push. No workflow_dispatch exists. No PR, main merge, full-suite CI trigger or deployment was performed in this repair step.

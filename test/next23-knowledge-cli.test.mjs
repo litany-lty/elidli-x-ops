@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { canonicalHash } from '../scripts/lib/contracts.mjs';
 import { createDefaultConfig } from '../scripts/lib/config.mjs';
 import { catalogContentHash, knowledgeBundleFromState, knowledgeReplayResultHashV5 } from '../scripts/lib/knowledge.mjs';
 import { commitState, initializeState, loadState, putImmutable } from '../scripts/lib/state.mjs';
+import { createLegacyKnowledgePackage, loadLegacyKnowledgeCatalog, seedLegacyKnowledgeState } from './helpers/legacy-knowledge-fixture.mjs';
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const git = (cwd, args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
@@ -24,7 +25,8 @@ async function call(stateDir, payload, expectedStatus = 0) {
 }
 
 async function fixtureRegistry() {
-  const source = resolve('assets/algorithm-knowledge'), catalog = JSON.parse(await readFile(join(source, 'catalog.json'), 'utf8')), manifest = JSON.parse(await readFile(join(source, catalog.dependency_manifest_path), 'utf8')), byId = new Map(manifest.dependencies.map(item => [item.dependency_id, item])), activeRules = new Set(catalog.rule_version_refs), dependencyIds = new Set(), ruleRefs = [];
+  // Model the historical update protocol, not the installed release's exact public-diff review.
+  const source = resolve('assets/algorithm-knowledge'), catalog = loadLegacyKnowledgeCatalog().catalog, manifest = JSON.parse(await readFile(join(source, catalog.dependency_manifest_path), 'utf8')), byId = new Map(manifest.dependencies.map(item => [item.dependency_id, item])), activeRules = new Set(catalog.rule_version_refs), dependencyIds = new Set(), ruleRefs = [];
   for (const entry of catalog.files.filter(item => item.kind === 'operational_rule')) { const rule = JSON.parse(await readFile(join(source, entry.path), 'utf8')); if (!activeRules.has(rule.rule_version_id) || rule.dependency_ids.some(ref => byId.get(ref)?.source_visibility !== 'public')) continue; ruleRefs.push(rule.rule_version_id); for (const ref of rule.dependency_ids) dependencyIds.add(ref); }
   return { dependencies: manifest.dependencies.filter(item => dependencyIds.has(item.dependency_id)), ruleRefs };
 }
@@ -36,14 +38,15 @@ async function writeFixtureSources(checkout, dependencies) {
 }
 
 function narrowCurrentKnowledge(state, registry, materialHashes, priorHead) {
-  const event = Object.values(state.knowledge_events).find(item => item.event_type === 'activated'), catalog = state.knowledge_catalogs[event.catalog_ref], ids = new Set(registry.dependencies.map(item => item.dependency_id));
+  const active = knowledgeBundleFromState(state), event = structuredClone(active.event), catalog = structuredClone(active.catalog), ids = new Set(registry.dependencies.map(item => item.dependency_id));
+  state.knowledge_events[event.event_id] = event; state.knowledge_catalogs[catalog.catalog_id] = catalog;
   catalog.dependencies = registry.dependencies.map(item => ({ ...item, material_hash: materialHashes.get(item.path) })); catalog.rule_version_refs = registry.ruleRefs; catalog.dependency_manifest_hash = canonicalHash(catalog.dependencies); catalog.upstream.commit = priorHead; catalog.coverage = { ...catalog.coverage, reviewed_dependency_count: catalog.dependencies.length, unreviewed_public_dependency_ids: [], external_unpublished_dependency_ids: [] }; catalog.catalog_content_hash = catalogContentHash(catalog, catalog.dependencies);
   event.observed_head_commit = priorHead; event.gaps = event.gaps.filter(ref => ids.has(ref));
 }
 
 async function candidatePackage(root, commit, registry, materialHashes, { removedDependencyId = null, removeReferencingRules = false, suffix = '' } = {}) {
-  const source = resolve('assets/algorithm-knowledge'), target = join(root, `candidate-package${suffix}`);
-  await cp(source, target, { recursive: true });
+  const target = join(root, `candidate-package${suffix}`);
+  await createLegacyKnowledgePackage(target);
   const catalogPath = join(target, 'catalog.json'), catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
   catalog.catalog_id = `x-algorithm-candidate-v5-fixture${suffix}`; catalog.catalog_version = '1.2.0'; catalog.upstream.commit = commit;
   const dependenciesPath = join(target, catalog.dependency_manifest_path), dependencies = JSON.parse(await readFile(dependenciesPath, 'utf8'));
@@ -92,7 +95,7 @@ test('knowledge-step V5 auto-checks registered paths and blocks unreviewed repos
   const remote=join(root,'remote.git');git(checkout,['init','--bare',remote]);git(checkout,['config',`url.${remote}.insteadOf`,'https://github.com/xai-org/x-algorithm.git']);
   const registry = await fixtureRegistry(), materialHashes = await writeFixtureSources(checkout, registry.dependencies); git(checkout, ['add', '.']); git(checkout, ['commit', '-m', 'prior']); const priorHead = git(checkout, ['rev-parse', 'HEAD']); await writeFile(join(checkout, 'tracked.rs'), 'candidate\n'); git(checkout, ['add', '.']); git(checkout, ['commit', '-m', 'candidate']);git(checkout,['push','origin','HEAD:master']);git(checkout,['--git-dir',remote,'symbolic-ref','HEAD','refs/heads/master']);
   const head = git(checkout, ['rev-parse', 'HEAD']), candidate = await candidatePackage(root, head, registry, materialHashes);
-  const initialized = initializeState(createDefaultConfig({ handle: 'fixture_knowledge5', profile_url: 'https://x.com/fixture_knowledge5', user_id: null, identity_basis: 'user_provided' }));
+  const initialized = seedLegacyKnowledgeState(initializeState(createDefaultConfig({ handle: 'fixture_knowledge5', profile_url: 'https://x.com/fixture_knowledge5', user_id: null, identity_basis: 'user_provided' })));
   narrowCurrentKnowledge(initialized, registry, materialHashes, priorHead);
   let state = await commitState(stateDir, 0, () => initialized);
 
@@ -128,7 +131,7 @@ test('knowledge-step V5 rejects dangling references and retains deleted-path rev
   const removed = registry.dependencies.find(item => item.dependency_id !== 'scorer:compute_weighted_score'); assert.ok(removed);
   await rm(join(checkout, removed.path)); git(checkout, ['add', '-A']); git(checkout, ['commit', '-m', 'delete registered dependency']);git(checkout,['push','origin','HEAD:master']);git(checkout,['--git-dir',remote,'symbolic-ref','HEAD','refs/heads/master']);
   const head = git(checkout, ['rev-parse', 'HEAD']), invalidCandidate = await candidatePackage(root, head, registry, materialHashes, { removedDependencyId: removed.dependency_id, suffix: '-invalid' }), legalCandidate = await candidatePackage(root, head, registry, materialHashes, { removedDependencyId: removed.dependency_id, removeReferencingRules: true, suffix: '-legal' });
-  const initialized = initializeState(createDefaultConfig({ handle: 'fixture_knowledge_delete', profile_url: 'https://x.com/fixture_knowledge_delete', user_id: null, identity_basis: 'user_provided' }));
+  const initialized = seedLegacyKnowledgeState(initializeState(createDefaultConfig({ handle: 'fixture_knowledge_delete', profile_url: 'https://x.com/fixture_knowledge_delete', user_id: null, identity_basis: 'user_provided' })));
   narrowCurrentKnowledge(initialized, registry, materialHashes, priorHead); await commitState(stateDir, 0, () => initialized);
 
   const registeredPaths = [...new Set(registry.dependencies.map(item => item.path))];

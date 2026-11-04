@@ -4,6 +4,7 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { canonicalHash, ContractError, validate } from '../scripts/lib/contracts.mjs';
+import { loadLegacyKnowledgeCatalog } from './helpers/legacy-knowledge-fixture.mjs';
 import {
   TRI, applicationProposalHash, buildRuleContextV4, evaluatePredicate,
   activateKnowledgeCatalog, catalogContentHash, knowledgeBundleFromState,
@@ -17,23 +18,37 @@ import {
 
 const packageDir = new URL('../assets/algorithm-knowledge', import.meta.url).pathname;
 const H = value => canonicalHash(value);
-const ACTIVE_CATALOG='x-algorithm-2f252142-signals-candidate-v5',ACTIVE_OP01='operational-op01-v3',ACTIVE_OP02='operational-op02-v3',ACTIVE_OP08='operational-op08-v5',ACTIVE_OP09='operational-op09-v5';
+const ACTIVE_CATALOG='x-algorithm-b220448-editorial-v1',ACTIVE_OP01='operational-op01-b220448-editorial-v1',ACTIVE_OP08='operational-op08-b220448-editorial-v1',ACTIVE_OP09='operational-op09-b220448-editorial-v1';
+const LEGACY_CATALOG='x-algorithm-2f252142-signals-candidate-v5',LEGACY_OP01='operational-op01-v3',LEGACY_OP02='operational-op02-v3';
 
 test('A-K01 installed package verifies exact offline bytes and does not hide damage', () => {
   const bundle = loadKnowledgeCatalog();
   assert.equal(Object.keys(bundle.facts).length, 30);
   assert.equal(Object.keys(bundle.rules).length, 10);
-  assert.equal(bundle.catalog.dependencies.length, 110);
+  assert.equal(Object.keys(bundle.history.facts).length, 34);
+  assert.equal(bundle.catalog.dependencies.length, 109);
   assert.doesNotThrow(() => validate('RuleCatalogSnapshotV4', bundle.catalog));
-  assert.equal(bundle.dependencies.length, 110);
-  assert.equal(bundle.catalog.coverage.public_scope_status, 'public_scope_complete');
+  assert.equal(bundle.dependencies.length, 109);
+  assert.equal(bundle.catalog.catalog_id, ACTIVE_CATALOG);
+  assert.equal(bundle.catalog.upstream.commit, 'b220448766ab4ee4c83d58a67d51f0cb5bda86c2');
+  assert.equal(bundle.catalog.execution_scope, 'editorial_only');
+  assert.equal(bundle.catalog.change_review.scope, 'public_changed_paths');
+  assert.equal(bundle.catalog.change_review.entries.length, 248);
+  assert.equal(bundle.catalog.coverage.public_scope_status, 'verified_subset');
   assert.deepEqual(bundle.catalog.coverage.unreviewed_public_dependency_ids, []);
   assert(bundle.catalog.coverage.external_unpublished_dependency_ids.includes('external:hidden_label_classifiers'));
   assert(bundle.catalog.coverage.external_unpublished_dependency_ids.includes('external:limited_actions_policy_config'));
   assert.equal(bundle.dependencies.filter(item => item.source_visibility !== 'external_unpublished').every(item => item.evidence_material_path && item.evidence_content_hash), true);
   assert.equal(bundle.dependencies.find(item => item.dependency_id === 'selector:TopKScoreSelector').path, 'home-mixer/selectors/top_k_score_selector.rs');
-  assert(bundle.facts[`fact-c16-6258a1549ef8-timefix1`]);
-  assert(bundle.facts[`fact-c19-6258a1549ef8-timefix1`]);
+  assert(bundle.facts['fact-c16-b220448766ab']);
+  assert(bundle.facts['fact-c19-b220448766ab']);
+  assert.equal(Object.values(bundle.facts).every(fact => fact.commit === bundle.catalog.upstream.commit && fact.production_status === 'unknown'), true);
+  assert.match(bundle.facts['fact-c01-b220448766ab'].observed_behavior, /PageDecode.*PageRL/);
+  for (const rule of Object.values(bundle.rules)) {
+    assert.equal(rule.execution_scope, 'editorial_only');
+    assert.equal(rule.origin, 'editorial_practice');
+    assert.equal(rule.missing_policy, 'editorial_only');
+  }
   assert(bundle.rules[ACTIVE_OP08]);
   assert(bundle.rules[ACTIVE_OP09]);
   assert(bundle.history.catalogs['x-algorithm-public-v4']);
@@ -41,7 +56,8 @@ test('A-K01 installed package verifies exact offline bytes and does not hide dam
   const temp = mkdtempSync(join(tmpdir(), 'xops-knowledge-'));
   try {
     cpSync(packageDir, temp, { recursive: true });
-    writeFileSync(join(temp, 'source-snapshots/excerpts/sc01.txt'), Buffer.concat([readFileSync(join(temp, 'source-snapshots/excerpts/sc01.txt')), Buffer.from('\ntampered')]));
+    const material = bundle.artifacts[bundle.facts['fact-c01-b220448766ab'].source_material_ref].material_path;
+    writeFileSync(join(temp, material), Buffer.concat([readFileSync(join(temp, material)), Buffer.from('\ntampered')]));
     assert.throws(() => loadKnowledgeCatalog(temp), error => error instanceof ContractError && error.code === 'MISSING_EVIDENCE');
   } finally { rmSync(temp, { recursive: true, force: true }); }
 });
@@ -100,20 +116,20 @@ test('A-K09 every operational rule replays applicable, not-applicable and unknow
   }
 });
 
-function contextFixture(bundle) {
+function contextFixture(bundle, ruleRef = LEGACY_OP01) {
   return buildRuleContextV4({
     run_id: 'run-1', intent: 'draft', goal: { primary_goal: 'relevant_reach' }, use: 'operational_guidance',
     subject_ref: 'draft:1', cutoff: '2026-10-27T00:00:00Z', surface: 'home_for_you', post_type: 'original',
     personal_context_selection_ref: 'selection-1', personal_context_selection_hash: H('personal'),
     evidence_bundle_ref: 'bundle-1', evidence_bundle_hash: H('bundle'),
-    explicit_rule_version_refs: [ACTIVE_OP01],
+    explicit_rule_version_refs: [ruleRef],
     signals: { has_body: { value: true, unit: 'flag' }, reader_benefit_clear: { value: false, unit: 'flag' } }
   }, bundle);
 }
 
 test('A-K04/A-K05 selection applies editorial evidence without upgrading unknown mechanism', () => {
-  const bundle = loadKnowledgeCatalog(), context = contextFixture(bundle);
-  assert.deepEqual(context.selections.map(item => item.rule_version_ref), [ACTIVE_OP01]);
+  const bundle = loadLegacyKnowledgeCatalog(), context = contextFixture(bundle);
+  assert.deepEqual(context.selections.map(item => item.rule_version_ref), [LEGACY_OP01]);
   assert.equal(context.selections[0].mechanism_applicability.status, 'unknown');
   assert.equal(context.selections[0].editorial_applicability.status, 'applicable');
   assert.equal(ruleContextHash(context), context.selected_rule_context_hash);
@@ -121,13 +137,13 @@ test('A-K04/A-K05 selection applies editorial evidence without upgrading unknown
   assert.equal(buildRuleContextV4({ ...context, context_id: context.context_id, signals: { has_body: { value: true, unit: 'flag' }, reader_benefit_clear: { value: false, unit: 'flag' } } }, unrelated).selected_rule_context_hash, context.selected_rule_context_hash);
 });
 
-function applicationFixture(context) {
+function applicationFixture(context, ruleRef = LEGACY_OP01) {
   const application = {
     contract_version: 4, application_id: 'application-1', context_ref: context.context_id,
     selected_rule_context_hash: context.selected_rule_context_hash, subject_ref: 'draft:1', actual_input_hash: H('actual draft'),
-    rule_version_refs: [ACTIVE_OP01],
+    rule_version_refs: [ruleRef],
     checks: [{ check_id: 'reader-benefit', check_type: 'semantic', status: 'applicable', reviewed_input_hash: H('actual draft'), inspected_refs: ['draft:1'], finding: '开头未说明读者收益' }],
-    findings: ['开头未说明读者收益'], actions: [{ action_id: 'rewrite-opening', rule_version_ref: ACTIVE_OP01, disposition: 'modify', text: '明确目标读者和收益', deliverable_refs: ['draft:1'] }],
+    findings: ['开头未说明读者收益'], actions: [{ action_id: 'rewrite-opening', rule_version_ref: ruleRef, disposition: 'modify', text: '明确目标读者和收益', deliverable_refs: ['draft:1'] }],
     keep_unchanged_reason: null, validation_plan: '核对开头与正文兑现', deliverable_refs: ['draft:1'], application_proposal_hash: ''
   };
   application.application_proposal_hash = applicationProposalHash(application);
@@ -135,12 +151,12 @@ function applicationFixture(context) {
 }
 
 test('A-K06 application binds actual semantic input and frozen proposal', () => {
-  const bundle = loadKnowledgeCatalog(), context = contextFixture(bundle), application = applicationFixture(context);
+  const bundle = loadLegacyKnowledgeCatalog(), context = contextFixture(bundle), application = applicationFixture(context);
   assert.doesNotThrow(() => validateRuleApplication(application, context, bundle));
   assert.throws(() => validateRuleApplication({ ...application, actual_input_hash: H('changed') }, context, bundle), /actual input|proposal hash/);
   const empty={...structuredClone(application),rule_version_refs:[],actions:[],keep_unchanged_reason:'未使用任何规则'};empty.application_proposal_hash=applicationProposalHash(empty);
   assert.throws(()=>validateRuleApplication(empty,context,bundle),/cannot be recorded as applied without an actual rule/);
-  const wrongAction={...structuredClone(application),actions:[{...application.actions[0],rule_version_ref:ACTIVE_OP02}]};wrongAction.application_proposal_hash=applicationProposalHash(wrongAction);
+  const wrongAction={...structuredClone(application),actions:[{...application.actions[0],rule_version_ref:LEGACY_OP02}]};wrongAction.application_proposal_hash=applicationProposalHash(wrongAction);
   assert.throws(()=>validateRuleApplication(wrongAction,context,bundle),/not actually selected and applied/);
   const noSelection=buildRuleContextV4({run_id:'run-none',intent:'draft',goal:{primary_goal:'relevant_reach'},use:'operational_guidance',subject_ref:'draft:1',cutoff:'2026-10-27T00:00:00Z',explicit_rule_version_refs:['not-a-rule'],signals:{}},bundle);
   const bounded={...structuredClone(application),context_ref:noSelection.context_id,selected_rule_context_hash:noSelection.selected_rule_context_hash,rule_version_refs:[],actions:[],keep_unchanged_reason:'当前范围没有选中规则，只保留一般编辑边界'};bounded.application_proposal_hash=applicationProposalHash(bounded);
@@ -148,7 +164,7 @@ test('A-K06 application binds actual semantic input and frozen proposal', () => 
 });
 
 function guidanceFixture() {
-  const bundle = loadKnowledgeCatalog(), context = contextFixture(bundle), application = applicationFixture(context);
+  const bundle = loadLegacyKnowledgeCatalog(), context = contextFixture(bundle), application = applicationFixture(context);
   const output = { contract_version: 4, output_id: 'guidance-1', delivery_id: 'delivery-1', goal: context.goal, use: context.use, guidance_text: '先把开头改成“给正在选工具的人：三步避开误区”。原因是当前开头没有说明读者收益。发布后按同一窗口观察目标读者的有效回复；目前缺少内部推荐条件。', actions: ['重写开头'], rationale: ['读者收益不清楚'], observation_plan: ['同一窗口观察有效回复'], gaps: ['内部推荐条件未知'], deliverable_refs: ['draft:1'], generator_ref: 'writer-1', output_content_hash: '', created_at: '2026-10-27T00:01:00Z' };
   output.output_content_hash = guidanceOutputContentHash(output);
   const subject = { ref: 'draft:1', content_hash: application.actual_input_hash };
@@ -197,14 +213,22 @@ test('guidance gate is derived from actual intent/use and plain edit remains ava
 });
 
 test('A-K08 update is append-only and affected rules require exact review plus three cases', () => {
-  const current = loadKnowledgeCatalog(), candidate = structuredClone(current);
+  const current = loadLegacyKnowledgeCatalog(), candidate = structuredClone(current);
   candidate.catalog = { ...candidate.catalog, catalog_id: 'x-algorithm-next-fixture', catalog_content_hash: H('candidate catalog') };
   candidate.dependencies = candidate.dependencies.map(item => item.dependency_id === 'scorer:compute_weighted_score' ? { ...item, review_note: `${item.review_note} updated` } : item);
   const proposal = proposeKnowledgeUpdate(current, candidate, { checked_at: '2026-10-27T01:00:00Z', head_commit: 'f'.repeat(40) });
-  assert(proposal.affected_rule_version_refs.includes(ACTIVE_OP01));
+  assert(proposal.affected_rule_version_refs.includes(LEGACY_OP01));
   assert.throws(() => activateKnowledgeCatalog(current, proposal, { review_receipt: { receipt_id: 'review', subject_hash: candidate.catalog.catalog_content_hash, decision: 'approved' }, case_results: [] }), /three replay cases/);
   const cases = proposal.affected_rule_version_refs.map(rule_version_ref => ({ rule_version_ref, applicable: true, not_applicable: true, unknown: true }));
   const activated = activateKnowledgeCatalog(current, proposal, { review_receipt: { receipt_id: 'review', subject_hash: candidate.catalog.catalog_content_hash, decision: 'approved' }, case_results: cases });
   assert.equal(activated.event.event_type, 'activated');
-  assert.equal(current.catalog.catalog_id, ACTIVE_CATALOG);
+  assert.equal(current.catalog.catalog_id, LEGACY_CATALOG);
+});
+
+test('current editorial-only rules retain unknown mechanism and require a V5 application', () => {
+  const bundle = loadKnowledgeCatalog(), context = contextFixture(bundle, ACTIVE_OP01);
+  assert.deepEqual(context.selections.map(item => item.rule_version_ref), [ACTIVE_OP01]);
+  assert.equal(context.selections[0].mechanism_applicability.status, 'unknown');
+  assert.equal(context.selections[0].editorial_applicability.status, 'applicable');
+  assert.throws(() => validateRuleApplication(applicationFixture(context, ACTIVE_OP01), context, bundle), /Editorial-only rules require the V5 basis-bound application flow/);
 });

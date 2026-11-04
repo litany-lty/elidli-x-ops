@@ -11,6 +11,7 @@ elidli-x-ops 是一个面向个人 X（Twitter）运营的 Agent 技能。它把
 - [交叉核查后的三类规则](references/algorithm-rules-2026-11-04.md)：降权、增流、账号与上下文规则，附调用条件、源码材料和未知边界。
 - [248 条变动逐路径账本](references/algorithm-diff-review-2026-11-04.md)：原 234 条未审路径已完成；38 条规则保留默认开关和生产未知边界。
 - [已启用的编辑规则包与回退](references/algorithm-editorial-release-2026-11-04.md)：10 条审核通过的新编辑规则、60 条三态回放和完整交付链验证；生产机制仍为 unknown。
+- 升级运行时后，旧V5指导可能需要重新选择和审核；新包必须走V5，既有账号不会静默切换目录。
 - [原完整候选的拒绝启用记录](references/algorithm-candidate-2026-11-04.md)：保留未公开依赖与历史审批，不以编辑范围隔离冒充补齐生产证据。
 - [完整规则与交叉审查](references/algorithm-full-review-2026-11-04.md)：全目录清单、关键链路、默认参数和未完成审查范围。2353个文件盘点不等于逐文件语义审查通过。
 - contract5 `knowledge-step` 的 `research` 操作只读返回当前研究。调用者参数覆盖、缺失输入、VF动作消费和DPP多层开关单独记录在 `runtime_bindings`；旧研究按内容哈希保存。
