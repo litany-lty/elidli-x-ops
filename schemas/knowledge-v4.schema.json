@@ -581,6 +581,11 @@
               "$ref": "#/definitions/V4Hash"
             }
           }
+        },
+        "execution_scope": {
+          "enum": [
+            "editorial_only"
+          ]
         }
       }
     },
@@ -743,6 +748,11 @@
         },
         "review_refs": {
           "$ref": "#/definitions/V4Strings"
+        },
+        "execution_scope": {
+          "enum": [
+            "editorial_only"
+          ]
         }
       }
     },
@@ -771,6 +781,15 @@
         },
         "editorial_applicability": {
           "$ref": "#/definitions/RuleApplicabilityV4"
+        },
+        "execution_scope": {
+          "enum": [
+            "editorial_only",
+            "mechanism_and_editorial"
+          ]
+        },
+        "unresolved_dependencies": {
+          "$ref": "#/definitions/V4Strings"
         }
       }
     },

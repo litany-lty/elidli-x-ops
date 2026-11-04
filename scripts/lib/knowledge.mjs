@@ -4,6 +4,7 @@ import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { canonicalHash, ContractError } from './contracts.mjs';
 import { validateKnowledgeChangeReview } from './knowledge-change-review.mjs';
+import { ruleDependencyClosure, ruleExecutionScope, validateEditorialScope } from './knowledge-scope.mjs';
 export { buildSignalSetV5, SIGNAL_DEFINITIONS_V5 } from './signals.mjs';
 export { inspectKnowledgeCheckoutV5, dependencyDiffV5, computeKnowledgeImpactV5, proposeKnowledgeUpdateV5, knowledgeReplayResultHashV5, activateKnowledgeUpdateV5 } from './knowledge-updates.mjs';
 
@@ -67,11 +68,13 @@ export function catalogContentHash(catalog, dependencies = catalog.dependencies)
   };
   if (catalog.content_hash_policy) content.content_hash_policy = catalog.content_hash_policy;
   if (catalog.change_review) content.change_review = catalog.change_review;
+  if (catalog.execution_scope) content.execution_scope = catalog.execution_scope;
   return canonicalHash(content);
 }
 
 export function validateKnowledgeBundleIntegrity({ catalog, dependencies = catalog.dependencies, artifacts, facts, rules }) {
   validateKnowledgeChangeReview(catalog.change_review, { target: catalog.upstream?.commit });
+  validateEditorialScope({ catalog, dependencies, artifacts, facts, rules, signal_registry: catalog.signal_registry });
   const dependencyIds = new Set(dependencies.map(dependency => dependency.dependency_id));
   if (dependencyIds.size !== dependencies.length) fail('/catalog/dependencies', 'Knowledge catalog contains duplicate dependency IDs', 'RECEIPT_CONFLICT');
   for (const ref of catalog.artifact_refs) if (!artifacts[ref]) fail('/catalog/artifact_refs', `Knowledge artifact is missing: ${ref}`, 'MISSING_EVIDENCE');
@@ -249,12 +252,16 @@ export function selectOperationalRules(input, bundle) {
   if (bundle.temporal_readiness?.status === 'not_ready') fail('/catalog/temporal_readiness', 'Active knowledge is not eligible because it contains future-dated evidence', 'MISSING_EVIDENCE');
   const explicit = new Set(input.explicit_rule_version_refs ?? []), selected = [], notSelected = [];
   for (const rule of Object.values(bundle.rules).sort((a, b) => a.rule_version_id.localeCompare(b.rule_version_id))) {
+    if (rule.review_status !== 'approved') { notSelected.push({ rule_version_ref: rule.rule_version_id, reason: 'rule_not_approved' }); continue; }
     if (explicit.size && !explicit.has(rule.rule_version_id)) { notSelected.push({ rule_version_ref: rule.rule_version_id, reason: 'excluded_by_explicit_constraint' }); continue; }
     if (!selectorMatches(rule, input)) { notSelected.push({ rule_version_ref: rule.rule_version_id, reason: 'scope_mismatch' }); continue; }
-    const mechanism = evaluatePredicate(rule.mechanism_predicate, input.signals, bundle.signal_registry);
+    const closure = ruleDependencyClosure(rule, bundle), scope = ruleExecutionScope(rule, bundle);
+    const mechanism = scope === 'editorial_only' || closure.unresolved_dependencies.length
+      ? { status: TRI.UNKNOWN, missing_signals: [] }
+      : evaluatePredicate(rule.mechanism_predicate, input.signals, bundle.signal_registry);
     const editorial = evaluatePredicate(rule.editorial_predicate, input.signals, bundle.signal_registry);
     if (mechanism.status === TRI.FALSE && editorial.status === TRI.FALSE) { notSelected.push({ rule_version_ref: rule.rule_version_id, reason: 'both_predicates_not_applicable' }); continue; }
-    selected.push({ rule_version_ref: rule.rule_version_id, fact_version_refs: [...rule.fact_version_refs], dependency_ids: [...rule.dependency_ids], mechanism_applicability: mechanism, editorial_applicability: editorial });
+    selected.push({ rule_version_ref: rule.rule_version_id, fact_version_refs: [...rule.fact_version_refs], dependency_ids: closure.dependency_ids, execution_scope: scope, unresolved_dependencies: closure.unresolved_dependencies, mechanism_applicability: mechanism, editorial_applicability: editorial });
   }
   return Object.freeze({
     selected,
@@ -360,7 +367,10 @@ export function validateRuleApplication(application, context, bundle) {
   const allowed = new Set(context.selections.map(item => item.rule_version_ref));
   if (allowed.size && application.rule_version_refs.length === 0) fail('/rule_version_refs', 'A selected rule context cannot be recorded as applied without an actual rule reference', 'REQUESTED_OUTPUT_INCOMPLETE');
   if (!allowed.size && (application.rule_version_refs.length || application.actions.length || !application.keep_unchanged_reason?.trim())) fail('/rule_version_refs', 'A context with no selected rules must record no rule/action and an explicit limitation', 'REQUESTED_OUTPUT_INCOMPLETE');
-  for (const ref of application.rule_version_refs) if (!allowed.has(ref) || !bundle.rules[ref]) fail('/rule_version_refs', `Application uses unselected rule: ${ref}`, 'INVALID_EVIDENCE_REF');
+  for (const ref of application.rule_version_refs) {
+    if (!allowed.has(ref) || bundle.rules[ref]?.review_status !== 'approved') fail('/rule_version_refs', `Application uses unselected or unapproved rule: ${ref}`, 'INVALID_EVIDENCE_REF');
+    if (ruleExecutionScope(bundle.rules[ref], bundle) === 'editorial_only') fail('/execution_scope', 'Editorial-only rules require the V5 basis-bound application flow', 'MISSING_EVIDENCE');
+  }
   const applied = new Set(application.rule_version_refs);
   for (const action of application.actions) if (!allowed.has(action.rule_version_ref) || !applied.has(action.rule_version_ref)) fail('/actions', `Action uses a rule not actually selected and applied: ${action.rule_version_ref}`, 'INVALID_EVIDENCE_REF');
   if (!application.checks.length) fail('/checks', 'A rule application must record actual checks', 'REQUESTED_OUTPUT_INCOMPLETE');
@@ -372,12 +382,19 @@ export function validateRuleApplication(application, context, bundle) {
 
 export function validateRuleApplicationV5(application, context, bundle) {
   if (application.contract_version !== 5 || context.contract_version !== 5) fail('/contract_version', 'RuleApplicationV5 requires V5 application and context', 'SCHEMA_VERSION');
+  if (context.catalog_ref !== bundle.catalog.catalog_id || context.catalog_content_hash !== bundle.catalog.catalog_content_hash) fail('/context_ref', 'Rule context belongs to a stale catalog; select again after activation or rollback', 'STALE_BUNDLE');
+  const refreshed = buildRuleContextV5(context, bundle);
+  if (refreshed.selected_rule_context_hash !== context.selected_rule_context_hash) fail('/context_ref', 'Rule context differs from current signals, selection or dependency closure', 'STALE_BUNDLE');
   if (application.context_ref !== context.context_id || application.selected_rule_context_hash !== context.selected_rule_context_hash || application.subject_ref !== context.subject_ref || application.actual_input_hash !== context.subject_hash) fail('/context_ref', 'Application is not bound to exact V5 context and subject', 'INVALID_EVIDENCE_REF');
   const selections = new Map(context.selections.map(item => [item.rule_version_ref, item])), checks = new Map(application.checks.map(item => [item.check_id, item])), applied = new Set(application.rule_version_refs);
   const supportingTypes = { public_mechanism: new Set(['mechanism']), editorial_inference: new Set(['semantic', 'deterministic']), personal_observation: new Set(['personal_observation']), user_preference: new Set(['preference']) };
+  for (const ref of application.rule_version_refs) if (!selections.has(ref) || bundle.rules[ref]?.review_status !== 'approved') fail('/rule_version_refs', 'Application requires selected, approved rules', 'MISSING_EVIDENCE');
   for (const [index, action] of application.actions.entries()) {
     const selected = selections.get(action.rule_version_ref);
     if (!selected || !bundle.rules[action.rule_version_ref] || !applied.has(action.rule_version_ref)) fail(`/actions/${index}/rule_version_ref`, 'Action uses a rule that was not selected and applied', 'INVALID_EVIDENCE_REF');
+    const rule = bundle.rules[action.rule_version_ref], scope = ruleExecutionScope(rule, bundle), closure = ruleDependencyClosure(rule, bundle);
+    if (scope === 'editorial_only' && action.basis_kind !== 'editorial_inference') fail(`/actions/${index}/basis_kind`, 'Editorial-only rules cannot claim a production mechanism or another unreviewed basis', 'MISSING_EVIDENCE');
+    if (action.basis_kind === 'public_mechanism' && closure.unresolved_dependencies.length) fail(`/actions/${index}/basis_kind`, 'Unresolved dependency closure cannot support a public mechanism action', 'MISSING_EVIDENCE');
     if (!['public_mechanism', 'editorial_inference', 'personal_observation', 'user_preference'].includes(action.basis_kind)) fail(`/actions/${index}/basis_kind`, 'Unsupported action basis');
     if (!action.supporting_check_refs.length || action.supporting_check_refs.some(ref => !checks.has(ref))) fail(`/actions/${index}/supporting_check_refs`, 'Every action must bind actual supporting checks', 'INVALID_EVIDENCE_REF');
     if (action.signal_refs.some(ref => !Object.hasOwn(context.signal_set.signals, ref))) fail(`/actions/${index}/signal_refs`, 'Action references an unavailable signal', 'INVALID_EVIDENCE_REF');

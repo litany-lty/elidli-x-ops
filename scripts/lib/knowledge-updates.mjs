@@ -5,6 +5,7 @@ import { isAbsolute, relative, resolve } from 'node:path';
 import { canonicalHash, ContractError } from './contracts.mjs';
 import { validateKnowledgeBundleIntegrity } from './knowledge.mjs';
 import { reviewedChangedPaths, validateKnowledgeChangeReview } from './knowledge-change-review.mjs';
+import { validateEditorialScope } from './knowledge-scope.mjs';
 
 const fail = (path, message, code = 'INVALID_INPUT') => { throw new ContractError(code, path, message); };
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -271,7 +272,13 @@ export function activateKnowledgeUpdateV5(currentBundle, savedCandidate, proposa
     if (!result || result.contract_version !== 5 || result.proposal_ref !== proposal.proposal_id || result.status !== 'passed' || result.subject_hash !== proposal.proposal_hash || result.replay_result_hash !== knowledgeReplayResultHashV5(result) || !result.review_ref || !['applicable', 'not_applicable', 'unknown'].every(expected => cases.some(item => item.expected === expected && item.actual === expected && item.status === 'passed'))) fail('/replay_results', `Affected rule lacks actual three-state replay evidence: ${ref}`, 'REQUESTED_OUTPUT_INCOMPLETE');
   }
   const changed = new Set([...recomputed.dependency_diff.added, ...recomputed.dependency_diff.modified, ...(recomputed.dependency_diff.potentially_modified ?? []), ...recomputed.dependency_diff.moved.map(item => item.dependency_id)]);
-  if (proposal.gaps.some(id => changed.has(id))) fail('/gaps', 'Affected unresolved dependencies cannot be activated', 'MISSING_EVIDENCE');
+  if (proposal.gaps.some(id => changed.has(id))) {
+    // A restricted editorial release retains every gap. It cannot use those
+    // dependencies as a mechanism basis at selection, application or delivery.
+    // The unrestricted path continues to require the original evidence gate.
+    if (savedCandidate.catalog.execution_scope !== 'editorial_only') fail('/gaps', 'Affected unresolved dependencies cannot be activated', 'MISSING_EVIDENCE');
+    validateEditorialScope(savedCandidate, { requireExplicitRules: true });
+  }
   const event = { contract_version: 5, event_id: `knowledge-event-${canonicalHash({ proposal: proposal.proposal_hash, review: review_receipt.receipt_id }).slice(0, 24)}`, event_type: 'activated', catalog_ref: savedCandidate.catalog.catalog_id, prior_catalog_ref: currentBundle.catalog.catalog_id, checked_at: nowIso(activated_at), observed_head_commit: savedCandidate.catalog.upstream.commit, affected_rule_version_refs: recomputed.affected_rule_version_refs, gaps: proposal.gaps, review_receipt_ref: review_receipt.receipt_id, replay_result_refs: replay_results.map(item => item.replay_id) };
   return Object.freeze({ catalog: savedCandidate.catalog, event, impact: recomputed });
 }

@@ -57,3 +57,10 @@
 - Final proposal: `f6d4c6ba660db01842431811aeca7edbbc9cf5ec826f5995dbc35d349dac430e`; independent decision **revision_required**. The 10 affected partially public dependencies and pending approvals remain. Earlier proposal/review evidence is retained alongside the final records.
 - Actual activation attempt was refused with `MISSING_EVIDENCE`; no activation event was written. V4 cannot bypass the V5 source-review flow. Safe activation is not claimed.
 - Main, installed catalog and historical source/fact files remain unchanged. No full regression, deployment, upstream model/service execution or real-account action.
+
+## Scoped activation work
+
+- Added explicit editorial-only execution scope, approved-rule selection, transitive dependency provenance, and rejection of mechanism-basis upgrades. Missing private dependencies remain unknown.
+- Added four missing OP07/OP10 semantic signals; 11 targeted extractor/context tests passed. No keyword-based or fabricated personal-experience inference.
+- Added exact-reviewed, append-only rollback snapshots with non-widening scope. Seven targeted rollback cases passed across focused runs.
+- Three targeted scope checks passed. End-to-end delivery tests are prepared and await the independently reviewed release; the installed catalog has not yet switched at this checkpoint.

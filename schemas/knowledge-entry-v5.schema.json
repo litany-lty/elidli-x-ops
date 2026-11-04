@@ -18,6 +18,12 @@
           "contract_version": {"const": 5}, "operation": {"const": "activate-update"}, "proposal_ref": {"type": "string", "minLength": 1},
           "candidate_catalog_ref": {"type": "string", "minLength": 1}, "review_receipt_ref": {"type": "string", "minLength": 1},
           "replay_results": {"type": "array", "minItems": 1, "items": {"$ref": "#/definitions/KnowledgeReplayResultV5"}}
+        }},
+        {"type": "object", "additionalProperties": false, "required": ["contract_version", "operation", "target_catalog_ref"], "properties": {
+          "contract_version": {"const": 5}, "operation": {"const": "rollback-preview"}, "target_catalog_ref": {"type": "string", "minLength": 1}
+        }},
+        {"type": "object", "additionalProperties": false, "required": ["contract_version", "operation", "target_catalog_ref", "review_receipt_ref"], "properties": {
+          "contract_version": {"const": 5}, "operation": {"const": "rollback"}, "target_catalog_ref": {"type": "string", "minLength": 1}, "review_receipt_ref": {"type": "string", "minLength": 1}
         }}
       ]
     }

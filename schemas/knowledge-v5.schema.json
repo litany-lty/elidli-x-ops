@@ -78,7 +78,8 @@
         "contract_version": {"const": 5}, "event_id": {"type": "string", "minLength": 1}, "event_type": {"const": "activated"},
         "catalog_ref": {"type": "string", "minLength": 1}, "prior_catalog_ref": {"type": "string", "minLength": 1}, "checked_at": {"$ref": "#/definitions/Instant"},
         "observed_head_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"}, "affected_rule_version_refs": {"$ref": "#/definitions/StringArray"}, "gaps": {"$ref": "#/definitions/StringArray"},
-        "review_receipt_ref": {"type": "string", "minLength": 1}, "replay_result_refs": {"$ref": "#/definitions/StringArray"}
+        "review_receipt_ref": {"type": "string", "minLength": 1}, "replay_result_refs": {"$ref": "#/definitions/StringArray"},
+        "rollback_target_catalog_ref": {"type": "string", "minLength": 1}, "rollback_target_activation_ref": {"type": "string", "minLength": 1}, "rollback_subject_ref": {"type": "string", "minLength": 1}, "rollback_subject_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "rollback_target_catalog_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "rollback_restored_catalog_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
       }
     }
   }
