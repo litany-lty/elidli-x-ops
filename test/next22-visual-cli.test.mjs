@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {mkdtemp,readFile,writeFile,unlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -19,7 +20,7 @@ const entry=fileURLToPath(runtimeUrl('scripts/x-ops.mjs')),T='2026-10-27T00:00:0
 const png=(width=1200,height=1200,seed=0)=>{const bytes=new Uint8Array(24);bytes.set([137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82]);const view=new DataView(bytes.buffer);view.setUint32(16,width);view.setUint32(20,height);bytes[15]=82+seed;return bytes;};
 const recipe=loadContentRecipe(JSON.parse(await readFile(new URL('../assets/content-recipes/comparison.json',import.meta.url))),{recipe_ref:'comparison@1.0.0'});
 
-function runCli(command,payload,dir,{runId=null}={}){const state=JSON.parse(spawnSync(process.execPath,['-e',`process.stdout.write(require('fs').readFileSync(${JSON.stringify(join(dir,'account-state.json'))},'utf8'))`],{encoding:'utf8'}).stdout),input=join(dir,`request-${crypto.randomUUID()}.json`),output=join(dir,`output-${crypto.randomUUID()}.json`);writeFileSync(input,JSON.stringify({schema_version:1,run_id:runId,expected_revision:state.revision,payload}));const proc=spawnSync(process.execPath,[entry,command,'--input',input,'--output',output,'--state-dir',dir],{encoding:'utf8'});return{exitCode:proc.status,envelope:JSON.parse(proc.stdout)};}
+function runCli(command,payload,dir,{runId=null}={}){const state=JSON.parse(readFileSync(join(dir,'account-state.json'),'utf8')),input=join(dir,`request-${crypto.randomUUID()}.json`),output=join(dir,`output-${crypto.randomUUID()}.json`);writeFileSync(input,JSON.stringify({schema_version:1,run_id:runId,expected_revision:state.revision,payload}));const proc=spawnSync(process.execPath,[entry,command,'--input',input,'--output',output,'--state-dir',dir],{encoding:'utf8'});return{exitCode:proc.status,envelope:JSON.parse(proc.stdout)};}
 function writeFileSync(path,data){return spawnSync(process.execPath,['-e',`require('fs').writeFileSync(${JSON.stringify(path)},${JSON.stringify(data)})`]);}
 function semantic(text){return{text_hashes:[textHash(text)],kept_user_fact_ids:[],claim_ids:[],new_claims_check:'未添加未映射主张',stance_voice_notes:['保留原判断'],reviewer:'fixture-independent-review',reviewed_at:T,decision:'approve'};}
 function draftPayload(text,{draftId=null,selection=null,supersedes=null,actual=null}={}){return{contract_version:3,draft_input:{draft_id:draftId,revision:1,parent_revision:null,card_id:null,original_text:text,original_ref:null,format:'short_post',texts:[text],fact_mapping:[],semantic_review:semantic(text)},personalization_mode:selection?'evidence_bound':'none',personal_context_selection:selection,supersedes_receipt_ref:supersedes,...(actual?{actual_review_receipt_ref:actual}:{}),as_of:T};}

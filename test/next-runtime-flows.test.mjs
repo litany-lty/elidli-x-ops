@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { mkdtemp, readFile, writeFile, mkdir, symlink, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -22,7 +23,7 @@ const account={handle:'fixture_next_runtime',profile_url:'https://x.com/fixture_
 async function stateDir(version=4){const dir=await mkdtemp(join(tmpdir(),'xops-next-runtime-')),state=initializeState(version===5?createDefaultConfigV5(account):createDefaultConfig(account),version);state.revision=1;await writeFile(join(dir,'account-state.json'),`${JSON.stringify(state,null,2)}\n`);return{dir,state};}
 
 function runCli(entry,command,payload,dir,{runId=null,expectedRevision}={}){
-  const state=JSON.parse(spawnSync(process.execPath,['-e',`process.stdout.write(require('fs').readFileSync(${JSON.stringify(join(dir,'account-state.json'))},'utf8'))`],{encoding:'utf8'}).stdout);
+  const state=JSON.parse(readFileSync(join(dir,'account-state.json'),'utf8'));
   const invocation=join(dir,`request-${crypto.randomUUID()}.json`),request={schema_version:1,run_id:runId,expected_revision:expectedRevision??state.revision,payload};
   const output=join(dir,`output-${crypto.randomUUID()}.json`);spawnSync(process.execPath,['-e',`require('fs').writeFileSync(${JSON.stringify(invocation)},${JSON.stringify(JSON.stringify(request))})`]);
   const proc=spawnSync(process.execPath,[entry,command,'--input',invocation,'--output',output,'--state-dir',dir],{encoding:'utf8'});

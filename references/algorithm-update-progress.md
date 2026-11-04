@@ -91,3 +91,11 @@
 - Compatibility repairs: 29 cases across the five changed legacy knowledge/guidance files passed; 6 affected V5 cases passed (signals 2, support A05 1, update CLI 2, preference 1); the new upgrade case passed. Another 12 unchanged coach cases passed in the initial related run and were not repeated. Total evidence: 48 distinct related cases, not a full-project run.
 - The CLI fixture now reads its local state file directly, avoiding an unrelated child stdout buffer truncating a larger serialized state. Runtime code and the approved catalog remain unchanged.
 - CI is available through the existing pull_request workflow (Node 24, npm ci, npm test), or a later main push. No workflow_dispatch exists. No PR, main merge, full-suite CI trigger or deployment was performed in this repair step.
+
+### PR #2: first complete CI and focused repair
+
+- User approved PR creation and complete CI. Draft PR #2 targets main without merging; tested head `f017afa17589fbf3de4ae3ec59f9fe61573d3d32`, temporary PR merge `c6333fb`, run `41811139842`, job `126510390714`.
+- GitHub Ubuntu 24.04.5 / Node 24.22.1 / npm 11.19.1: checkout, environment and npm ci passed. Complete npm test: **367 tests, 357 passed, 10 failed, 0 skipped/cancelled**, 89.849 seconds. This result is a failed CI run, not a full pass.
+- Nine failures came from test helpers reading account-state through a bounded child stdout stream, truncating the now-larger package state. One source-verification fixture lacked required catalog/upstream metadata. No source gate or production behavior is weakened to address these failures.
+- The source-check fixture now supplies its exact local committed head in prior/candidate catalog metadata; its failing dirty-source rejection case passed in a focused rerun. The remaining nine fixture cases are being repaired separately; complete CI will rerun on the corrected PR head.
+- Focused repair verification completed: the nine original failing runtime/visual cases passed (23.8s); the previously passing E32 case was not repeated. Together with the source-verification case, all 10 original CI failures now pass locally. Changes are limited to three test fixtures plus this progress record. The next complete PR CI is still pending; no main merge or deployment has occurred.
