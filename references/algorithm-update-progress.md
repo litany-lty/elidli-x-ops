@@ -71,3 +71,13 @@
 - Application recording now checks the current catalog and recomputes the selected context before accepting actions. Final delivery retains its independent revalidation.
 - Rollback focused suite: 10 passed, including current/target rule-level scope and six invalid reviewer identity cases. Changed activation identity test: 1 passed.
 - Fresh upstream check again verified 331 source paths and the fixed 248-path diff. A 10-rule editorial-only package has been prepared with all 109 dependencies unchanged (94 public, 10 partially public, 5 external unpublished). It remains pending independent approval and is not installed at this checkpoint.
+
+### Restricted editorial release activated
+
+- Independently approved exact proposal `ef9834b68d8221454ae7215c39a65b938c63b03127f15e07eea2ef607e77f6ed`, 20 old/new versions and 60 three-state predicate cases. Actual review files and 21 verified receipts were consumed by `activate-update`, not a hand-written active flag.
+- Isolated fixture account state reloaded at revision 5 with event `knowledge-event-9806374de3f8dcb18176a99c`. Default package now installs `x-algorithm-b220448-editorial-v1`, hash `8e5e149166ce121103584e1af715f630529e204d61480e5a359a9044796137e1`. Existing real account states were not migrated.
+- OP07/OP10 complete extraction-to-persisted-delivery flows: 2 passed, including stale/tampered context, missing signal, mismatched semantic hash and forbidden mechanism upgrade rejection. No actual publication.
+- Continuous historical activation loading: 4 passed; rollback suite: 10 passed. Research/current release metadata: 4 affected checks passed; prior research and guide archived. Fresh state rollback-preview retains editorial scope.
+- Final independent read-only verification confirmed actual catalog/event/state/review hashes and forced mechanism unknown. All 15 non-public/partially-public gaps remain; no private data, production weights, deployment flags or account observations were invented.
+- Only changed/associated tests were run. No main change, deployment, upstream service/model execution or complete regression.
+- After the default package switch, the directly affected scope/history/rollback tests were run against the new installed bundle: 17/17 passed. This checks changed package compatibility rather than an unrelated full regression.

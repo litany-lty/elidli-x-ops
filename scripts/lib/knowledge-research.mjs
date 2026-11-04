@@ -11,13 +11,17 @@ const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const nonempty = value => typeof value === 'string' && value.trim().length > 0;
 
-/** Read source-reviewed research without pretending it activated the operational catalog. */
+/** Research coverage and an editorial release never establish production mechanism activation. */
 export function loadAlgorithmResearch(packageDir = defaultPackageDir, { now = new Date() } = {}) {
   const root = resolve(packageDir);
   const research = JSON.parse(readFileSync(resolve(root, 'research/current.json'), 'utf8'));
   const { content_hash, ...content } = research;
   if (canonicalHash(content) !== content_hash) fail('/research/content_hash', 'Research manifest changed');
-  if (research.version !== 1 || research.status !== 'source_reviewed_not_operationally_activated') fail('/research/status', 'Unsupported research status');
+  if (research.version !== 1 || !['source_reviewed_not_operationally_activated', 'source_reviewed_editorial_scope_activated'].includes(research.status)) fail('/research/status', 'Unsupported research status');
+  if (research.status === 'source_reviewed_editorial_scope_activated') {
+    const release = research.operational_release;
+    if (!release || release.execution_scope !== 'editorial_only' || release.mechanism_status !== 'unknown' || !nonempty(release.catalog_ref) || !nonempty(release.activation_event_ref) || !/^[a-f0-9]{64}$/.test(release.catalog_hash ?? '') || release.commit !== research.upstream?.commit) fail('/research/operational_release', 'Editorial research release requires exact catalog provenance and unknown mechanism status');
+  }
   const cutoff = new Date(now).getTime(), checked = Date.parse(research.checked_at);
   if (!Number.isFinite(cutoff) || !Number.isFinite(checked) || checked > cutoff) fail('/research/checked_at', 'Research is not available at this clock');
   if (!/^[a-f0-9]{40}$/.test(research.upstream?.commit ?? '')) fail('/research/upstream', 'Research needs a full source commit');

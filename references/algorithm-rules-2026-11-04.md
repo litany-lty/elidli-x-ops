@@ -1,14 +1,16 @@
 # X公开算法规则交叉核查（2026-11-04）
 
-修订：`2026-11-04-diff-reviewed-v3`。状态：**source_reviewed_not_operationally_activated，未激活为运行规则**。
+修订：`2026-11-04-editorial-release-v4`。状态：**10条编辑操作规则已启用，生产机制状态仍为unknown**。
 
-上游固定提交：`b220448766ab4ee4c83d58a67d51f0cb5bda86c2`。既有运行基线仍为 `2f252142b9284e692ac72851768c8072d045f0d5`。
+[启用范围、验证及回退](algorithm-editorial-release-2026-11-04.md)。38条研究规则是有边界的机制解释，不是38项生产开关或账号处罚判定。
+
+上游固定提交：`b220448766ab4ee4c83d58a67d51f0cb5bda86c2`。当前开发包的编辑操作目录固定到同一提交；旧基线 `2f252142b9284e692ac72851768c8072d045f0d5` 与证据完整保留。
 
 [完整审查报告](algorithm-full-review-2026-11-04.md) · [当前规则与证据 manifest](../assets/algorithm-knowledge/research/current.json) · [原研究 manifest](../assets/algorithm-knowledge/research/history/1864d7e20c701f93445396282c5ef35d8081cf1cefcc35d88ac5cdb17f84bc5f.json) · [原研究文档](../assets/algorithm-knowledge/research/history/algorithm-rules-2026-11-04-v1.md)
 
 ## 覆盖与限制
 
-本次依据五组审查补正固定基线到目标提交的变化语义；不是2353个文件或所有分支的全仓语义审计。248项无rename变化路径已按完整diff及相关调用上下文完成静态语义审查，绑定[逐路径账本](../assets/algorithm-knowledge/research/diff-review-2f252142-b220448.json)。该diff的未审路径为0，不用规则数量替代覆盖证据。生产配置、实验覆盖、模型权重与实际曝光效果未知；未运行上游服务、模型或测试，候选尚未激活。旧完整报告保持原版，其旧覆盖数字不代表本次账本。
+本次依据五组审查补正固定基线到目标提交的变化语义；不是2353个文件或所有分支的全仓语义审计。248项无rename变化路径已按完整diff及相关调用上下文完成静态语义审查，绑定[逐路径账本](../assets/algorithm-knowledge/research/diff-review-2f252142-b220448.json)。该diff的未审路径为0，不用规则数量替代覆盖证据。生产配置、实验覆盖、模型权重与实际曝光效果未知；未运行上游服务、模型或测试。受控编辑目录已激活，但未部署、未自动迁移既有账号状态。旧完整报告保持原版，其旧覆盖数字不代表本次账本。
 
 ## 本次差异摘要
 

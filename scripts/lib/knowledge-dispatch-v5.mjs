@@ -44,7 +44,7 @@ export async function dispatchKnowledgeV5(request, dir, state) {
   if (payload.operation === 'rollback-preview') return { state, data: { rollback: previewKnowledgeRollbackV5(state, payload.target_catalog_ref) } };
   if (payload.operation === 'research') {
     const current = knowledgeBundleFromState(state), research = loadAlgorithmResearch();
-    return { state, data: { research, operational_catalog_ref: current.catalog.catalog_id, operational_commit: current.catalog.upstream.commit, alignment: current.catalog.upstream.commit === research.upstream.commit ? 'same_commit' : 'research_newer_than_operational_catalog' } };
+    return { state, data: { research, operational_catalog_ref: current.catalog.catalog_id, operational_commit: current.catalog.upstream.commit, operational_execution_scope: current.catalog.execution_scope ?? 'mechanism_and_editorial', production_mechanism_status: 'unknown', alignment: current.catalog.upstream.commit === research.upstream.commit ? 'same_commit' : 'research_newer_than_operational_catalog' } };
   }
   let result;
   const next = await commitState(dir, request.expected_revision, async working => {

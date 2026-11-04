@@ -6,6 +6,8 @@ import { ruleDependencyClosure, validateEditorialScope } from '../scripts/lib/kn
 const fixture = () => {
   const b = structuredClone(loadKnowledgeCatalog());
   const rule = Object.values(b.rules).find(r => r.rule_id === 'OP02');
+  // Explicitly exercise legacy-to-restricted scope independently of installed defaults.
+  delete b.catalog.execution_scope; delete rule.execution_scope;
   b.rules = { [rule.rule_version_id]: rule };
   const input = { intent: 'draft', goal: '*', use: 'content', surface: 'home_for_you', post_type: 'original', signals: { internal_mechanism_observed: { value: true, unit: 'flag' } } };
   return { b, rule, input };

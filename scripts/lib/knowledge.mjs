@@ -149,7 +149,25 @@ export function loadKnowledgeCatalog(packageDir = defaultPackageDir, { now = new
   if (temporal_readiness.status !== 'ready' && !allowFutureForErrata) fail(temporal_readiness.issues[0].path, 'Active knowledge contains evidence dated after the actual clock', 'MISSING_EVIDENCE');
   const historicalArtifacts = Object.fromEntries(Object.values(historicalFacts).map(fact => [fact.source_material_ref, artifacts[fact.source_material_ref]]).filter(([, artifact]) => artifact));
   const historicalCatalogs = Object.fromEntries(catalog.files.filter(entry => entry.kind === 'historical_catalog').map(entry => parsed.get(entry.path)).map(item => [item.catalog_id, Object.freeze(item)]));
-  const history = Object.freeze({ artifacts: Object.freeze(historicalArtifacts), facts: Object.freeze(historicalFacts), rules: Object.freeze(historicalRules), catalogs: Object.freeze(historicalCatalogs) });
+  // Only seed the connected activation ancestry, never unrelated packaged lifecycle records.
+  const historicalEvents = {}, visitedCatalogs = new Set([catalog.catalog_id]);
+  const packagedEvents = catalog.files.filter(entry => entry.kind === 'knowledge_event').map(entry => parsed.get(entry.path));
+  let priorRef = event.event_type === 'activated' ? event.prior_catalog_ref : null;
+  while (priorRef) {
+    if (visitedCatalogs.has(priorRef)) fail('/history/events', 'Knowledge activation ancestry contains a cycle', 'STATE_CONFLICT');
+    visitedCatalogs.add(priorRef);
+    const priorCatalog = historicalCatalogs[priorRef];
+    if (!priorCatalog) break; // Incomplete legacy archives are not proof of another activation.
+    const matches = packagedEvents.filter(item => item.event_type === 'activated' && item.catalog_ref === priorRef);
+    if (matches.length > 1) fail('/history/events', 'Historical catalog has ambiguous activation evidence', 'STATE_CONFLICT');
+    if (!matches.length) break;
+    const priorEvent = matches[0];
+    if (priorEvent.event_id === event.event_id || historicalEvents[priorEvent.event_id]) fail('/history/events', 'Historical activation reuses an event identity', 'STATE_CONFLICT');
+    if (priorEvent.observed_head_commit !== priorCatalog.upstream.commit) fail('/history/events', 'Historical activation and catalog commits differ', 'RECEIPT_CONFLICT');
+    historicalEvents[priorEvent.event_id] = Object.freeze(priorEvent);
+    priorRef = priorEvent.prior_catalog_ref;
+  }
+  const history = Object.freeze({ artifacts: Object.freeze(historicalArtifacts), facts: Object.freeze(historicalFacts), rules: Object.freeze(historicalRules), catalogs: Object.freeze(historicalCatalogs), events: Object.freeze(historicalEvents) });
   return Object.freeze({ catalog: Object.freeze(catalog), event: Object.freeze(event), artifacts: Object.freeze(artifacts), facts: Object.freeze(facts), rules: Object.freeze(rules), history, dependencies: Object.freeze(dependencyDoc.dependencies), signal_registry: Object.freeze(catalog.signal_registry), temporal_readiness });
 }
 

@@ -45,6 +45,7 @@ test('candidate impact includes add, modify, delete and move and activation reco
   assert.deepEqual(activated.event.affected_rule_version_refs, ['r1', 'r2', 'r3']);
   // Only an independently reviewed editorial release may isolate unresolved mechanics.
   const scoped = structuredClone(candidate); scoped.catalog.execution_scope = 'editorial_only';
+  for (const rule of Object.values(scoped.rules)) Object.assign(rule, {execution_scope:'editorial_only', origin:'editorial_practice', missing_policy:'editorial_only'});
   const scopedProposal = proposeKnowledgeUpdateV5(current, scoped, check);
   for (const identity of [{reviewer:'same',generator_ref:'same'}, {reviewer:' same ',generator_ref:'same'}, {reviewer:'',generator_ref:'writer'}, {reviewer:'reviewer',generator_ref:''}]) {
     assert.throws(() => activateKnowledgeUpdateV5(current, scoped, scopedProposal, { check, review_receipt: { receipt_id:'review', purpose:'review_knowledge', subject_hash:scopedProposal.proposal_hash, actual_result_hash:scopedProposal.proposal_hash, decision:'approved', ...identity }, replay_results:[], activated_at:T }), /self-review/);

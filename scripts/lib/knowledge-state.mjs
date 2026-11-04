@@ -30,6 +30,9 @@ export function seedKnowledgeState(state, bundle=loadKnowledgeCatalog(),{activat
   for(const [id,item] of Object.entries(bundle.facts)){validateStoredFact(item,state);putImmutable(state.rule_versions_v2,id,validate('RuleVersionV2',item));}
   for(const [id,item] of Object.entries(bundle.rules))putImmutable(state.operational_rules,id,validate('OperationalRuleV4',item));
   putImmutable(state.knowledge_catalogs,bundle.catalog.catalog_id,validate('RuleCatalogSnapshotV4',bundle.catalog));
-  if(activate&&bundle.event.event_type==='activated')putImmutable(state.knowledge_events,bundle.event.event_id,validate(bundle.event.contract_version===5?'KnowledgeEventV5':'KnowledgeEventV4',bundle.event));
+  if(activate&&bundle.event.event_type==='activated') {
+    for(const [id,item] of Object.entries(bundle.history?.events??{}))putImmutable(state.knowledge_events,id,validate(item.contract_version===5?'KnowledgeEventV5':'KnowledgeEventV4',item));
+    putImmutable(state.knowledge_events,bundle.event.event_id,validate(bundle.event.contract_version===5?'KnowledgeEventV5':'KnowledgeEventV4',bundle.event));
+  }
   return state;
 }

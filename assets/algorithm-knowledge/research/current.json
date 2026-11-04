@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "status": "source_reviewed_not_operationally_activated",
-  "checked_at": "2026-11-04T07:54:10.782Z",
+  "status": "source_reviewed_editorial_scope_activated",
+  "checked_at": "2026-11-04T08:46:43.211Z",
   "upstream": {
     "repo": "xai-org/x-algorithm",
     "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2"
@@ -664,7 +664,7 @@
       "公开默认值不等于生产动态配置，未实测生产曝光。",
       "Home本地默认与VM服务重算默认不同，不能拼成统一表；ComputeValueModel默认false不等于Home未计算价值分。",
       "源代码中的概率权重不是互动次数换算；冷启动采样明确使用计数，与主融合不同。",
-      "研究未激活operational catalog、未更改既有catalog或执行完整回归。",
+      "10条编辑操作规则已通过独立审核并在开发包启用；38条研究规则不代表38项生产机制已激活。既有账号状态未自动迁移，未部署，未执行全量回归。",
       "不提供统一账号信用分、固定shadowban期限、保底曝光量或刷量方法。"
     ],
     "review_depth": {
@@ -2738,8 +2738,8 @@
       "runtime_binding_refs": []
     }
   ],
-  "research_revision": "2026-11-04-diff-reviewed-v3",
-  "supersedes_content_hash": "957a378047684712fbb92b1a32399e9c35904e8c1fcd92e7386c96e7993a240f",
+  "research_revision": "2026-11-04-editorial-release-v4",
+  "supersedes_content_hash": "e5a5389d60c1607e98db52305978bff9cbbe8bde02689b104b800eeacb0c59e6",
   "runtime_bindings": [
     {
       "binding_id": "home_vm_value_model",
@@ -2857,5 +2857,14 @@
       ]
     }
   ],
-  "content_hash": "e5a5389d60c1607e98db52305978bff9cbbe8bde02689b104b800eeacb0c59e6"
+  "content_hash": "4d87c0d6c57155b8b421c888fa99aa3bf717fe4f1c849c17204d3ebfe4c3b393",
+  "operational_release": {
+    "catalog_ref": "x-algorithm-b220448-editorial-v1",
+    "catalog_hash": "8e5e149166ce121103584e1af715f630529e204d61480e5a359a9044796137e1",
+    "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+    "activation_event_ref": "knowledge-event-9806374de3f8dcb18176a99c",
+    "execution_scope": "editorial_only",
+    "mechanism_status": "unknown",
+    "operational_rules": 10
+  }
 }

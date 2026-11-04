@@ -256,6 +256,7 @@ export function knowledgeReplayResultHashV5(result) {
 
 export function activateKnowledgeUpdateV5(currentBundle, savedCandidate, proposal, { review_receipt, replay_results, check, activated_at = new Date() }) {
   validateKnowledgeBundleIntegrity(savedCandidate);
+  if (savedCandidate.catalog.execution_scope === 'editorial_only') validateEditorialScope(savedCandidate, { requireExplicitRules: true });
   if (proposal.source_binding_version !== 'git-source-v1' || check?.check_hash !== proposal.check_hash || check.check_id !== proposal.check_ref || canonicalHash(knowledgeSourceBindingsV5(currentBundle, savedCandidate, check)) !== canonicalHash(proposal.source_bindings)) fail('/source_bindings', 'Activation requires current exact saved source bindings; re-check legacy candidates', 'MISSING_EVIDENCE');
   const pendingRules = Object.values(savedCandidate.rules).filter(rule => rule.review_status !== 'approved').map(rule => rule.rule_version_id);
   if (pendingRules.length) fail('/candidate_catalog/rules', `Candidate contains rules without approved status: ${pendingRules.join(', ')}`, 'MISSING_EVIDENCE');
@@ -278,7 +279,6 @@ export function activateKnowledgeUpdateV5(currentBundle, savedCandidate, proposa
     // dependencies as a mechanism basis at selection, application or delivery.
     // The unrestricted path continues to require the original evidence gate.
     if (savedCandidate.catalog.execution_scope !== 'editorial_only') fail('/gaps', 'Affected unresolved dependencies cannot be activated', 'MISSING_EVIDENCE');
-    validateEditorialScope(savedCandidate, { requireExplicitRules: true });
   }
   const event = { contract_version: 5, event_id: `knowledge-event-${canonicalHash({ proposal: proposal.proposal_hash, review: review_receipt.receipt_id }).slice(0, 24)}`, event_type: 'activated', catalog_ref: savedCandidate.catalog.catalog_id, prior_catalog_ref: currentBundle.catalog.catalog_id, checked_at: nowIso(activated_at), observed_head_commit: savedCandidate.catalog.upstream.commit, affected_rule_version_refs: recomputed.affected_rule_version_refs, gaps: proposal.gaps, review_receipt_ref: review_receipt.receipt_id, replay_result_refs: replay_results.map(item => item.replay_id) };
   return Object.freeze({ catalog: savedCandidate.catalog, event, impact: recomputed });

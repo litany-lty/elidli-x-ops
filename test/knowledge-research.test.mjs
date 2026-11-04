@@ -13,7 +13,7 @@ test('current research keeps three source-bound categories and disabled experime
   const research = loadAlgorithmResearch();
   assert.equal(research.upstream.commit, 'b220448766ab4ee4c83d58a67d51f0cb5bda86c2');
   assert.deepEqual([...new Set(research.rules.map(rule => rule.category))].sort(), ['account_and_context', 'demotion', 'distribution_opportunity']);
-  assert.equal(research.status, 'source_reviewed_not_operationally_activated');
+  assert.equal(research.status, 'source_reviewed_editorial_scope_activated');
   assert.equal(research.coverage.scope, 'reviewed_public_diff');
   assert.deepEqual(research.coverage.unreviewed_changed_paths, []);
   assert.equal(research.rules.length, 38);
@@ -28,8 +28,10 @@ test('research operation returns both commits without changing operational state
   const before = JSON.stringify(state);
   const result = await dispatchKnowledgeV5({ expected_revision: state.revision, payload: { contract_version: 5, operation: 'research' } }, '/unused-for-read-only-research', state);
   assert.equal(JSON.stringify(result.state), before);
-  assert.equal(result.data.operational_commit, '2f252142b9284e692ac72851768c8072d045f0d5');
-  assert.equal(result.data.alignment, 'research_newer_than_operational_catalog');
+  assert.equal(result.data.operational_commit, 'b220448766ab4ee4c83d58a67d51f0cb5bda86c2');
+  assert.equal(result.data.alignment, 'same_commit');
+  assert.equal(result.data.operational_execution_scope, 'editorial_only');
+  assert.equal(result.data.production_mechanism_status, 'unknown');
 });
 
 test('research rejects a changed source excerpt and future-dated use', async () => {
@@ -44,12 +46,12 @@ test('research rejects a changed source excerpt and future-dated use', async () 
 
 test('crosschecked revision keeps archived evidence and source-bound runtime conditions', async () => {
   const research = loadAlgorithmResearch();
-  assert.equal(research.research_revision, '2026-11-04-diff-reviewed-v3');
-  assert.equal(research.supersedes_content_hash, '957a378047684712fbb92b1a32399e9c35904e8c1fcd92e7386c96e7993a240f');
+  assert.equal(research.research_revision, '2026-11-04-editorial-release-v4');
+  assert.equal(research.supersedes_content_hash, 'e5a5389d60c1607e98db52305978bff9cbbe8bde02689b104b800eeacb0c59e6');
   const prior = JSON.parse(await readFile(new URL(`../assets/algorithm-knowledge/research/history/${research.supersedes_content_hash}.json`, import.meta.url), 'utf8'));
   const { content_hash, ...content } = prior;
   assert.equal(canonicalHash(content), content_hash);
-  assert.equal(prior.rules.length, 35);
+  assert.equal(prior.rules.length, 38);
   const bindings = new Map(research.runtime_bindings.map(binding => [binding.binding_id, binding]));
   for (const id of ['home_vm_value_model', 'home_vm_new_user_oon', 'home_vf_action_consumption', 'vm_dpp_gates', 'home_page_experiments']) {
     assert.equal(bindings.get(id)?.production_status, 'unknown');
@@ -96,4 +98,17 @@ test('completed public diff research requires its exact ledger', async () => {
   ledger.entries.pop();
   await writeFile(ledgerPath, JSON.stringify(ledger));
   assert.throws(() => loadAlgorithmResearch(root), /immutable public-diff review/);
+});
+
+
+test('editorial release metadata cannot promote unknown production mechanics', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'xops-editorial-research-'));
+  await cp(new URL('../assets/algorithm-knowledge/research', import.meta.url), join(root, 'research'), { recursive: true });
+  const path = join(root, 'research/current.json'), manifest = JSON.parse(await readFile(path, 'utf8'));
+  assert.equal(manifest.operational_release.execution_scope, 'editorial_only');
+  manifest.operational_release.mechanism_status = 'activated';
+  const { content_hash, ...content } = manifest;
+  manifest.content_hash = canonicalHash(content);
+  await writeFile(path, JSON.stringify(manifest));
+  assert.throws(() => loadAlgorithmResearch(root), /unknown mechanism status/);
 });
