@@ -104,7 +104,22 @@ export function loadKnowledgeCatalog(packageDir = defaultPackageDir, { now = new
   const activeFacts = new Set(catalog.fact_version_refs), activeRules = new Set(catalog.rule_version_refs);
   const factItems = catalog.files.filter(entry => entry.kind === 'fact').map(entry => parsed.get(entry.path));
   const facts = Object.fromEntries(factItems.filter(item => activeFacts.has(item.rule_version_id)).map(item => [item.rule_version_id, Object.freeze(item)]));
-  const historicalFacts = Object.fromEntries(factItems.filter(item => !activeFacts.has(item.rule_version_id) && Object.values(facts).some(active => active.supersedes === item.rule_version_id)).map(item => [item.rule_version_id, Object.freeze(item)]));
+  const allFacts = new Map(factItems.map(item => [item.rule_version_id, item])), historicalFacts = {}, visiting = new Set(), visited = new Set();
+  // Preserve every predecessor, oldest first: a second update may supersede a
+  // time correction which itself supersedes an earlier immutable fact.
+  const visitFact = fact => {
+    if (visiting.has(fact.rule_version_id)) fail('/facts/supersedes', 'Knowledge fact history contains a cycle', 'MISSING_EVIDENCE');
+    if (visited.has(fact.rule_version_id)) return;
+    visiting.add(fact.rule_version_id);
+    if (fact.supersedes) {
+      const prior = allFacts.get(fact.supersedes);
+      if (!prior) fail('/facts/supersedes', `Historical fact is missing: ${fact.supersedes}`, 'MISSING_EVIDENCE');
+      visitFact(prior);
+      if (!activeFacts.has(prior.rule_version_id)) historicalFacts[prior.rule_version_id] = Object.freeze(prior);
+    }
+    visiting.delete(fact.rule_version_id); visited.add(fact.rule_version_id);
+  };
+  for (const fact of Object.values(facts)) visitFact(fact);
   const ruleItems = catalog.files.filter(entry => entry.kind === 'operational_rule').map(entry => parsed.get(entry.path));
   const rules = Object.fromEntries(ruleItems.filter(item => activeRules.has(item.rule_version_id)).map(item => [item.rule_version_id, Object.freeze(item)]));
   const historicalRules = Object.fromEntries(ruleItems.filter(item => !activeRules.has(item.rule_version_id) && Object.values(rules).some(active => active.rule_id === item.rule_id)).map(item => [item.rule_version_id, Object.freeze(item)]));
@@ -383,6 +398,7 @@ export function validateRuleApplicationV5(application, context, bundle) {
 }
 
 export function proposeKnowledgeUpdate(currentBundle, candidateBundle, { checked_at, head_commit }) {
+  if (candidateBundle.catalog.change_review) fail('/candidate_catalog/change_review', 'Changed-path review requires the V5 checked-source update flow', 'MISSING_EVIDENCE');
   if (!checked_at || !head_commit) fail('/update', 'Actual check time and upstream HEAD are required');
   if (candidateBundle.temporal_readiness?.status !== 'ready') fail('/candidate_catalog/temporal_readiness', 'Candidate catalog contains future-dated active evidence', 'MISSING_EVIDENCE');
   if (currentBundle.catalog.upstream.repo !== candidateBundle.catalog.upstream.repo) fail('/candidate_catalog/upstream/repo', 'Update must keep the same upstream repository');
@@ -414,6 +430,7 @@ export function proposeKnowledgeUpdate(currentBundle, candidateBundle, { checked
 }
 
 export function activateKnowledgeCatalog(currentBundle, proposal, { review_receipt, case_results }) {
+  if (proposal.candidate_catalog.change_review) fail('/candidate_catalog/change_review', 'Changed-path review requires the V5 checked-source update flow', 'MISSING_EVIDENCE');
   if (proposal.candidate_catalog.catalog_id === currentBundle.catalog.catalog_id) fail('/candidate_catalog', 'Activation must append a new immutable catalog version');
   if (proposal.candidate_temporal_readiness?.status !== 'ready') fail('/candidate_catalog/temporal_readiness', 'Future-dated candidate knowledge cannot be activated', 'MISSING_EVIDENCE');
   if (!review_receipt || review_receipt.subject_hash !== proposal.candidate_catalog.catalog_content_hash || review_receipt.decision !== 'approved') fail('/review_receipt', 'Independent approval of the exact candidate catalog is required', 'MISSING_EVIDENCE');

@@ -1,0 +1,161 @@
+            if head in heads
+            for threshold_s in self.conversion_delay_slice_thresholds_s
+            for side in ("ge", "lt")
+        ]
+
+    def validate_ads_head_masking(self) -> None:
+        if self.ads_head_masking and self.use_seqpack:
+            raise ValueError(
+                "ads_head_masking is not supported with use_seqpack: the per-candidate, "
+                "per-head trained_candidate_mask has no packed-layout equivalent"
+            )
+        if self.ads_pixel_head_masking and not self.ads_head_masking:
+            raise ValueError("ads_pixel_head_masking requires ads_head_masking")
+        if self.ads_late_window_heads and not self.ads_head_masking:
+            raise ValueError("ads_late_window_heads requires ads_head_masking")
+        if self.serve_late_window_composed and not self.ads_late_window_heads:
+            raise ValueError("serve_late_window_composed requires ads_late_window_heads")
+        if self.ads_pixel_head_masking and self.use_seqpack:
+            raise ValueError("ads_pixel_head_masking is not supported with use_seqpack")
+        if self.metric_own_slice and not self.ads_head_masking:
+            raise ValueError("metric_own_slice requires ads_head_masking")
+
+    @property
+    def has_side_inputs(self) -> bool:
+        return bool(self.ads_counts_emb_dim or self.wallclock_recency)
+
+    def validate_side_inputs(self) -> None:
+        if self.has_side_inputs and self.feature_prep_enabled:
+            raise ValueError("ads_counts_emb_dim / wallclock_recency need feature_prep off")
+
+    continuous_action_hidden_dim: int = 64
+
+    final_logit_cap: float = -1.0
+    embed_init_scale: float = 1.0
+    fprop_dtype: Literal["bfloat16", "float32"] = "bfloat16"
+    embed_memory_kind: MemoryKind = "device"
+    log_q_num_bins: int = 100_000_000
+
+    log_q_correction: bool = False
+    history_seq_len: int = 1024
+    candidate_seq_len: int = 128
+
+    right_anchored_rope: bool = False
+
+    attend_padded_history: bool = False
+
+    pad_candidates_to_128: bool = True
+
+    use_seqpack: bool = False
+
+    ads_counts_emb_dim: int = 0
+    wallclock_recency: bool = False
+
+    effective_sequence_len: int | None = None
+
+    transformer_output_only: bool = False
+    use_dense_action_table: bool = False
+    use_product_surface: bool = False
+
+    post_age_granularity_mins: int = 60
+
+    post_age_max_mins: int = POST_AGE_MAX_MINUTES
+
+    post_age_bucket_strategy: Literal["linear", "log1p"] = "linear"
+
+    post_age_num_buckets: int = 80
+
+    mask_candidate_positive_when_negative_action_present: bool = False
+
+    metric_group: str = "default"
+
+    metric_mask_keys: list[str] | None = None
+    metric_own_slice: bool = False
+    metrics_ndcg_shared_sorts: bool = False
+
+    conversion_delay_slice_thresholds_s: tuple[int, ...] = ()
+
+    multimodal_embedding_type: EmbeddingType | None = None
+
+    history_url_embedding_dim: int = 0
+
+    search_query_embedding_dim: int = 0
+
+    use_post_sid: bool = False
+    use_post_embedding: bool = True
+    sid_embed_dim: int = 1024
+    sid_num_levels: int = 6
+    sid_codebook_size: int = 1024
+    sid_hash_level: bool = False
+    sid_cross_attn: bool = False
+    sid_prefix2_embed_dim: int = 0
+    sid_prefix3_embed_dim: int = 0
+    sid_prefix3_rows: int = 262144
+
+    sid_embedding_mode: Literal["learned", "recon"] = "learned"
+    sid_decoder_path: str = ""
+
+    use_user_embedding: bool = True
+
+    use_ip_address: bool = False
+
+    feature_prep_enabled: bool = False
+    feature_prep: FeaturePrepConfig = FeaturePrepConfig()
+
+    concat_history_bridge_prob: bool = False
+    concat_history_web_conv_time_on_site: bool = False
+    web_conv_time_on_site_norm_scale: float = 1800.0
+    add_history_web_conv_value: bool = False
+    web_conv_value_usd_cap: float = 10_000.0
+    web_conv_value_ratio_cap: float = 50.0
+
+    mask_neg_feedback_on_negatives: bool = True
+
+    ads_head_masking: bool = False
+
+    ads_pixel_head_masking: bool = False
+
+    ads_late_window_heads: bool = False
+    serve_late_window_composed: bool = False
+
+    mact_in_app_loss_weight: float = 1.0
+
+    view_loss_weight: float = 1.0
+
+    condition_search_relevance_on_prompt: bool = False
+
+    enable_platform_metrics: bool = False
+
+    dpa_product_embed_dim: int = 32
+
+    dpa_product_table_size: int = ADS_PRODUCT_KEY_TABLE_SIZE
+
+    enable_dpa_input_embedding: bool = False
+
+    user_features: UserFeaturesConfig = UserFeaturesConfig()
+
+    context_features: ContextFeaturesConfig = ContextFeaturesConfig()
+
+    unified_context_dwell_time_dim: int = 64
+
+    safety_filter_mode: Literal["off", "hard", "soft"] = "off"
+    safety_filter_bits: int = 0b11
+    safety_filter_soft_weight: float = 0.0
+    safety_filter_apply_to_candidates: bool = True
+    safety_filter_apply_to_history: bool = False
+
+    page_rl: PageRlConfig = PageRlConfig()
+
+    @property
+    def multimodal_embedding_dim(self) -> int:
+        if self.multimodal_embedding_type is None:
+            return 0
+        return EMBEDDING_CONFIG[self.multimodal_embedding_type][1]
+
+    def make(self, sharding_context: ShardingContext) -> RecsysAggregatedModel:
+        self.validate_purchase_value()
+        self.validate_aux_value_heads()
+        self.validate_ads_head_masking()
+        self.validate_side_inputs()
+        if (
+            not (self.pad_candidates_to_128 or self.use_seqpack)

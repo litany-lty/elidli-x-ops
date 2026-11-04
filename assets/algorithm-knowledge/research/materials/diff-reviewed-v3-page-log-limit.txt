@@ -1,0 +1,6 @@
+
+const KEY_PREFIX: &str = "phoenix_request_cache";
+const ZSTD_COMPRESSION_LEVEL: i32 = 3;
+const MAX_SERVED_SLATE_POSTS: usize = 64;
+const SLATE_WRITES_METRIC: &str = "ServedSlateCacheSideEffect.slate_writes";
+

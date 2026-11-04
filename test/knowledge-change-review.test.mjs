@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { canonicalHash } from '../scripts/lib/contracts.mjs';
 import { validateKnowledgeChangeReview } from '../scripts/lib/knowledge-change-review.mjs';
 import { computeKnowledgeImpactV5 } from '../scripts/lib/knowledge-updates.mjs';
+import { proposeKnowledgeUpdate, activateKnowledgeCatalog } from '../scripts/lib/knowledge.mjs';
 
 const base = 'a'.repeat(40), target = 'b'.repeat(40), hash = 'c'.repeat(64);
 function fixture() {
@@ -28,6 +29,8 @@ test('an exact semantic ledger closes added/deleted/config paths without changin
   const result = computeKnowledgeImpactV5(current, candidate, check);
   assert.deepEqual(result.unreviewed_paths, []);
   assert.deepEqual(result.impact_limitations, []);
+  assert.deepEqual(result.dependency_diff.modified, ['score']);
+  assert.deepEqual(result.affected_rule_version_refs, ['rule']);
   assert.deepEqual(review.entries[0].unknowns, ['Production config']);
   assert.equal(computeKnowledgeImpactV5(current, current, check).unreviewed_paths.length, 3);
 });
@@ -51,4 +54,30 @@ test('a semantic blocker remains a gap despite complete inventory and exact hash
   const result = computeKnowledgeImpactV5(current, candidate, check);
   assert.deepEqual(result.unreviewed_paths, ['settings.yaml']);
   assert.equal(result.impact_limitations[0].reason, 'caller_or_config_changed');
+});
+
+test('blocked source wins over revised reviewed metadata and semantic rule references still require replay', () => {
+  const { review, check, current, candidate } = fixture();
+  candidate.dependencies = [{ ...current.dependencies[0], path: 'settings.yaml', material_hash: hash, wiring_status: 'wired_reviewed' }];
+  review.entries[0].operational_disposition = 'blocked'; rehash(review);
+  assert.ok(computeKnowledgeImpactV5(current, candidate, check).unreviewed_paths.includes('settings.yaml'));
+  const isolated = fixture();
+  isolated.current.dependencies = []; isolated.candidate.dependencies = [];
+  isolated.current.rules = { r: { rule_id: 'OP01', dependency_ids: [] } }; isolated.candidate.rules = isolated.current.rules;
+  assert.deepEqual(computeKnowledgeImpactV5(isolated.current, isolated.candidate, isolated.check).affected_rule_version_refs, ['r']);
+});
+
+test('V4 cannot bypass changed-path checked-source review', () => {
+  const { current, candidate } = fixture();
+  assert.throws(() => proposeKnowledgeUpdate(current, candidate, {}), /V5 checked-source/);
+  assert.throws(() => activateKnowledgeCatalog(current, { candidate_catalog: candidate.catalog }, {}), /V5 checked-source/);
+});
+
+test('reviewed deleted caller closes only when the candidate no longer references it', () => {
+  const { current, candidate, check } = fixture();
+  current.dependencies = [{ ...current.dependencies[0], caller_refs: ['deleted.rs'] }];
+  candidate.dependencies = [{ ...current.dependencies[0], caller_refs: [] }];
+  assert.deepEqual(computeKnowledgeImpactV5(current, candidate, check).impact_limitations, []);
+  candidate.dependencies[0].caller_refs = ['deleted.rs'];
+  assert.equal(computeKnowledgeImpactV5(current, candidate, check).impact_limitations[0].path, 'deleted.rs');
 });

@@ -1,0 +1,69 @@
+def postIdsNotShownNote(postIdPolicy: PostIdPolicy): String = {
+  val byShare = "You’ll see specific posts listed here only if " +
+    postIdPolicy.listNoneWhenSharePctAbove.toString + "% or fewer of your posts have this label"
+  if (postIdPolicy.listAllWhenPostsAtMost > 0) {
+    byShare + ", or if " + postIdPolicy.listAllWhenPostsAtMost.toString +
+      " or fewer of your posts have it."
+  } else {
+    byShare + "."
+  }
+}
+
+def postIdsMostRecentNote(listed: Int): String =
+  if (listed == 1) {
+    "Listing the most recent post with this label."
+  } else {
+    "Listing the " + listed.toString + " most recent posts with this label."
+  }
+
+def listedPostIds(ids: Seq[String], carried: Long): PostIdOutcome = {
+  val mostRecentNote = if (ids.nonEmpty && ids.size.toLong < carried) {
+    Some(postIdsMostRecentNote(ids.size))
+  } else {
+    None : Option[String]
+  }
+  {
+    postIds = Some(ids),
+    postIdsMostRecentNote = mostRecentNote,
+    postIdsNotShownNote = None : Option[String],
+  }
+}
+
+def shownPostIds(
+    postIdPolicy: PostIdPolicy,
+    allPostIds: Seq[Long],
+    carried: Long,
+    postCount: Long,
+    isTakedown: Boolean
+): PostIdOutcome = {
+  val newest = allPostIds.take(postIdPolicy.maxPerLabel).map { id => id.toString }
+  if (!postIdPolicy.enabled) {
+    {
+      postIds = None : Option[Seq[String]],
+      postIdsMostRecentNote = None : Option[String],
+      postIdsNotShownNote = None : Option[String],
+    }
+  } else if (isTakedown) {
+    listedPostIds(newest, carried)
+  } else if (carried <= postIdPolicy.listAllWhenPostsAtMost.toLong) {
+    listedPostIds(newest, carried)
+  } else if (carried * 100L > postIdPolicy.listNoneWhenSharePctAbove.toLong * postCount) {
+    {
+      postIds = Some(Seq.empty[String]),
+      postIdsMostRecentNote = None : Option[String],
+      postIdsNotShownNote = Some(postIdsNotShownNote(postIdPolicy)),
+    }
+  } else {
+    listedPostIds(newest, carried)
+  }
+}
+
+def postLabelRow(
+    raw: String,
+    countryCodes: Seq[String],
+    carried: Long,
+    postCount: Long,
+    includeTakedowns: Boolean,
+    appeals: AppealSwitches,
+    allPostIds: Seq[Long],
+    postIdPolicy: PostIdPolicy

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "status": "source_reviewed_not_operationally_activated",
-  "checked_at": "2026-11-04T07:22:34.297Z",
+  "checked_at": "2026-11-04T07:54:10.782Z",
   "upstream": {
     "repo": "xai-org/x-algorithm",
     "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2"
@@ -11,8 +11,8 @@
     "commit": "2f252142b9284e692ac72851768c8072d045f0d5"
   },
   "coverage": {
-    "scope": "targeted_source_review",
-    "repository_diff_count": 242,
+    "scope": "reviewed_public_diff",
+    "repository_diff_count": 248,
     "reviewed_paths": [
       "home-mixer/params/param.rs",
       "vm-ranker/params.rs",
@@ -66,7 +66,24 @@
       "abuse-enforcement-service/service-lib/src/overturn_hold.rs",
       "safety-label-source/source.rs",
       "under-the-hood/strato/columns/underTheHoodReport.strato",
-      "under-the-hood/strato/columns/underTheHoodReport.User.strato"
+      "under-the-hood/strato/columns/underTheHoodReport.User.strato",
+      "home-mixer/query_hydrators/served_history_query_hydrator.rs",
+      "home-mixer/util/video_carousel.rs",
+      "home-mixer/models/brand_safety.rs",
+      "home-mixer/candidate_hydrators/ads_brand_safety_vf_hydrator.rs",
+      "home-mixer/ads/neighbours.rs",
+      "abuse-enforcement-service/types/src/action_control.rs",
+      "abuse-enforcement-service/service-lib/src/dedup_cache.rs",
+      "under-the-hood/strato/lib/params.strato",
+      "under-the-hood/jetfuel/routes/report.tsx",
+      "under-the-hood/scalding/UnderTheHoodCommon.scala",
+      "under-the-hood/jetfuel/routes/_lib/load.ts",
+      "home-mixer/util/under_the_hood.rs",
+      "home-mixer/side_effects/phoenix_request_cache_side_effect.rs",
+      "phoenix/xrex/configs/xrecsys.py",
+      "phoenix/xrex/models/recsys_feature_prep.py",
+      "phoenix/xrex/data/recsys/ads_late_window.py",
+      "phoenix/xrex/models/recsys_model.py"
     ],
     "reviewed_ranges": [
       {
@@ -482,247 +499,168 @@
         "path": "under-the-hood/strato/columns/underTheHoodReport.User.strato",
         "line_start": 735,
         "line_end": 749
+      },
+      {
+        "source_id": "v3-served-history",
+        "path": "home-mixer/query_hydrators/served_history_query_hydrator.rs",
+        "line_start": 80,
+        "line_end": 110
+      },
+      {
+        "source_id": "v3-carousel-score",
+        "path": "home-mixer/util/video_carousel.rs",
+        "line_start": 13,
+        "line_end": 65
+      },
+      {
+        "source_id": "v3-carousel-params",
+        "path": "home-mixer/params/param.rs",
+        "line_start": 1197,
+        "line_end": 1305
+      },
+      {
+        "source_id": "v3-notifications-level",
+        "path": "visibility-filtering/rules/levels.rs",
+        "line_start": 178,
+        "line_end": 278
+      },
+      {
+        "source_id": "v3-notifications-conditions",
+        "path": "visibility-filtering/rules/tweet_rules.rs",
+        "line_start": 961,
+        "line_end": 1023
+      },
+      {
+        "source_id": "v3-heuristic-retained",
+        "path": "home-mixer/models/brand_safety.rs",
+        "line_start": 82,
+        "line_end": 170
+      },
+      {
+        "source_id": "v3-gore-reaction",
+        "path": "visibility-filtering/rules/tweet_rules.rs",
+        "line_start": 860,
+        "line_end": 875
+      },
+      {
+        "source_id": "v3-brand-hydration",
+        "path": "home-mixer/candidate_hydrators/ads_brand_safety_vf_hydrator.rs",
+        "line_start": 95,
+        "line_end": 118
+      },
+      {
+        "source_id": "v3-ads-options",
+        "path": "home-mixer/selectors/blender_selector.rs",
+        "line_start": 39,
+        "line_end": 106
+      },
+      {
+        "source_id": "v3-ads-neighbours",
+        "path": "home-mixer/ads/neighbours.rs",
+        "line_start": 107,
+        "line_end": 139
+      },
+      {
+        "source_id": "v3-suspend-options",
+        "path": "abuse-enforcement-service/types/src/action_control.rs",
+        "line_start": 196,
+        "line_end": 270
+      },
+      {
+        "source_id": "v3-suspend-dedup",
+        "path": "abuse-enforcement-service/service-lib/src/dedup_cache.rs",
+        "line_start": 1,
+        "line_end": 200
+      },
+      {
+        "source_id": "v3-report-params",
+        "path": "under-the-hood/strato/lib/params.strato",
+        "line_start": 21,
+        "line_end": 52
+      },
+      {
+        "source_id": "v3-report-ids",
+        "path": "under-the-hood/strato/columns/underTheHoodReport.User.strato",
+        "line_start": 309,
+        "line_end": 377
+      },
+      {
+        "source_id": "v3-report-ui",
+        "path": "under-the-hood/jetfuel/routes/report.tsx",
+        "line_start": 330,
+        "line_end": 350
+      },
+      {
+        "source_id": "v3-report-offline",
+        "path": "under-the-hood/scalding/UnderTheHoodCommon.scala",
+        "line_start": 1,
+        "line_end": 165
+      },
+      {
+        "source_id": "v3-report-loader",
+        "path": "under-the-hood/jetfuel/routes/_lib/load.ts",
+        "line_start": 1,
+        "line_end": 89
+      },
+      {
+        "source_id": "v3-vm-heads",
+        "path": "vm-ranker/scoring/value_model.rs",
+        "line_start": 178,
+        "line_end": 241
+      },
+      {
+        "source_id": "v3-home-heads",
+        "path": "home-mixer/util/under_the_hood.rs",
+        "line_start": 65,
+        "line_end": 89
+      },
+      {
+        "source_id": "v3-page-log",
+        "path": "home-mixer/side_effects/phoenix_request_cache_side_effect.rs",
+        "line_start": 197,
+        "line_end": 336
+      },
+      {
+        "source_id": "v3-page-log-limit",
+        "path": "home-mixer/side_effects/phoenix_request_cache_side_effect.rs",
+        "line_start": 23,
+        "line_end": 28
+      },
+      {
+        "source_id": "v3-page-params",
+        "path": "home-mixer/params/param.rs",
+        "line_start": 300,
+        "line_end": 372
+      },
+      {
+        "source_id": "v3-training-recipe",
+        "path": "phoenix/xrex/configs/xrecsys.py",
+        "line_start": 479,
+        "line_end": 510
+      },
+      {
+        "source_id": "v3-training-feature",
+        "path": "phoenix/xrex/models/recsys_feature_prep.py",
+        "line_start": 1,
+        "line_end": 1443
+      },
+      {
+        "source_id": "v3-late-window",
+        "path": "phoenix/xrex/data/recsys/ads_late_window.py",
+        "line_start": 1,
+        "line_end": 97
+      },
+      {
+        "source_id": "v3-late-config",
+        "path": "phoenix/xrex/models/recsys_model.py",
+        "line_start": 1200,
+        "line_end": 1360
       }
     ],
-    "unreviewed_changed_paths": [
-      "README.md",
-      "abuse-enforcement-service/service-lib/src/action_control.rs",
-      "abuse-enforcement-service/service-lib/src/action_control_path_tests.rs",
-      "abuse-enforcement-service/service-lib/src/action_control_rollback.rs",
-      "abuse-enforcement-service/service-lib/src/backfill.rs",
-      "abuse-enforcement-service/service-lib/src/backfill_path_tests.rs",
-      "abuse-enforcement-service/service-lib/src/confidence_adversarial_tests.rs",
-      "abuse-enforcement-service/service-lib/src/confidence_path_tests.rs",
-      "abuse-enforcement-service/service-lib/src/decision.rs",
-      "abuse-enforcement-service/service-lib/src/dedup_cache.rs",
-      "abuse-enforcement-service/service-lib/src/facts.rs",
-      "abuse-enforcement-service/service-lib/src/fixtures/replay_no_records.golden",
-      "abuse-enforcement-service/service-lib/src/gizmoduck.rs",
-      "abuse-enforcement-service/service-lib/src/lib.rs",
-      "abuse-enforcement-service/service-lib/src/safety_audit_tests.rs",
-      "abuse-enforcement-service/types/src/action_control.rs",
-      "abuse-enforcement-service/types/src/backfill.rs",
-      "candidate-pipeline/candidate_pipeline.rs",
-      "grox/config/config.py",
-      "grox/core/data_loaders/data_types.py",
-      "grox/core/data_loaders/post_mapper.py",
-      "grox/core/lm/convo.py",
-      "grox/core/lm/json_output.py",
-      "grox/libs/video_tools/image.py",
-      "home-mixer/ads/drops.rs",
-      "home-mixer/ads/health_metrics.rs",
-      "home-mixer/ads/least_movement_blender.rs",
-      "home-mixer/ads/mod.rs",
-      "home-mixer/ads/multi_risk_blender.rs",
-      "home-mixer/ads/neighbours.rs",
-      "home-mixer/ads/slot_spread_blender.rs",
-      "home-mixer/ads/tests/blender_comparison_test.rs",
-      "home-mixer/ads/tests/least_movement_blender_tests.rs",
-      "home-mixer/ads/tests/mod.rs",
-      "home-mixer/ads/tests/slot_spread_blender_tests.rs",
-      "home-mixer/ads/util.rs",
-      "home-mixer/candidate_hydrators/video_embedding_hydrator.rs",
-      "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs",
-      "home-mixer/candidate_pipeline/mod.rs",
-      "home-mixer/candidate_pipeline/ranked_following_candidate_pipeline.rs",
-      "home-mixer/clients/post_v8_search_embedding_client.rs",
-      "home-mixer/filters/brazil_2026_election_filter.rs",
-      "home-mixer/filters/mod.rs",
-      "home-mixer/models/candidate.rs",
-      "home-mixer/models/query.rs",
-      "home-mixer/query_hydrators/served_history_query_hydrator.rs",
-      "home-mixer/scored_posts_server.rs",
-      "home-mixer/scorers/immersive_video_scorer.rs",
-      "home-mixer/scorers/mod.rs",
-      "home-mixer/scorers/page_rl_exploration_scorer.rs",
-      "home-mixer/scorers/phoenix_scorer.rs",
-      "home-mixer/scorers/vm_ranker_request.rs",
-      "home-mixer/selectors/blender_selector.rs",
-      "home-mixer/selectors/top_k_score_selector.rs",
-      "home-mixer/side_effects/ads_injection_logging_side_effect.rs",
-      "home-mixer/side_effects/phoenix_experiments_side_effect.rs",
-      "home-mixer/side_effects/phoenix_request_cache_side_effect.rs",
-      "home-mixer/side_effects/redis_post_candidate_cache_side_effect.rs",
-      "home-mixer/side_effects/reranking_kafka_side_effect.rs",
-      "home-mixer/side_effects/scored_stats_side_effect.rs",
-      "home-mixer/side_effects/video_carousel_candidates_kafka_side_effect.rs",
-      "home-mixer/sources/thunder_source.rs",
-      "home-mixer/util/under_the_hood.rs",
-      "home-mixer/util/video_carousel.rs",
-      "phoenix/crates/common/xai-recsys/build.rs",
-      "phoenix/crates/common/xai-recsys/src/model_config.rs",
-      "phoenix/crates/common/xai-recsys/src/reply.rs",
-      "phoenix/crates/common/xai-recsys/src/util.rs",
-      "phoenix/crates/serving/xai-recsys-engine/src/copy_port_client.rs",
-      "phoenix/crates/serving/xai-recsys-engine/src/sid_client.rs",
-      "phoenix/crates/serving/xai-recsys-mm-server/src/mm_embedding_fetcher.rs",
-      "phoenix/crates/serving/xai-recsys-proto/proto/recsys.proto",
-      "phoenix/crates/serving/xai-recsys-proto/src/lib.rs",
-      "phoenix/python/common/xai-configlib/src/xai_configlib/__init__.py",
-      "phoenix/python/common/xai-proto/proto/recsys.proto",
-      "phoenix/xrex/configs/data_feeds.py",
-      "phoenix/xrex/configs/xrecsys.py",
-      "phoenix/xrex/cuda/async_emb/async_emb.py",
-      "phoenix/xrex/cuda/async_emb/src/async_emb_api.cc",
-      "phoenix/xrex/cuda/async_emb/src/async_emb_kernel.cu",
-      "phoenix/xrex/cuda/async_emb/src/async_emb_kernel.hpp",
-      "phoenix/xrex/cuda/row_emb/row_emb.py",
-      "phoenix/xrex/cuda/row_emb/src/row_emb_api.cc",
-      "phoenix/xrex/cuda/row_emb/src/row_emb_comm.cc",
-      "phoenix/xrex/cuda/row_emb/src/row_emb_kernel.cu",
-      "phoenix/xrex/cuda/row_emb/src/row_emb_kernel.hpp",
-      "phoenix/xrex/data/parquet_recsys.py",
-      "phoenix/xrex/data/parquet_recsys_metadata.py",
-      "phoenix/xrex/data/recsys/ads_head_masking.py",
-      "phoenix/xrex/data/recsys/ads_late_window.py",
-      "phoenix/xrex/data/recsys/constants.py",
-      "phoenix/xrex/data/recsys/feature_config.py",
-      "phoenix/xrex/data/recsys/recsys_batch.py",
-      "phoenix/xrex/data/rust_parquet_recsys.py",
-      "phoenix/xrex/data/streaming/kafkaloader.py",
-      "phoenix/xrex/inference/model_runner.py",
-      "phoenix/xrex/models/layers.py",
-      "phoenix/xrex/models/recsys_attention.py",
-      "phoenix/xrex/models/recsys_feature_prep.py",
-      "phoenix/xrex/models/recsys_model.py",
-      "phoenix/xrex/models/remat.py",
-      "phoenix/xrex/models/scaling.py",
-      "phoenix/xrex/models/transformer.py",
-      "phoenix/xrex/optimizers/recsys/config.py",
-      "phoenix/xrex/optimizers/recsys/rowwise_adagrad.py",
-      "phoenix/xrex/testing.py",
-      "phoenix/xrex/train/follow_data_end.py",
-      "phoenix/xrex/train/recsys_bundle_export.py",
-      "phoenix/xrex/train/trainer.py",
-      "phoenix/xrex/train/trainer_recsys.py",
-      "safety-label-source/connect.rs",
-      "visibility-filtering/safety_label_source/decode.rs",
-      "safety-label-source/decode.rs",
-      "safety-label-source/lib.rs",
-      "safety-label-source/metrics.rs",
-      "visibility-filtering/safety_label_source/mh_client.rs",
-      "safety-label-source/mh_client.rs",
-      "visibility-filtering/safety_label_source/remote.rs",
-      "safety-label-source/remote.rs",
-      "visibility-filtering/safety_label_source/source.rs",
-      "safety-label-source/source.rs",
-      "safety-label-source/testing.rs",
-      "visibility-filtering/safety_label_source/warmer.rs",
-      "safety-label-source/warmer.rs",
-      "under-the-hood/jetfuel/gql/underTheHoodReport.gql",
-      "under-the-hood/jetfuel/routes/_lib/load.ts",
-      "under-the-hood/jetfuel/routes/_lib/mock.ts",
-      "under-the-hood/jetfuel/routes/_lib/report.ts",
-      "under-the-hood/jetfuel/routes/index.tsx",
-      "under-the-hood/jetfuel/routes/report.tsx",
-      "under-the-hood/scalding/UnderTheHoodCommon.scala",
-      "under-the-hood/scalding/UthDailyPostTakedownLabelsJob.scala",
-      "under-the-hood/scalding/UthDailyPostsBackfillJob.scala",
-      "under-the-hood/scalding/UthDailyPostsJob.scala",
-      "under-the-hood/scalding/UthUserMonthMhPublisherJob.scala",
-      "under-the-hood/strato/columns/underTheHoodReport.User.strato",
-      "under-the-hood/strato/graphql/under_the_hood.thrift",
-      "under-the-hood/strato/lib/params.strato",
-      "under-the-hood/strato/lib/underTheHoodLabels.strato",
-      "under-the-hood/thrift/uth_serving.thrift",
-      "visibility-filtering-client/evaluated.rs",
-      "visibility-filtering-client/notifications.rs",
-      "visibility-filtering-client/vf_client.rs",
-      "visibility-filtering/bin/vf-gate.rs",
-      "visibility-filtering/clients/label_warm_client.rs",
-      "visibility-filtering/clients/mod.rs",
-      "visibility-filtering/evaluate_tweets.rs",
-      "visibility-filtering/explain.rs",
-      "visibility-filtering/filter_notifications.rs",
-      "visibility-filtering/filter_tweets.rs",
-      "visibility-filtering/get_safety_labels.rs",
-      "visibility-filtering/hydration/execute.rs",
-      "visibility-filtering/hydration/fallback_cache.rs",
-      "visibility-filtering/hydration/fetcher.rs",
-      "visibility-filtering/hydration/hydrator.rs",
-      "visibility-filtering/hydration/inventory.rs",
-      "visibility-filtering/hydration/metrics.rs",
-      "visibility-filtering/hydration/mod.rs",
-      "visibility-filtering/hydration/plan.rs",
-      "visibility-filtering/hydration/relation.rs",
-      "visibility-filtering/hydration/sources.rs",
-      "visibility-filtering/hydration/sources/fake_backends.rs",
-      "visibility-filtering/hydration/sources/in_memory.rs",
-      "visibility-filtering/hydration/store.rs",
-      "visibility-filtering/hydration/store/conversation_root.rs",
-      "visibility-filtering/hydration/store/edges.rs",
-      "visibility-filtering/hydration/store/key_origin.rs",
-      "visibility-filtering/hydration/store/quotes.rs",
-      "visibility-filtering/hydration/store/resolve.rs",
-      "visibility-filtering/hydration/tweet_source.rs",
-      "visibility-filtering/ingress.rs",
-      "visibility-filtering/lib.rs",
-      "visibility-filtering/metrics/families.rs",
-      "visibility-filtering/metrics.rs",
-      "visibility-filtering/metrics/mod.rs",
-      "visibility-filtering/models/mod.rs",
-      "visibility-filtering/models/verdict.rs",
-      "visibility-filtering/models/viewer.rs",
-      "visibility-filtering/params.rs",
-      "visibility-filtering/params/client_switches.rs",
-      "visibility-filtering/params/limited_actions_copy.rs",
-      "visibility-filtering/params/limited_actions_policy.rs",
-      "visibility-filtering/pinned.rs",
-      "visibility-filtering/post_evaluator.rs",
-      "visibility-filtering/post_evaluator/author.rs",
-      "visibility-filtering/post_evaluator/notification.rs",
-      "visibility-filtering/post_evaluator/retweet.rs",
-      "visibility-filtering/quote.rs",
-      "visibility-filtering/rules/catalog.rs",
-      "visibility-filtering/rules/context.rs",
-      "visibility-filtering/rules/engine.rs",
-      "visibility-filtering/rules/expansion.rs",
-      "visibility-filtering/rules/fixtures.rs",
-      "visibility-filtering/rules/golden_corpus/age_gating.rs",
-      "visibility-filtering/rules/golden_corpus/age_verification.rs",
-      "visibility-filtering/rules/golden_corpus/author_state.rs",
-      "visibility-filtering/rules/golden_corpus/community.rs",
-      "visibility-filtering/rules/golden_corpus/exclusive_content.rs",
-      "visibility-filtering/rules/golden_corpus/interstitial.rs",
-      "visibility-filtering/rules/golden_corpus/legacy_interstitial.rs",
-      "visibility-filtering/rules/golden_corpus/mod.rs",
-      "visibility-filtering/rules/golden_corpus/notifications.rs",
-      "visibility-filtering/rules/golden_corpus/oon_media.rs",
-      "visibility-filtering/rules/golden_corpus/oon_tweet_label.rs",
-      "visibility-filtering/rules/golden_corpus/oon_user_label.rs",
-      "visibility-filtering/rules/golden_corpus/post_notifications.rs",
-      "visibility-filtering/rules/golden_corpus/reaction_video.rs",
-      "visibility-filtering/rules/golden_corpus/relationship.rs",
-      "visibility-filtering/rules/golden_corpus/takedown.rs",
-      "visibility-filtering/rules/golden_corpus/tweet_label.rs",
-      "visibility-filtering/rules/golden_corpus/tweet_state.rs",
-      "visibility-filtering/rules/mod.rs",
-      "visibility-filtering/rules/rule_spec.rs",
-      "visibility-filtering/rules/rule_spec/conditions.rs",
-      "visibility-filtering/rules/rule_spec/features.rs",
-      "visibility-filtering/rules/rule_spec/features/compound.rs",
-      "visibility-filtering/rules/rule_spec/features/request.rs",
-      "visibility-filtering/rules/rule_spec/laws.rs",
-      "visibility-filtering/rules/safety_level.rs",
-      "visibility-filtering/safety_label_source/metrics.rs",
-      "visibility-filtering/safety_label_source/mod.rs",
-      "visibility-filtering/scenario.rs",
-      "visibility-filtering/server.rs",
-      "visibility-filtering/server_deps.rs",
-      "visibility-filtering/staging/reference/mod.rs",
-      "visibility-filtering/staging/reference/tweetypie.rs",
-      "visibility-filtering/staging/reference/tweetypie/quotes.rs",
-      "visibility-filtering/treatment.rs",
-      "visibility-filtering/verdict_gate.rs",
-      "vm-ranker/scoring/debias.rs",
-      "vm-ranker/scoring/mod.rs",
-      "xai-value-model/lib.rs",
-      "xai-value-model/phoenix_scores.rs",
-      "xai-value-model/proto.rs"
-    ],
+    "unreviewed_changed_paths": [],
     "limitations": [
-      "reviewed_paths只代表选定符号和行范围已读，不代表整文件全面审查；未审路径不表示没有重要变化。",
-      "git diff清单覆盖全部242项，但只有所列代码范围和定向patch被解释；定向patch中的其余行也不表示逐行全面审查。",
+      "248项无rename的base-to-target变化路径已按完整diff及相关caller/consumer上下文完成静态语义审查，逐项证据由diff_review_ref绑定；不等于全仓所有文件、所有分支语义审计。",
+      "reviewed_ranges记录规则卡的节选，不代替逐路径账本。生产部署/配置/实验覆盖未知，未运行上游测试、模型或服务。",
       "公开默认值不等于生产动态配置，未实测生产曝光。",
       "Home本地默认与VM服务重算默认不同，不能拼成统一表；ComputeValueModel默认false不等于Home未计算价值分。",
       "源代码中的概率权重不是互动次数换算；冷启动采样明确使用计数，与主融合不同。",
@@ -735,7 +673,7 @@
         "top_level_directories": 29,
         "root_files": 3
       },
-      "semantic_review": "调用者、实现、消费者定向交叉审查；全仓清单不是逐文件、逐分支语义审计。",
+      "semantic_review": "固定基线2f252142到b220448的248项变化路径完整diff及相关调用上下文静态审查；非全仓全分支审计。",
       "expanded_scope": [
         "Home/VM接线",
         "DPP及页面实验",
@@ -745,15 +683,21 @@
         "UserCred与安全消费者",
         "Agatha/BDSM/AES",
         "标签过期",
-        "透明度资格"
+        "透明度资格",
+        "Phoenix/Grox训练与条件输入",
+        "缓存/协议/优化器与可观测性差异"
       ],
-      "diff_boundary": "保留原242项diff与原审核记录；本次补充节选不自动把234个未审核变动标为已审。",
+      "diff_boundary": "以--no-renames统计248路径，基线迁出与目标迁入分别绑定。原242项rename-aware盘点与234项未审状态保存在历史版本；本次逐路径账本闭合该diff，未声称生产验证。",
       "unverified": [
         "生产部署/实验覆盖",
         "真实权重和用户输入",
         "未展开分支",
         "未运行测试、模型或服务"
       ]
+    },
+    "diff_review_ref": {
+      "path": "research/diff-review-2f252142-b220448.json",
+      "content_hash": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
     }
   },
   "sources": [
@@ -1541,6 +1485,292 @@
       "material_path": "research/materials/crosschecked-v2-transparency-conditions.txt",
       "material_sha256": "71520dc95c9360c2e0b4d351041996e757daf19fc07b07485f98adbc95045edd",
       "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/under-the-hood/strato/columns/underTheHoodReport.User.strato#L735-L749"
+    },
+    {
+      "source_id": "v3-served-history",
+      "path": "home-mixer/query_hydrators/served_history_query_hydrator.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 80,
+      "line_end": 110,
+      "upstream_file_sha256": "4f5cc02fa2676f3a72087bcf8ebc316ba83f9eb533f9992832725a36b701c798",
+      "material_path": "research/materials/diff-reviewed-v3-served-history.txt",
+      "material_sha256": "5789353a741d91821e7b3a5386ab74862fa91421c0c55e4e37f0f79cf3a8782c",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/query_hydrators/served_history_query_hydrator.rs#L80-L110"
+    },
+    {
+      "source_id": "v3-carousel-score",
+      "path": "home-mixer/util/video_carousel.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 13,
+      "line_end": 65,
+      "upstream_file_sha256": "1c90cc7318030215555a2f49d38ebd2b6ae1e71596d7f748340cc5c8dde2f3a5",
+      "material_path": "research/materials/diff-reviewed-v3-carousel-score.txt",
+      "material_sha256": "f6ae02049dc720dda4d688e250a0b46538d7a91d6de5e23d1cbc9f64b40c80f6",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/util/video_carousel.rs#L13-L65"
+    },
+    {
+      "source_id": "v3-carousel-params",
+      "path": "home-mixer/params/param.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 1197,
+      "line_end": 1305,
+      "upstream_file_sha256": "3dc29c907ad756dbefe23b670fb71084848eb7687f8a8a1c5b771cb8ae61cc53",
+      "material_path": "research/materials/diff-reviewed-v3-carousel-params.txt",
+      "material_sha256": "ce7f79ce67052eac76c88d9049b25c5d958410ad114ee571069585d88962c259",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/params/param.rs#L1197-L1305"
+    },
+    {
+      "source_id": "v3-notifications-level",
+      "path": "visibility-filtering/rules/levels.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 178,
+      "line_end": 278,
+      "upstream_file_sha256": "221105b62b0890f5644728a9ccc5597837bf4ce8e302562b59931f3ad7b404f8",
+      "material_path": "research/materials/diff-reviewed-v3-notifications-level.txt",
+      "material_sha256": "b1ade48d06ee74b52a733080e12e53105eee9467de4af0e3710d67f98d41e016",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/visibility-filtering/rules/levels.rs#L178-L278"
+    },
+    {
+      "source_id": "v3-notifications-conditions",
+      "path": "visibility-filtering/rules/tweet_rules.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 961,
+      "line_end": 1023,
+      "upstream_file_sha256": "e093bc2eb27d288476e03240aea9a2a936ae5112cff77133c7ac3dd7670fa172",
+      "material_path": "research/materials/diff-reviewed-v3-notifications-conditions.txt",
+      "material_sha256": "11e2bce65ee643d10fcaeeb86811cb1fab742b90fe8bd24bfee970490f420791",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/visibility-filtering/rules/tweet_rules.rs#L961-L1023"
+    },
+    {
+      "source_id": "v3-heuristic-retained",
+      "path": "home-mixer/models/brand_safety.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 82,
+      "line_end": 170,
+      "upstream_file_sha256": "ec5ae5c287363dc8c6609e38ff72f875e3c424e0c829e4b6657c8ae4ee363203",
+      "material_path": "research/materials/diff-reviewed-v3-heuristic-retained.txt",
+      "material_sha256": "e37b1ea66a8c6359f4cdf23f96f0ae832e584880e5bf4693a191395fad978fe8",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/models/brand_safety.rs#L82-L170"
+    },
+    {
+      "source_id": "v3-gore-reaction",
+      "path": "visibility-filtering/rules/tweet_rules.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 860,
+      "line_end": 875,
+      "upstream_file_sha256": "e093bc2eb27d288476e03240aea9a2a936ae5112cff77133c7ac3dd7670fa172",
+      "material_path": "research/materials/diff-reviewed-v3-gore-reaction.txt",
+      "material_sha256": "536882fb45b4183f16fc4b35d8e6f4272c3fccd2804b444bee3683117a82b27e",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/visibility-filtering/rules/tweet_rules.rs#L860-L875"
+    },
+    {
+      "source_id": "v3-brand-hydration",
+      "path": "home-mixer/candidate_hydrators/ads_brand_safety_vf_hydrator.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 95,
+      "line_end": 118,
+      "upstream_file_sha256": "9941ce6edfa3a81916b9fe649b65bd25c05aad71d69c11872f13ef5b5e8e1b6a",
+      "material_path": "research/materials/diff-reviewed-v3-brand-hydration.txt",
+      "material_sha256": "12be8c6ad957a7d9d83ef0053653ab8a4b5664f623653001e58c01ce8de92d20",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/candidate_hydrators/ads_brand_safety_vf_hydrator.rs#L95-L118"
+    },
+    {
+      "source_id": "v3-ads-options",
+      "path": "home-mixer/selectors/blender_selector.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 39,
+      "line_end": 106,
+      "upstream_file_sha256": "3bacb9e22672b13714911ef6bb2e66eaad2c2a160863040a6c54055c0e8ab71a",
+      "material_path": "research/materials/diff-reviewed-v3-ads-options.txt",
+      "material_sha256": "68144c7478a8bfedbb2ed51c3bd06ce6f236b4727506c7d2f0a46bd0a96cfa5c",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/selectors/blender_selector.rs#L39-L106"
+    },
+    {
+      "source_id": "v3-ads-neighbours",
+      "path": "home-mixer/ads/neighbours.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 107,
+      "line_end": 139,
+      "upstream_file_sha256": "f910e0644816e465e28c02e1c855bc84c3ed6d919e052ac41a3212e06389e420",
+      "material_path": "research/materials/diff-reviewed-v3-ads-neighbours.txt",
+      "material_sha256": "9941d24df9e70482156491b7677455aafef278c79748c5525e60d1bc439faa21",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/ads/neighbours.rs#L107-L139"
+    },
+    {
+      "source_id": "v3-suspend-options",
+      "path": "abuse-enforcement-service/types/src/action_control.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 196,
+      "line_end": 270,
+      "upstream_file_sha256": "cf872d54f3e6fc130c82143b709f6da25c2da1fe59ca30cf787708e3701293d4",
+      "material_path": "research/materials/diff-reviewed-v3-suspend-options.txt",
+      "material_sha256": "a2792fc94e5d4821db600dff4f042999a47fa7f49575dfade201748055e7102c",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/abuse-enforcement-service/types/src/action_control.rs#L196-L270"
+    },
+    {
+      "source_id": "v3-suspend-dedup",
+      "path": "abuse-enforcement-service/service-lib/src/dedup_cache.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 1,
+      "line_end": 200,
+      "upstream_file_sha256": "6dd40f6bf759c70f1c6ef632478107a9cec68c1dbf710d753eaf2fc2b30466db",
+      "material_path": "research/materials/diff-reviewed-v3-suspend-dedup.txt",
+      "material_sha256": "b6f2e64a496e57e54b42ed54d6dac3f9f74eb4cc032a96f0999dfd52acc82c34",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/abuse-enforcement-service/service-lib/src/dedup_cache.rs#L1-L200"
+    },
+    {
+      "source_id": "v3-report-params",
+      "path": "under-the-hood/strato/lib/params.strato",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 21,
+      "line_end": 52,
+      "upstream_file_sha256": "d9deaa58c50ea9a8c91fa0c4aa343fd857736b66da4ddc419b6bc9a69816b8c5",
+      "material_path": "research/materials/diff-reviewed-v3-report-params.txt",
+      "material_sha256": "ef351dd920f03908a42179bff886f92f5fe5792a81eda4b610686fca5a3a1234",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/under-the-hood/strato/lib/params.strato#L21-L52"
+    },
+    {
+      "source_id": "v3-report-ids",
+      "path": "under-the-hood/strato/columns/underTheHoodReport.User.strato",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 309,
+      "line_end": 377,
+      "upstream_file_sha256": "648162f94477eaa517b18ef53281c458dbcf7a32a0513f5487584bbcd675119b",
+      "material_path": "research/materials/diff-reviewed-v3-report-ids.txt",
+      "material_sha256": "41782b28365b947d4da01fc51d1b0e98c870b2783460926e4acb5f03ad291d7e",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/under-the-hood/strato/columns/underTheHoodReport.User.strato#L309-L377"
+    },
+    {
+      "source_id": "v3-report-ui",
+      "path": "under-the-hood/jetfuel/routes/report.tsx",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 330,
+      "line_end": 350,
+      "upstream_file_sha256": "c4451e005d46ab9b215983954c189af683da87d4ec36473834d4d8e594b17f81",
+      "material_path": "research/materials/diff-reviewed-v3-report-ui.txt",
+      "material_sha256": "f9c70a01c4b7929018ddc07d09b275243abdc93e2b0238818a8df2ec19d73f06",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/under-the-hood/jetfuel/routes/report.tsx#L330-L350"
+    },
+    {
+      "source_id": "v3-report-offline",
+      "path": "under-the-hood/scalding/UnderTheHoodCommon.scala",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 1,
+      "line_end": 165,
+      "upstream_file_sha256": "8c4fbcf851da258ae8ef9f3729eca754a15f4b6572fe55191a8386ad5fdd3c7a",
+      "material_path": "research/materials/diff-reviewed-v3-report-offline.txt",
+      "material_sha256": "8c4fbcf851da258ae8ef9f3729eca754a15f4b6572fe55191a8386ad5fdd3c7a",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/under-the-hood/scalding/UnderTheHoodCommon.scala#L1-L165"
+    },
+    {
+      "source_id": "v3-report-loader",
+      "path": "under-the-hood/jetfuel/routes/_lib/load.ts",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 1,
+      "line_end": 89,
+      "upstream_file_sha256": "ff5bd40cc90a93bdaede533b8cdc633e801ef772cd7bde9b1ac8df4869ef8f0b",
+      "material_path": "research/materials/diff-reviewed-v3-report-loader.txt",
+      "material_sha256": "ff5bd40cc90a93bdaede533b8cdc633e801ef772cd7bde9b1ac8df4869ef8f0b",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/under-the-hood/jetfuel/routes/_lib/load.ts#L1-L89"
+    },
+    {
+      "source_id": "v3-vm-heads",
+      "path": "vm-ranker/scoring/value_model.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 178,
+      "line_end": 241,
+      "upstream_file_sha256": "d10f4f287de60c63c563e601b63a22f3f5a039af309c925263668b50968b391c",
+      "material_path": "research/materials/diff-reviewed-v3-vm-heads.txt",
+      "material_sha256": "9b144c3b573741acc76d222717519e0b4bfff49f06b1089bc64125fc4fb2e444",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/vm-ranker/scoring/value_model.rs#L178-L241"
+    },
+    {
+      "source_id": "v3-home-heads",
+      "path": "home-mixer/util/under_the_hood.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 65,
+      "line_end": 89,
+      "upstream_file_sha256": "94e80ccfe2d5fe62a58ea94630e7eedd69759757ec33662bffa82ddfd8e1c9ff",
+      "material_path": "research/materials/diff-reviewed-v3-home-heads.txt",
+      "material_sha256": "e18e5bb9efbd68059a2d98fb6c16cf840ca78214fada4372de33398c0413e1ed",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/util/under_the_hood.rs#L65-L89"
+    },
+    {
+      "source_id": "v3-page-log",
+      "path": "home-mixer/side_effects/phoenix_request_cache_side_effect.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 197,
+      "line_end": 336,
+      "upstream_file_sha256": "5df8865161d1f281960e7cf700a7639a3cc2432bc1340060296ae1371a04b92e",
+      "material_path": "research/materials/diff-reviewed-v3-page-log.txt",
+      "material_sha256": "85da1880804d5d7c0734fe19abb46d9f76ba57291a3d5769e991494887e1c2e2",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/side_effects/phoenix_request_cache_side_effect.rs#L197-L336"
+    },
+    {
+      "source_id": "v3-page-log-limit",
+      "path": "home-mixer/side_effects/phoenix_request_cache_side_effect.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 23,
+      "line_end": 28,
+      "upstream_file_sha256": "5df8865161d1f281960e7cf700a7639a3cc2432bc1340060296ae1371a04b92e",
+      "material_path": "research/materials/diff-reviewed-v3-page-log-limit.txt",
+      "material_sha256": "3b78b0bf920476d7f34f4cd66b8190e0fe5051f2a401a7e32b675041f3e7a0fe",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/side_effects/phoenix_request_cache_side_effect.rs#L23-L28"
+    },
+    {
+      "source_id": "v3-page-params",
+      "path": "home-mixer/params/param.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 300,
+      "line_end": 372,
+      "upstream_file_sha256": "3dc29c907ad756dbefe23b670fb71084848eb7687f8a8a1c5b771cb8ae61cc53",
+      "material_path": "research/materials/diff-reviewed-v3-page-params.txt",
+      "material_sha256": "ad16821091eee4cd3badc323df35b411aa6333062738ad65774b568ec2ee5c85",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/params/param.rs#L300-L372"
+    },
+    {
+      "source_id": "v3-training-recipe",
+      "path": "phoenix/xrex/configs/xrecsys.py",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 479,
+      "line_end": 510,
+      "upstream_file_sha256": "2d36ba64ab7ec698ecb4f557f5ecb51573078884b69b98238299d53d08573635",
+      "material_path": "research/materials/diff-reviewed-v3-training-recipe.txt",
+      "material_sha256": "545d0023826795cd8ab2f44251b8e901406efb95286d9b52ce6f6becc074ff12",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/phoenix/xrex/configs/xrecsys.py#L479-L510"
+    },
+    {
+      "source_id": "v3-training-feature",
+      "path": "phoenix/xrex/models/recsys_feature_prep.py",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 1,
+      "line_end": 1443,
+      "upstream_file_sha256": "8419023b0094b8c051e464ec9cc746a9ae88f48f60e7fae4d0d5ec84f728e288",
+      "material_path": "research/materials/diff-reviewed-v3-training-feature.txt",
+      "material_sha256": "8419023b0094b8c051e464ec9cc746a9ae88f48f60e7fae4d0d5ec84f728e288",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/phoenix/xrex/models/recsys_feature_prep.py#L1-L1443"
+    },
+    {
+      "source_id": "v3-late-window",
+      "path": "phoenix/xrex/data/recsys/ads_late_window.py",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 1,
+      "line_end": 97,
+      "upstream_file_sha256": "6057f259b6d785ba49cb7c4dc6a5cced82f78f29d3685064a8f345c1dfe5e730",
+      "material_path": "research/materials/diff-reviewed-v3-late-window.txt",
+      "material_sha256": "6057f259b6d785ba49cb7c4dc6a5cced82f78f29d3685064a8f345c1dfe5e730",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/phoenix/xrex/data/recsys/ads_late_window.py#L1-L97"
+    },
+    {
+      "source_id": "v3-late-config",
+      "path": "phoenix/xrex/models/recsys_model.py",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 1200,
+      "line_end": 1360,
+      "upstream_file_sha256": "bbb792f9bde14c7d6afcfe4c7c516cb9a7699e90dfb8db5b10875ee0ef9aff5a",
+      "material_path": "research/materials/diff-reviewed-v3-late-config.txt",
+      "material_sha256": "51078dbb40c311fd6858b7f8ef7bf59e38f656f86c01d6c0e62315e06f95dd21",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/phoenix/xrex/models/recsys_model.py#L1200-L1360"
     }
   ],
   "rules": [
@@ -1590,7 +1820,7 @@
       "rule_id": "research-03",
       "category": "demotion",
       "title": "已看内容去重",
-      "code_behavior": "关联帖子ID命中seen_ids或Bloom filter时移除。",
+      "code_behavior": "关联帖子ID命中seen_ids或Bloom filter时移除。 本轮recently_served_ids改为不收轮播模块条目；served历史与seen/Bloom是独立输入，轮播模块疲劳仍保留。",
       "operational_inference": "同一观看者的重复展示减少，不应直接视为账号限流。",
       "preconditions": [
         "观看者已看数据或Bloom判定命中"
@@ -1600,10 +1830,11 @@
         "Bloom判定绝无误判"
       ],
       "activation_status": "公开本地默认；线上动态配置与实际曝光效果未知",
-      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "change_since_baseline": "本轮修改served历史输入，不是移除seen/Bloom去重。",
       "source_refs": [
         "seen",
-        "pipeline"
+        "pipeline",
+        "v3-served-history"
       ],
       "runtime_binding_refs": []
     },
@@ -1712,7 +1943,7 @@
       "rule_id": "research-08",
       "category": "demotion",
       "title": "视频轮播MediumRisk过滤【新增，默认false】",
-      "code_behavior": "轮播选片新增MediumRisk开关默认false；HighRisk默认true。风险结论缺失时，任一风险过滤开关打开即不入选轮播。",
+      "code_behavior": "轮播选片新增MediumRisk开关默认false；HighRisk默认true。风险结论缺失时，任一风险过滤开关打开即不入选轮播。 轮播自身默认关闭；新选片项video_open×immersive dwell及weighted_score默认均0，video_open默认1，immersive VQV默认0；同分再按video_open。embedding版本默认v8_search_1，extra候选默认30可覆盖。",
       "operational_inference": "主时间线与视频轮播曝光应分开分析。",
       "preconditions": [
         "视频轮播功能启用",
@@ -1723,11 +1954,13 @@
         "风险标签等于账号信用分"
       ],
       "activation_status": "medium_risk_default_false_high_risk_default_true",
-      "change_since_baseline": "新增MediumRisk过滤配置与分支。",
+      "change_since_baseline": "新增轮播选片可配项和版本/extra参数；不将默认零权重或关闭机制写成已启用。",
       "source_refs": [
         "carousel-defaults",
         "carousel-filter",
-        "targeted-diff"
+        "targeted-diff",
+        "v3-carousel-score",
+        "v3-carousel-params"
       ],
       "runtime_binding_refs": []
     },
@@ -1735,7 +1968,7 @@
       "rule_id": "research-09",
       "category": "distribution_opportunity",
       "title": "提高目标受众真实兴趣匹配",
-      "code_behavior": "Home正项包括点赞.66、回复5、转推1、点击.3、打开链接.2、分享2、私信分享5、复制链接分享20、引用5、关注作者4；乘预测量。",
+      "code_behavior": "Home正项包括点赞.66、回复5、转推1、点击.3、打开链接.2、分享2、私信分享5、复制链接分享20、引用5、关注作者4；乘预测量。 本轮react_with_video改名post_video，Home/VM该项公开默认权重均0；字段或日志存在不表示普遍视频加分。",
       "operational_inference": "建议内容与目标受众兴趣匹配并提供真实分享价值。",
       "preconditions": [
         "进入Home本地融合路径",
@@ -1743,13 +1976,15 @@
       ],
       "not_proven": [
         "一次复制链接等于固定数量点赞",
-        "系数最高即最容易操纵"
+        "系数最高即最容易操纵",
+        "发布视频必然因post_video字段获得加分"
       ],
       "activation_status": "公开本地默认；线上动态配置与实际曝光效果未知",
       "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
       "source_refs": [
         "home-weights",
-        "score-fusion"
+        "score-fusion",
+        "vm-defaults"
       ],
       "runtime_binding_refs": []
     },
@@ -1757,7 +1992,7 @@
       "rule_id": "research-10",
       "category": "distribution_opportunity",
       "title": "阅读与点击后停留价值",
-      "code_behavior": "Home默认dwell=.05、连续停留=.006、点击后停留=.4，各有独立项。",
+      "code_behavior": "Home默认dwell=.05、连续停留=.006、点击后停留=.4，各有独立项。 Phoenix训练配方view_loss_weight=.5不是本条Home停留价值权重，不能据此将停留收益或曝光减半。",
       "operational_inference": "建议开头承诺与正文承接一致，提升实际阅读价值。",
       "preconditions": [
         "模型给出相应预测概率或连续时间值"
@@ -1770,7 +2005,8 @@
       "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
       "source_refs": [
         "home-weights",
-        "score-fusion"
+        "score-fusion",
+        "v3-training-recipe"
       ],
       "runtime_binding_refs": []
     },
@@ -1944,7 +2180,7 @@
       "rule_id": "research-18",
       "category": "account_and_context",
       "title": "安全标签依surface和条件处理",
-      "code_behavior": "存在SpamHighRecall、Compromised、ReadOnly、ImpersonationHighPrecision的NonAuthors drop规则。通知级别可绑定低质、重复内容、UQF等规则；低质该条还要求帖子不晚于PUBLIC_INTEREST_LABELS_START。",
+      "code_behavior": "存在SpamHighRecall、Compromised、ReadOnly、ImpersonationHighPrecision的NonAuthors drop规则。NotificationsWriterV2的Mention/Reply绑定低质、重复、Smyte及四项UQF帖子规则；MediaTagged只绑定社区外only-followed帖子规则，并保留共同actor规则。低质还要求日期不晚于PUBLIC_INTEREST_LABELS_START，四UQF要求NonFollowers和观看者开启UQF。本轮移除两个reported-heuristics标签对应8条VF年龄/模糊规则，reaction gore仅保留HIGH_PRECISION；这两个标签仍由Home广告品牌安全V1/V2消费为MediumRisk。",
       "operational_inference": "减少垃圾互动与误导内容属于合理建议，但先确认标签与适用surface。",
       "preconditions": [
         "确有标签",
@@ -1956,11 +2192,16 @@
         "通知过滤等同全站封禁"
       ],
       "activation_status": "surface_and_label_dependent",
-      "change_since_baseline": "本轮规则组织/覆盖有变化；本条仅审查所列定义与通知绑定，不宣称全面安全审计。",
+      "change_since_baseline": "精确区分新通知kind规则与局部删除；不是标签全站停用，也不是Home统一扣分。",
       "source_refs": [
         "author-labels",
         "level-bindings",
-        "tweet-labels"
+        "tweet-labels",
+        "v3-notifications-level",
+        "v3-notifications-conditions",
+        "v3-heuristic-retained",
+        "v3-gore-reaction",
+        "v3-brand-hydration"
       ],
       "runtime_binding_refs": [
         "home_vf_action_consumption"
@@ -2136,7 +2377,7 @@
       "rule_id": "research-25",
       "category": "distribution_opportunity",
       "title": "多源召回与分阶段选择",
-      "code_behavior": "内层注册Thunder、PopularPosts、TweetMixer、SimClusters、Phoenix、PhoenixTopics、PhoenixMoe、SID、缓存九个来源；scorer依次Phoenix、ImmersiveVideo、VMRanker、PageDecode、PageRL，之后TopK和VF等后置过滤。注册不保证每个请求实际启用每个来源。",
+      "code_behavior": "内层注册Thunder、PopularPosts、TweetMixer、SimClusters、Phoenix、PhoenixTopics、PhoenixMoe、SID、缓存九个来源；scorer依次Phoenix、ImmersiveVideo、VMRanker、PageDecode、PageRL，之后TopK和VF等后置过滤。注册不保证每个请求实际启用每个来源。 主TopK50、最终result_size35保持；轮播extra公开默认30但可运行时覆盖。新增框架result_size_for钩子在目标树无override，不能称Home动态预算已生效。",
       "operational_inference": "按具体产品场景与调用链解释，不将条件机制当作曝光承诺。",
       "preconditions": [
         "各来源和scorer enable条件满足",
@@ -2150,7 +2391,8 @@
       "change_since_baseline": "本次补齐研究范围，不据此声称上游机制为本轮新增。",
       "source_refs": [
         "pipeline-v2",
-        "home-topk"
+        "home-topk",
+        "v3-carousel-params"
       ],
       "runtime_binding_refs": [
         "home_page_experiments"
@@ -2184,7 +2426,7 @@
       "rule_id": "research-27",
       "category": "demotion",
       "title": "广告混排会改变自然帖位置",
-      "code_behavior": "AdsBlenderType默认multi_risk，未知值回退partition策略；multi_risk按风险和可用邻居组合广告三元组，剩余自然帖按分填缝并截断总长度。品牌安全邻接限制与自然帖删除不同。",
+      "code_behavior": "AdsBlenderType默认multi_risk，未知值回退partition策略；multi_risk按风险和可用邻居组合广告三元组，剩余自然帖按分填缝并截断总长度。品牌安全邻接限制与自然帖删除不同。 本轮新增显式选项slot_spread与least_movement，默认仍multi_risk；二者受邻接风险/作者/关键词等约束，HighRisk拒绝、MediumRisk仅BSR_HIGH可用。布局启发式及合成用例不保证所有页面最优或固定位置。",
       "operational_inference": "按具体产品场景与调用链解释，不将条件机制当作曝光承诺。",
       "preconditions": [
         "有广告且满足最少自然帖数",
@@ -2197,11 +2439,13 @@
         "模型分高保证最终位置"
       ],
       "activation_status": "静态源码接线已核查；生产配置与实际效果未知",
-      "change_since_baseline": "本次补齐研究范围，不据此声称上游机制为本轮新增。",
+      "change_since_baseline": "新增可选择的广告布局实现和公共邻接工具；原默认策略未替换。",
       "source_refs": [
         "ads-default",
         "ads-selector",
-        "ads-multi-risk"
+        "ads-multi-risk",
+        "v3-ads-options",
+        "v3-ads-neighbours"
       ],
       "runtime_binding_refs": []
     },
@@ -2307,7 +2551,7 @@
       "rule_id": "research-32",
       "category": "account_and_context",
       "title": "AES执法受多层控制",
-      "code_behavior": "已路由执法消息进入规则与白名单处理，检查dry-run、去重、申诉hold和final checks后才执行动作。YAML中12.34为mock；hold模式默认Off，不等于线上全部申诉均受该机制保护。",
+      "code_behavior": "已路由执法消息进入规则与白名单处理，检查dry-run、去重、申诉hold和final checks后才执行动作。YAML中12.34为mock；hold模式默认Off，不等于线上全部申诉均受该机制保护。 页控新增permanent与policy：普通Suspend默认permanent=false、PlatformManipulation，可选永久或Cse，并用版本6保护新选项。永久/临时等级为4/3，旧缺等级去重记录保守按4，不能推断既有临时处罚自动升级。",
       "operational_inference": "按具体产品场景与调用链解释，不将条件机制当作曝光承诺。",
       "preconditions": [
         "服务收到并路由风险消息",
@@ -2319,11 +2563,13 @@
         "存在hold代码等于生产全量开启"
       ],
       "activation_status": "静态源码接线已核查；生产配置与实际效果未知",
-      "change_since_baseline": "本次补齐研究范围，不据此声称上游机制为本轮新增。",
+      "change_since_baseline": "动作选项、版本协议及保守去重扩展；不是生产默认永久封禁。",
       "source_refs": [
         "aes-control",
         "aes-placeholders",
-        "aes-hold"
+        "aes-hold",
+        "v3-suspend-options",
+        "v3-suspend-dedup"
       ],
       "runtime_binding_refs": []
     },
@@ -2331,7 +2577,7 @@
       "rule_id": "research-33",
       "category": "account_and_context",
       "title": "安全标签过期与缓存时效",
-      "code_behavior": "SafetyLabelSource本地缓存TTL10秒；get返回前检查每条expires_at_msec并移除过期标签，无过期时间的标签在该判断中保持有效。缓存TTL不同于标签寿命。",
+      "code_behavior": "SafetyLabelSource本地缓存TTL10秒；get返回前检查每条expires_at_msec并移除过期标签，无过期时间的标签在该判断中保持有效。缓存TTL不同于标签寿命。 本轮从VF目录抽为独立crate，读取、按标签过期和缓存原则保持；目录删除不表示标签逻辑移除。",
       "operational_inference": "按具体产品场景与调用链解释，不将条件机制当作曝光承诺。",
       "preconditions": [
         "通过该SafetyLabelSource读取",
@@ -2343,7 +2589,7 @@
         "标签过期保证排名立即恢复"
       ],
       "activation_status": "静态源码接线已核查；生产配置与实际效果未知",
-      "change_since_baseline": "本次补齐研究范围，不据此声称上游机制为本轮新增。",
+      "change_since_baseline": "独立crate抽取、连接/指标组织调整；TTL和标签有效期语义保持。",
       "source_refs": [
         "labels-live",
         "labels-read"
@@ -2354,7 +2600,7 @@
       "rule_id": "research-34",
       "category": "account_and_context",
       "title": "透明度报告有身份与月份资格",
-      "code_behavior": "入口需要已认证当前会话身份（登录身份，不是认证徽章）与feature switch。服务要求账号创建时间早于365天门槛、所选月份合格帖≥10；封禁账号missing，报告受月末10天、数据完整度、回退及展示开关影响。",
+      "code_behavior": "入口需要已认证当前会话身份（登录身份，不是认证徽章）与feature switch。服务要求账号创建时间早于365天门槛、所选月份合格帖≥10；封禁账号missing，报告受月末10天、数据完整度、回退及展示开关影响。 报告是期间曾携带标签，不等于当前有效。新增申诉说明及ID链：后端相关开关默认false，普通标签carried≤3优先展示，否则占比>5%隐藏，其余最多50；takedown直接取最新上限。离线保留默认500另可覆盖。前端ID展示与rawJson下载门不同，关展示不证明下载不含ID；账号申诉map恒缺省。公开树缺mock模块和UthPostIdLabels定义，不能称可独立构建或已运行验证。",
       "operational_inference": "按具体产品场景与调用链解释，不将条件机制当作曝光承诺。",
       "preconditions": [
         "当前登录viewer",
@@ -2365,15 +2611,24 @@
         "报告为空证明无任何可见性限制",
         "一年内新账号没有推荐",
         "报告能解释刚才每次排名",
-        "必须购买蓝标才能由此源码推出资格"
+        "必须购买蓝标才能由此源码推出资格",
+        "ID缺失证明无标签或限制",
+        "申诉说明代表已提交或成功",
+        "前端隐藏ID保证原JSON无ID",
+        "月份报告等于Home单帖分数解释"
       ],
       "activation_status": "静态源码接线已核查；生产配置与实际效果未知",
-      "change_since_baseline": "本次补齐研究范围，不据此声称上游机制为本轮新增。",
+      "change_since_baseline": "扩展透明度申诉说明、历史ID收集和展示，原账号/月资格未放宽。",
       "source_refs": [
         "transparency-auth",
         "transparency-defaults",
         "transparency-eligibility",
-        "transparency-conditions"
+        "transparency-conditions",
+        "v3-report-params",
+        "v3-report-ids",
+        "v3-report-ui",
+        "v3-report-offline",
+        "v3-report-loader"
       ],
       "runtime_binding_refs": []
     },
@@ -2403,10 +2658,88 @@
       "runtime_binding_refs": [
         "home_page_experiments"
       ]
+    },
+    {
+      "rule_id": "research-36",
+      "category": "account_and_context",
+      "title": "单帖解释只展示部分加权贡献",
+      "code_behavior": "Home under-the-hood请求include_top_heads，VM按绝对贡献排序最多取3项，绝对贡献占全部绝对贡献至少10%。缓存请求可重建去偏head解释而保留缓存总分；不是月份报告接口。",
+      "operational_inference": "仅用于准确解读源码和解释边界；不据此增加创作者涨流量承诺或自动启用运行策略。",
+      "preconditions": [
+        "解释请求和VM计算路径成功",
+        "有可用预测项与权重"
+      ],
+      "not_proven": [
+        "输出是原始head全集",
+        "展示的贡献能还原最终排序或曝光因果",
+        "缓存解释重算等于缓存总分重算"
+      ],
+      "activation_status": "research_only_production_unknown",
+      "change_since_baseline": "本轮差异新增或扩展；静态证据不等于生产启用。",
+      "source_refs": [
+        "v3-vm-heads",
+        "v3-home-heads",
+        "home-request"
+      ],
+      "runtime_binding_refs": [
+        "home_vm_value_model"
+      ]
+    },
+    {
+      "rule_id": "research-37",
+      "category": "account_and_context",
+      "title": "页面日志不证明页面实验开启",
+      "code_behavior": "EnablePageLogging公开默认true，实际写入需is_prod；记录最终自然帖、按prediction ID分组、总计最多64项，非零prediction ID且转帖映射原帖。Decode和RL仍默认false，日志不是评分开关。",
+      "operational_inference": "仅用于准确解读源码和解释边界；不据此增加创作者涨流量承诺或自动启用运行策略。",
+      "preconditions": [
+        "页面日志开关与生产环境gate满足",
+        "有可关联prediction ID及最终FeedItem"
+      ],
+      "not_proven": [
+        "日志存在证明Decode或RL已上线",
+        "自然帖组内位置包含广告和模块",
+        "有日志就证明已用于在线训练"
+      ],
+      "activation_status": "research_only_production_unknown",
+      "change_since_baseline": "本轮差异新增或扩展；静态证据不等于生产启用。",
+      "source_refs": [
+        "v3-page-log",
+        "v3-page-log-limit",
+        "v3-page-params"
+      ],
+      "runtime_binding_refs": [
+        "home_page_experiments"
+      ]
+    },
+    {
+      "rule_id": "research-38",
+      "category": "account_and_context",
+      "title": "训练目标与条件输入不能替换推荐权重",
+      "code_behavior": "home_direct_packed训练配方启用viewer历史time-gap并设view_loss_weight=.5；泛型time-gap默认false、view-loss默认1。观看者时间差不是帖子年龄或发帖时间奖励。广告迟到点击/长停留组合需要serve_late_window_composed及late heads/ads masking，该组合默认false，不是自然帖互动汇率。",
+      "operational_inference": "仅用于准确解读源码和解释边界；不据此增加创作者涨流量承诺或自动启用运行策略。",
+      "preconditions": [
+        "所选训练配方、输入布局和模型gate匹配",
+        "可选广告输出组合需完整配置链"
+      ],
+      "not_proven": [
+        "view-loss .5代表曝光或停留价值减半",
+        "新增Rust广告计数helper或rewardHead字段即证明生产消费",
+        "训练数据跟进代表生产实时在线学习",
+        "motion-reveal预处理阈值是处罚或涨流量规则"
+      ],
+      "activation_status": "research_only_production_unknown",
+      "change_since_baseline": "本轮差异新增或扩展；静态证据不等于生产启用。",
+      "source_refs": [
+        "v3-training-recipe",
+        "v3-training-feature",
+        "v3-late-window",
+        "v3-late-config"
+      ],
+      "runtime_binding_refs": []
     }
   ],
-  "research_revision": "2026-11-04-crosschecked-v2",
-  "supersedes_content_hash": "1864d7e20c701f93445396282c5ef35d8081cf1cefcc35d88ac5cdb17f84bc5f",
+  "research_revision": "2026-11-04-diff-reviewed-v3",
+  "supersedes_content_hash": "957a378047684712fbb92b1a32399e9c35904e8c1fcd92e7386c96e7993a240f",
   "runtime_bindings": [
     {
       "binding_id": "home_vm_value_model",
@@ -2524,5 +2857,5 @@
       ]
     }
   ],
-  "content_hash": "957a378047684712fbb92b1a32399e9c35904e8c1fcd92e7386c96e7993a240f"
+  "content_hash": "e5a5389d60c1607e98db52305978bff9cbbe8bde02689b104b800eeacb0c59e6"
 }

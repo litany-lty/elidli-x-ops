@@ -1,0 +1,68 @@
+impl Selector<ScoredPostsQuery, FeedItem> for BlenderSelector {
+    fn select(
+        &self,
+        query: &ScoredPostsQuery,
+        candidates: Vec<FeedItem>,
+    ) -> SelectResult<FeedItem> {
+        let PartitionedFeedItems {
+            posts,
+            ads,
+            wtf_modules,
+            prompts,
+            push_to_home,
+            frames,
+            feed_survey,
+            video_carousel,
+        } = partition_feed_items(candidates);
+        let video_carousel = drop_carousel_if_who_to_follow_present(video_carousel, &wtf_modules);
+
+        let input_post_count = posts.len();
+        let input_ads = ads.clone();
+
+        let time_gap_blender;
+        let blender: &dyn AdsBlender = match query.params.get(AdsBlenderType).as_str() {
+            "partition_organic_low_risk" => &self.partition_organic_blender,
+            "safe_gap" => &self.safe_gap_blender,
+            "multi_risk" => &self.multi_risk_blender,
+            "slot_spread" => &self.slot_spread_blender,
+            "least_movement" => &self.least_movement_blender,
+            "time_gap" => {
+                time_gap_blender = TimeGapAdsBlender {
+                    config: TimeGapConfig {
+                        t_sec: query.params.get(AdsTimeGapTSec),
+                        clamp_lo: query.params.get(AdsTimeGapClampLo),
+                        clamp_hi: query.params.get(AdsTimeGapClampHi),
+                        min_organic_gap: query.params.get(AdsTimeGapMinOrganicGap) as usize,
+                    },
+                };
+                &time_gap_blender
+            }
+            _ => &self.partition_organic_blender,
+        };
+        let mut drops = Vec::new();
+        let mut blended = blender.blend(posts, ads, &mut drops);
+        query.ad_drops.extend(drops);
+
+        insert_prompts(&mut blended, prompts);
+        insert_who_to_follow(&mut blended, wtf_modules);
+        insert_video_carousel(
+            &mut blended,
+            video_carousel,
+            query.params.get(VideoCarouselPosition) as usize,
+        );
+        pin_push_to_home(&mut blended, push_to_home);
+        insert_frames(&mut blended, frames);
+        insert_feed_survey(&mut blended, feed_survey);
+
+        let output_post_count = blended
+            .iter()
+            .filter(|i| matches!(i.item, Some(feed_item::Item::Post(_))))
+            .count();
+        let dropped_posts = input_post_count.saturating_sub(output_post_count);
+        let non_selected = build_non_selected(dropped_posts, input_ads, &blended);
+
+        SelectResult {
+            selected: blended,
+            non_selected,
+        }
+    }

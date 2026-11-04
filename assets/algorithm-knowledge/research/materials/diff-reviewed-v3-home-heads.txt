@@ -1,0 +1,25 @@
+            }),
+        code_url: code_url(component.type_name),
+    }
+}
+
+pub fn post_scores(query: &ScoredPostsQuery, candidate: &PostCandidate) -> pb::UnderTheHoodScores {
+    let value_model = if query.params.get(EnableRanking) {
+        "vm_ranker"
+    } else {
+        "weighted"
+    };
+    pb::UnderTheHoodScores {
+        weighted_score: candidate.weighted_score,
+        value_model: value_model.to_string(),
+        top_heads: candidate
+            .top_heads
+            .iter()
+            .map(|&(ref head, contribution, share)| pb::HeadContribution {
+                head: head.clone(),
+                contribution,
+                share,
+            })
+            .collect(),
+    }
+}

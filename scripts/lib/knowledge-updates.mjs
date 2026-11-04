@@ -92,7 +92,10 @@ function checkedDependencyImpactV5(currentBundle, candidateBundle, check) {
     if (dep.source_visibility === 'external_unpublished') continue;
     for (const path of [...new Set([...callerPaths(prior), ...callerPaths(dep)])].filter(path => path !== dep.path)) {
       const changed = check.repository_diff?.some(item => item.path === path);
-      if ((changed && !reviewed.has(path)) || checked.get(path)?.status !== 'present' || check.inventory_scope !== 'full_repository' || !historicalHeadMatches) {
+      // Review removes uncertainty, not the change's impact or replay requirement.
+      if (changed && reviewed.has(path)) modified.push(dep.dependency_id);
+      const retiredCaller = checked.get(path)?.status === 'deleted' && reviewed.has(path) && !callerPaths(dep).includes(path);
+      if ((changed && !reviewed.has(path)) || (checked.get(path)?.status !== 'present' && !retiredCaller) || check.inventory_scope !== 'full_repository' || !historicalHeadMatches) {
         potentially_modified.push(dep.dependency_id);
         limitations.push({ dependency_id: dep.dependency_id, path, reason: changed ? 'caller_or_config_changed' : 'caller_or_config_unverified' });
       }
@@ -125,9 +128,11 @@ export function computeKnowledgeImpactV5(currentBundle, candidateBundle, check =
   if (sourceImpact.potentially_modified.length) dependency_diff.potentially_modified = sourceImpact.potentially_modified;
   const changed = new Set([...dependency_diff.added, ...dependency_diff.modified, ...(dependency_diff.potentially_modified ?? []), ...dependency_diff.removed, ...dependency_diff.moved.map(item => item.dependency_id)]);
   const allRules = new Set([...Object.keys(currentBundle.rules), ...Object.keys(candidateBundle.rules)]), affected = [];
+  const semanticRefs = new Set((candidateBundle.catalog?.change_review?.entries ?? []).flatMap(entry => entry.rule_refs));
+  const explicitlyAffected = (rule, bundle) => rule && (semanticRefs.has(rule.rule_id) || semanticRefs.has(rule.rule_version_id) || (rule.fact_version_refs ?? []).some(ref => semanticRefs.has(ref) || semanticRefs.has(bundle.facts?.[ref]?.rule_id)));
   for (const ref of allRules) {
     const prior = currentBundle.rules[ref], next = candidateBundle.rules[ref];
-    if (!prior || !next || canonicalHash(prior) !== canonicalHash(next) || [...(prior?.dependency_ids ?? []), ...(next?.dependency_ids ?? [])].some(id => changed.has(id))) affected.push(ref);
+    if (!prior || !next || canonicalHash(prior) !== canonicalHash(next) || explicitlyAffected(prior, currentBundle) || explicitlyAffected(next, candidateBundle) || [...(prior?.dependency_ids ?? []), ...(next?.dependency_ids ?? [])].some(id => changed.has(id))) affected.push(ref);
   }
   // Hashing a file is inspection, not a semantic review. Only explicitly revised,
   // reviewed dependency source pins cover a changed path; callers remain review gaps.
@@ -141,6 +146,8 @@ export function computeKnowledgeImpactV5(currentBundle, candidateBundle, check =
     && check?.files?.some(file => file.path === dep.path && file.status === 'present' && file.sha256 === dep.material_hash)
   ).map(dep => dep.path));
   if (candidateBundle.catalog?.change_review) for (const path of reviewedChangedPaths(candidateBundle, check)) reviewedPaths.add(path);
+  // A semantic blocker must win over a dependency's older reviewed status.
+  for (const entry of candidateBundle.catalog?.change_review?.entries ?? []) if (entry.operational_disposition === 'blocked') reviewedPaths.delete(entry.path);
   const unreviewed_paths = (repository_diff ?? []).map(item => item.path).filter(path => !reviewedPaths.has(path)).sort();
   return Object.freeze({ dependency_diff, affected_rule_version_refs: affected.sort(), impact_limitations: sourceImpact.limitations, repository_diff, unreviewed_paths, inventory_scope });
 }

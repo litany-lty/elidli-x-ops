@@ -1,0 +1,33 @@
+    }
+
+    pub(crate) fn fit(&mut self, rules: &AdRules, post: usize) -> Fit {
+        let candidate = &self.posts[post];
+        if is_high_risk(candidate) || (is_medium_risk(candidate) && !rules.bsr_high) {
+            return Fit::Risk;
+        }
+        if let Some(block) = low_risk_block(rules.ad, Some(candidate), None)
+            .or_else(|| handle_block(rules.ad, Some(candidate), None))
+        {
+            return Fit::Blocked(block);
+        }
+        let Some(keywords) = rules.keywords() else {
+            return Fit::Compatible;
+        };
+        let tokens =
+            self.tokens[post].get_or_insert_with(|| tokenize_tweet_text(&candidate.tweet_text));
+        match keywords.first_match(tokens) {
+            Some(keyword) => Fit::Blocked(Block {
+                tweet_id: candidate.tweet_id,
+                reason: BlockReason::ExcludedKeyword(keyword.to_string()),
+            }),
+            None => Fit::Compatible,
+        }
+    }
+
+    pub(crate) fn compatible(&mut self, rules: &AdRules, post: usize) -> bool {
+        matches!(self.fit(rules, post), Fit::Compatible)
+    }
+
+    pub(crate) fn class(&self, post: usize) -> PostClass {
+        PostClass::of(&self.posts[post])
+    }

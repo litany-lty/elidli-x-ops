@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { canonicalHash, ContractError } from './contracts.mjs';
+import { validateKnowledgeChangeReview } from './knowledge-change-review.mjs';
 
 const defaultPackageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../assets/algorithm-knowledge');
 const fail = (path, message) => { throw new ContractError('MISSING_EVIDENCE', path, message); };
@@ -20,6 +21,14 @@ export function loadAlgorithmResearch(packageDir = defaultPackageDir, { now = ne
   const cutoff = new Date(now).getTime(), checked = Date.parse(research.checked_at);
   if (!Number.isFinite(cutoff) || !Number.isFinite(checked) || checked > cutoff) fail('/research/checked_at', 'Research is not available at this clock');
   if (!/^[a-f0-9]{40}$/.test(research.upstream?.commit ?? '')) fail('/research/upstream', 'Research needs a full source commit');
+  if (research.coverage?.scope === 'reviewed_public_diff') {
+    const ref = research.coverage.diff_review_ref;
+    if (!ref?.path || !ref.content_hash) fail('/research/coverage', 'Completed diff review needs its immutable ledger');
+    const path = resolve(root, ref.path), rel = relative(root, path);
+    if (isAbsolute(rel) || rel.startsWith('..')) fail('/research/coverage', 'Review ledger escapes the package');
+    const ledger = validateKnowledgeChangeReview(JSON.parse(readFileSync(path, 'utf8')), { base: research.operational_baseline?.commit, target: research.upstream.commit });
+    if (ledger.content_hash !== ref.content_hash || research.coverage.unreviewed_changed_paths.length || ledger.entries.some(entry => entry.operational_disposition === 'blocked')) fail('/research/coverage', 'Completed diff review differs from its ledger');
+  }
   const sources = new Map();
   for (const source of research.sources) {
     if (sources.has(source.source_id)) fail('/research/sources', 'Duplicate source ID');

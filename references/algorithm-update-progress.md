@@ -41,3 +41,11 @@
 - Reviewing all 248 add/modify/delete paths (242 rename-aware changes), including the 234 previously open paths, with before/after/diff hashes and concrete semantic impact.
 - Added immutable public-diff review support. Deleted files and changed callers/configuration can be closed only by exact semantic records. Missing production inputs remain unknown, and explicit semantic blockers remain activation gaps.
 - Focused validation: `node --test test/knowledge-change-review.test.mjs test/knowledge-repository-impact.test.mjs test/next23-knowledge-updates.test.mjs`: **8 passed**. No full regression, upstream execution, deployment or activation performed at this checkpoint.
+
+### 248-path review checkpoint
+
+- All 248 changed paths now have concrete static semantic reviews and before/after/patch hashes. This closes the original 234 open paths and completes the other 14 earlier targeted paths. All 1,860 source locators were checked. This is complete review of this fixed diff, not every branch of every repository file or production behavior.
+- Research now contains 38 bounded rules and 97 sources: 95 exact source excerpts verified against committed file hashes and line slices, plus 2 explicitly derived diff materials. The prior 35-rule manifest and guide are preserved.
+- Independent code review found and corrected replay-impact loss for reviewed callers, blocked-path precedence and the V4 downgrade route. A deleted caller only closes when its reference is actually removed. Full historical fact ancestry is now loaded oldest-first.
+- Focused checks: changed-path review 6 cases, existing impact/update 5 cases, research 6 cases passed. No unrelated regression. A separate candidate materialization check passed, with 30 active candidate facts + 34 historical facts retained.
+- Candidate preparation has checked 331 source files and evaluated 60 editorial three-state cases for 20 old/new rule versions. It remains **not activated**: pending independent approval and 10 affected partially public dependencies are not cleared by these replays. Candidate artifacts are being finalized separately.

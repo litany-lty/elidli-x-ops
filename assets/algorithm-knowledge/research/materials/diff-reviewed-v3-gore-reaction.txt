@@ -1,0 +1,16 @@
+
+pub(super) const ORIGINAL_TWEET_ADULT_MEDIA_PROPAGATION_BLUR_SENSITIVE: Rule = Rule {
+    id: RuleId::OriginalTweetAdultMediaPropagation,
+    audience: Everyone,
+    when: all![ReactedToPostHasLabel(SafetyLabelType::NSFW_HIGH_PRECISION)],
+    action: blur(InterstitialReason::Sensitive(true)),
+};
+
+pub(super) const ORIGINAL_TWEET_GORE_MEDIA_PROPAGATION_BLUR_VIOLENCE: Rule = Rule {
+    id: RuleId::OriginalTweetGoreMediaPropagation,
+    audience: Everyone,
+    when: all![ReactedToPostHasLabel(
+        SafetyLabelType::GORE_AND_VIOLENCE_HIGH_PRECISION
+    )],
+    action: blur(InterstitialReason::Violence(true)),
+};

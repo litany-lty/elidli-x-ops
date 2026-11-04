@@ -14,7 +14,9 @@ test('current research keeps three source-bound categories and disabled experime
   assert.equal(research.upstream.commit, 'b220448766ab4ee4c83d58a67d51f0cb5bda86c2');
   assert.deepEqual([...new Set(research.rules.map(rule => rule.category))].sort(), ['account_and_context', 'demotion', 'distribution_opportunity']);
   assert.equal(research.status, 'source_reviewed_not_operationally_activated');
-  assert.ok(research.coverage.unreviewed_changed_paths.length > 0);
+  assert.equal(research.coverage.scope, 'reviewed_public_diff');
+  assert.deepEqual(research.coverage.unreviewed_changed_paths, []);
+  assert.equal(research.rules.length, 38);
   for (const rule of research.rules) {
     assert.ok(rule.code_behavior && rule.operational_inference && rule.activation_status);
     assert.ok(rule.source_refs.length && rule.preconditions.length && rule.not_proven.length);
@@ -42,12 +44,12 @@ test('research rejects a changed source excerpt and future-dated use', async () 
 
 test('crosschecked revision keeps archived evidence and source-bound runtime conditions', async () => {
   const research = loadAlgorithmResearch();
-  assert.equal(research.research_revision, '2026-11-04-crosschecked-v2');
-  assert.equal(research.supersedes_content_hash, '1864d7e20c701f93445396282c5ef35d8081cf1cefcc35d88ac5cdb17f84bc5f');
+  assert.equal(research.research_revision, '2026-11-04-diff-reviewed-v3');
+  assert.equal(research.supersedes_content_hash, '957a378047684712fbb92b1a32399e9c35904e8c1fcd92e7386c96e7993a240f');
   const prior = JSON.parse(await readFile(new URL(`../assets/algorithm-knowledge/research/history/${research.supersedes_content_hash}.json`, import.meta.url), 'utf8'));
   const { content_hash, ...content } = prior;
   assert.equal(canonicalHash(content), content_hash);
-  assert.equal(prior.rules.length, 20);
+  assert.equal(prior.rules.length, 35);
   const bindings = new Map(research.runtime_bindings.map(binding => [binding.binding_id, binding]));
   for (const id of ['home_vm_value_model', 'home_vm_new_user_oon', 'home_vf_action_consumption', 'vm_dpp_gates', 'home_page_experiments']) {
     assert.equal(bindings.get(id)?.production_status, 'unknown');
@@ -82,4 +84,16 @@ test('crosschecked research rejects missing runtime references and changed histo
   prior.rules[0].code_behavior = 'changed historical evidence';
   await writeFile(historyPath, JSON.stringify(prior));
   assert.throws(() => loadAlgorithmResearch(root), /Previous research manifest changed/);
+});
+
+test('completed public diff research requires its exact ledger', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'xops-diff-ledger-'));
+  await cp(new URL('../assets/algorithm-knowledge/research', import.meta.url), join(root, 'research'), { recursive: true });
+  const research = JSON.parse(await readFile(join(root, 'research/current.json'), 'utf8'));
+  const ledgerPath = join(root, research.coverage.diff_review_ref.path);
+  const ledger = JSON.parse(await readFile(ledgerPath, 'utf8'));
+  assert.equal(ledger.entries.length, 248);
+  ledger.entries.pop();
+  await writeFile(ledgerPath, JSON.stringify(ledger));
+  assert.throws(() => loadAlgorithmResearch(root), /immutable public-diff review/);
 });
