@@ -49,3 +49,11 @@
 - Independent code review found and corrected replay-impact loss for reviewed callers, blocked-path precedence and the V4 downgrade route. A deleted caller only closes when its reference is actually removed. Full historical fact ancestry is now loaded oldest-first.
 - Focused checks: changed-path review 6 cases, existing impact/update 5 cases, research 6 cases passed. No unrelated regression. A separate candidate materialization check passed, with 30 active candidate facts + 34 historical facts retained.
 - Candidate preparation has checked 331 source files and evaluated 60 editorial three-state cases for 20 old/new rule versions. It remains **not activated**: pending independent approval and 10 affected partially public dependencies are not cleared by these replays. Candidate artifacts are being finalized separately.
+
+### Final candidate handoff
+
+- Candidate facts/materials and the preparation helper are now packaged without replacing the installed active catalog or any account state.
+- Independent exact-proposal review confirmed the source bindings, prior-file preservation and bounded replay results. It identified an old OP05 derivation-text mismatch; the candidate now matches its substantive-repeat predicate. Only text/coverage metadata changed, so unchanged source and predicate evidence was explicitly reused, not claimed as rerun.
+- Final proposal: `f6d4c6ba660db01842431811aeca7edbbc9cf5ec826f5995dbc35d349dac430e`; independent decision **revision_required**. The 10 affected partially public dependencies and pending approvals remain. Earlier proposal/review evidence is retained alongside the final records.
+- Actual activation attempt was refused with `MISSING_EVIDENCE`; no activation event was written. V4 cannot bypass the V5 source-review flow. Safe activation is not claimed.
+- Main, installed catalog and historical source/fact files remain unchanged. No full regression, deployment, upstream model/service execution or real-account action.

@@ -1,0 +1,2544 @@
+{
+  "contract_version": 4,
+  "dependencies": [
+    {
+      "dependency_id": "action_consumer:EvaluateTweetsTreatment",
+      "kind": "action_consumer",
+      "path": "visibility-filtering/evaluate_tweets.rs",
+      "symbol": "EvaluateTweets::evaluate",
+      "material_hash": "b7cb080eb509435d7241e297fff084a18b7e1237ed24fb17b31ba6e5b124bb00",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "partially_public",
+      "documentation_status": "not_applicable",
+      "review_depth": "conditions_verified",
+      "disposition": "blocked_by_gap",
+      "caller_refs": [
+        "visibility-filtering/evaluate_tweets.rs"
+      ],
+      "consumer_refs": [
+        "visibility-filtering/treatment.rs::limited_engagements"
+      ],
+      "missing_dependencies": [
+        "external:limited_actions_policy_config"
+      ],
+      "review_note": "迁移ingress/RequestViewer并按新evaluation状态产生结果；viewer/国家/quote处理须以新入口核验，外部policy未公开。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/action_consumer_EvaluateTweetsTreatment.json",
+      "evidence_content_hash": "71f901066038db5b077c5cff8b6d9062c2d5423a0d2b7ee05bfe978cd9e3d092"
+    },
+    {
+      "dependency_id": "action_consumer:LimitedActionsPolicies",
+      "kind": "action_consumer",
+      "path": "visibility-filtering/treatment.rs",
+      "symbol": "LimitedActionsPolicies",
+      "material_hash": "842f2d9b171db1ad7029af942a0acb7cdd7d68e2b9e3f60522b578af08fbef82",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "partially_public",
+      "documentation_status": "not_applicable",
+      "review_depth": "conditions_verified",
+      "disposition": "blocked_by_gap",
+      "caller_refs": [
+        "visibility-filtering/treatment.rs"
+      ],
+      "consumer_refs": [
+        "Home/For You public path"
+      ],
+      "missing_dependencies": [
+        "external:limited_actions_policy_config"
+      ],
+      "review_note": "treatment新增Deleted和NotFound的EvaluateTweets输出，以及notification post-not-found分类；不能视为仅logging。精确限制动作仍来自外部policy。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/action_consumer_LimitedActionsPolicies.json",
+      "evidence_content_hash": "2da6bad2e6d8590a52c0514b52fc758e13ec550ea5f456cb560dbc0b44684565"
+    },
+    {
+      "dependency_id": "action_consumer:LimitedActionsPolicyResolver",
+      "kind": "action_consumer",
+      "path": "visibility-filtering/params/limited_actions_policy.rs",
+      "symbol": "LimitedActionsPolicies::resolve",
+      "material_hash": "989574f8d8af7554e29c0c6fcac348cd17f37a9e6ec76a2d9893d4984cf446de",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "partially_public",
+      "documentation_status": "not_applicable",
+      "review_depth": "conditions_verified",
+      "disposition": "blocked_by_gap",
+      "caller_refs": [
+        "visibility-filtering/params/limited_actions_policy.rs"
+      ],
+      "consumer_refs": [
+        "visibility-filtering/treatment.rs::limited_engagements"
+      ],
+      "missing_dependencies": [
+        "external:limited_actions_policy_config"
+      ],
+      "review_note": "仅将missing-policy计数从可选StatsReceiver迁移到Metrics；reason去重、action解析、空动作不生成policy未改变。外部policy内容仍未知。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/action_consumer_LimitedActionsPolicyResolver.json",
+      "evidence_content_hash": "a96f7156628393385146f94efc8722e15b27d53b15007bfaf812ba138ef54623"
+    },
+    {
+      "dependency_id": "action_consumer:VisibilityPolicyEngine",
+      "kind": "action_consumer",
+      "path": "visibility-filtering/rules/engine.rs",
+      "symbol": "VisibilityPolicyEngine",
+      "material_hash": "b6ea73b4f8f33ac5673282289535128ea5f5098ed6d2c30123ae77e25f220942",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "aligned",
+      "review_depth": "effects_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "visibility-filtering/rules/engine.rs"
+      ],
+      "consumer_refs": [
+        "Home/For You public path"
+      ],
+      "missing_dependencies": [],
+      "review_note": "新增PostKinds独立policy和ActorPosts联合hydration plan；admit_under按具体policy校验计划；新增post_kind evaluate/fold供通知与测试调用。 以通知kind区分规则，不影响Home的consumer边界；无生产启用覆盖证明。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/action_consumer_VisibilityPolicyEngine.json",
+      "evidence_content_hash": "5edfb6628110ac530b2d612fc79596cd20520b7af9caed56311ebe8418a2b102"
+    },
+    {
+      "dependency_id": "candidate_hydrator:BidirectionalFollowHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/bidirectional_follow_hydrator.rs",
+      "symbol": "BidirectionalFollowHydrator",
+      "material_hash": "6854044f34dbc4a7f504e92b23d4c84f2adc7866618a2b854cdff506ab584cfa",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/bidirectional_follow_hydrator.rs:L16-149; hydrates is_mutual_follow_author, author_follows_viewer for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. public config readers=EnableBidirectionalFollowHydration, EnableAllAuthorFollowHydration; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_BidirectionalFollowHydrator.txt",
+      "evidence_content_hash": "4ba403a596cab20727e07ead813fa8340298b8acfcc2aa70f69c94818441db44"
+    },
+    {
+      "dependency_id": "candidate_hydrator:BlockedByHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/blocked_by_hydrator.rs",
+      "symbol": "BlockedByHydrator",
+      "material_hash": "37d6868b084700eead7074684d762b499d0ee54df07343087de8e86638abcc39",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/blocked_by_hydrator.rs:L20-58; hydrates author_blocks_viewer for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_BlockedByHydrator.txt",
+      "evidence_content_hash": "4bc5fb32ff9e3c449ff6f68a09fcd9fa688d0f54fa00324d14ed56b843beee27"
+    },
+    {
+      "dependency_id": "candidate_hydrator:CoreDataCandidateHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/core_data_candidate_hydrator.rs",
+      "symbol": "CoreDataCandidateHydrator",
+      "material_hash": "d439a932587b128b342b1a8194d81c17c985387da0828656a378335dd7cd195c",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/core_data_candidate_hydrator.rs:L36-202; hydrates author_id, retweeted_user_id, retweeted_tweet_id, in_reply_to_tweet_id, ancestor_users, tweet_text for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_CoreDataCandidateHydrator.txt",
+      "evidence_content_hash": "4fb9834ae329a21d3fc4575593425e1b6ce6bc23b5ed146ecffd67f3b206ca77"
+    },
+    {
+      "dependency_id": "candidate_hydrator:EngagementCountsHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/engagement_counts_hydrator.rs",
+      "symbol": "EngagementCountsHydrator",
+      "material_hash": "ce0caf7a248306ce1b1fd113b306671feddd0f6926959dfcc90b9d1a5d82cf98",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/engagement_counts_hydrator.rs:L74-269; hydrates fav_count, reply_count, repost_count, quote_count, view_count, view_count_on_home, bookmark_count for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. public config readers=EnableEngagementCountsHydration; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_EngagementCountsHydrator.txt",
+      "evidence_content_hash": "ad10dab780ba6bdc67cac3d70fee593025dcdea4f9875eee770908396f0c5aa8"
+    },
+    {
+      "dependency_id": "candidate_hydrator:FilteredTopicsHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/filtered_topics_hydrator.rs",
+      "symbol": "FilteredTopicsHydrator",
+      "material_hash": "8115c99600d9886280e6d1f52e74a9d9a0789cba0472b8908325ee99d73d1a37",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/filtered_topics_hydrator.rs:L55-133; hydrates filtered_topic_ids, unfiltered_topic_ids for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. public config readers=TopicFilteringId, TopicFilteringOverrides; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_FilteredTopicsHydrator.txt",
+      "evidence_content_hash": "edbe60f43bc32e978c33843470f9453536d7d6a49f94439f20974719427dd9ad"
+    },
+    {
+      "dependency_id": "candidate_hydrator:GizmoduckCandidateHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/gizmoduck_hydrator.rs",
+      "symbol": "GizmoduckCandidateHydrator",
+      "material_hash": "0f8db4b127dba45dc0584068acbcb856c2447866e0e0e91186ecff73d70fea27",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/gizmoduck_hydrator.rs:L31-194; hydrates author_followers_count, author_screen_name, retweeted_screen_name, nsfw_author, nsfw_author_ads, nsfw_author_phoenix for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_GizmoduckCandidateHydrator.txt",
+      "evidence_content_hash": "d0cc0842cc2755d11b0e06abc95e65b0f1209e1d80902db520a8ec0cf3cd444f"
+    },
+    {
+      "dependency_id": "candidate_hydrator:InNetworkCandidateHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/in_network_candidate_hydrator.rs",
+      "symbol": "InNetworkCandidateHydrator",
+      "material_hash": "3c66f05cfa3c830dc6b924eb8b5229890bc6e03b590f030c53390834d92bec62",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/in_network_candidate_hydrator.rs:L11-46; hydrates author_id, in_network for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_InNetworkCandidateHydrator.txt",
+      "evidence_content_hash": "391dcbd4a476fe98deb0ee4ec53a418aca72f0a2ff2c1f6c0e4728100b4e5e6e"
+    },
+    {
+      "dependency_id": "candidate_hydrator:LanguageCodeHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/language_code_hydrator.rs",
+      "symbol": "LanguageCodeHydrator",
+      "material_hash": "97f1c416d9791895bedcb050ced3051577c47470c5a2256a19bc54f433a6b8c8",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/language_code_hydrator.rs:L27-161; hydrates language_code for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_LanguageCodeHydrator.txt",
+      "evidence_content_hash": "7229d0c55bfb2cbd740c35a7708433138367f44d8e475a9922ef5866069e12c7"
+    },
+    {
+      "dependency_id": "candidate_hydrator:MediaInfoHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/media_info_hydrator.rs",
+      "symbol": "MediaInfoHydrator",
+      "material_hash": "aacb1dabe7250e67564071f3095b7f811a0e54e85be7d926361bb9bfc5fcc573",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/media_info_hydrator.rs:L86-222; hydrates has_media, has_photo, has_video, media_count, min_video_duration_ms, max_video_duration_ms for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_MediaInfoHydrator.txt",
+      "evidence_content_hash": "0435c8319ac504346fd9ba598d7a81b5a7f1e47026224320e33ba80f510cb30c"
+    },
+    {
+      "dependency_id": "candidate_hydrator:NewUserSoftNsfwLabelHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/new_user_soft_nsfw_label_hydrator.rs",
+      "symbol": "NewUserSoftNsfwLabelHydrator",
+      "material_hash": "fd3f293274234fe7d6fb4f1aeeb696af9c438b60de3648d7f378dc314814af31",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/new_user_soft_nsfw_label_hydrator.rs:L34-237; hydrates soft_nsfw for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_NewUserSoftNsfwLabelHydrator.txt",
+      "evidence_content_hash": "b2d8663eec853c865d8988fd843441a84cd8ecf97e69731677b89a21978f7775"
+    },
+    {
+      "dependency_id": "candidate_hydrator:PhoenixReplyAncestorsHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/phoenix_reply_ancestors_hydrator.rs",
+      "symbol": "PhoenixReplyAncestorsHydrator",
+      "material_hash": "28d2e668a075fe76e3a71c4ff14438a274fae4100207928d0b0ce9b65dd40319",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/phoenix_reply_ancestors_hydrator.rs:L28-111; hydrates ancestors, ancestor_users, conversation_id for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. public config readers=EnablePhoenixOonReplies; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_PhoenixReplyAncestorsHydrator.txt",
+      "evidence_content_hash": "223086e1b1185e82242f6a5c211072060974d3b128dd7c50e479892dff62c2aa"
+    },
+    {
+      "dependency_id": "candidate_hydrator:PostEngagersHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/post_engagers_hydrator.rs",
+      "symbol": "PostEngagersHydrator",
+      "material_hash": "fd61f4a45fef410b1a75dc75a298d94a4e4d624108b72fe432a078c8a391e7c5",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/post_engagers_hydrator.rs:L43-105; hydrates post_engagers for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. public config readers=EnablePostEngagers; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_PostEngagersHydrator.txt",
+      "evidence_content_hash": "10daeee4ddf29059ad5e9a8786e84d210f65c81e4c8b7251c6812d118dd1720c"
+    },
+    {
+      "dependency_id": "candidate_hydrator:QuoteHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/quote_hydrator.rs",
+      "symbol": "QuoteHydrator",
+      "material_hash": "80b34256f98faba829e907eaeb6599d0729286293caac45931143fa395c06e59",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/quote_hydrator.rs:L189-307; hydrates quoted_tweet_text, quoted_has_media, quoted_has_photo, quoted_has_video, quoted_media_count, quoted_max_video_duration_ms, quoted_tweet_id, quoted_user_id, quoted_author_blocks_viewer, quoted_video_duration_ms for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. public config readers=EnableQuotedVqvDurationCheck; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_QuoteHydrator.txt",
+      "evidence_content_hash": "9e6bdc1ce29ec1f852cc20c9e3195bf573af7d229211777c616343ab92e70755"
+    },
+    {
+      "dependency_id": "candidate_hydrator:SemanticIdHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/semantic_id_hydrator.rs",
+      "symbol": "SemanticIdHydrator",
+      "material_hash": "113f229fea8c4087bc90dded15b8bad2d0e49c4bbaa8d516a3908dd99e0cfe5d",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/semantic_id_hydrator.rs:L45-120; hydrates semantic_ids for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. public config readers=EnableSemanticIdHydration, SidServerEndpoint; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_SemanticIdHydrator.txt",
+      "evidence_content_hash": "c57f9dc2f1e2b18703d41abe1f4320b16d4f7ccac50cead4f7a256a680ed4787"
+    },
+    {
+      "dependency_id": "candidate_hydrator:SubscriptionHydrator",
+      "kind": "candidate_hydrator",
+      "path": "home-mixer/candidate_hydrators/subscription_hydrator.rs",
+      "symbol": "SubscriptionHydrator",
+      "material_hash": "88371bc649e86bce46840c36fa6c64726ea98806fe04c60d4c34b464d5243012",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::candidate_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/subscription_hydrator.rs:L26-83; hydrates subscription_author_id for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/candidate_hydrator_SubscriptionHydrator.txt",
+      "evidence_content_hash": "aedb12107a2b7c5ac5cb47df09c917c69abcae03f779f69d904e2c5bec3c3c6d"
+    },
+    {
+      "dependency_id": "external:botmaker_rules",
+      "kind": "filter",
+      "path": "unpublished",
+      "symbol": "botmaker_rules",
+      "material_hash": null,
+      "wiring_status": "unreviewed",
+      "config_visibility": "unavailable",
+      "source_visibility": "external_unpublished",
+      "documentation_status": "not_applicable",
+      "review_depth": "entry_only",
+      "disposition": "blocked_by_gap",
+      "caller_refs": [],
+      "consumer_refs": [],
+      "missing_dependencies": [
+        "external:botmaker_rules"
+      ],
+      "review_note": "botmaker规则未公开",
+      "evidence_material_path": null,
+      "evidence_content_hash": null
+    },
+    {
+      "dependency_id": "external:deployment_configuration",
+      "kind": "action_consumer",
+      "path": "unpublished",
+      "symbol": "deployment_configuration",
+      "material_hash": null,
+      "wiring_status": "unreviewed",
+      "config_visibility": "unavailable",
+      "source_visibility": "external_unpublished",
+      "documentation_status": "not_applicable",
+      "review_depth": "entry_only",
+      "disposition": "blocked_by_gap",
+      "caller_refs": [],
+      "consumer_refs": [],
+      "missing_dependencies": [
+        "external:deployment_configuration"
+      ],
+      "review_note": "部署与每请求实验配置未公开",
+      "evidence_material_path": null,
+      "evidence_content_hash": null
+    },
+    {
+      "dependency_id": "external:grok_prompts",
+      "kind": "source",
+      "path": "unpublished",
+      "symbol": "grok_prompts",
+      "material_hash": null,
+      "wiring_status": "unreviewed",
+      "config_visibility": "unavailable",
+      "source_visibility": "external_unpublished",
+      "documentation_status": "not_applicable",
+      "review_depth": "entry_only",
+      "disposition": "blocked_by_gap",
+      "caller_refs": [],
+      "consumer_refs": [],
+      "missing_dependencies": [
+        "external:grok_prompts"
+      ],
+      "review_note": "部分Grok prompts未公开",
+      "evidence_material_path": null,
+      "evidence_content_hash": null
+    },
+    {
+      "dependency_id": "external:hidden_label_classifiers",
+      "kind": "action_consumer",
+      "path": "unpublished",
+      "symbol": "hidden_label_classifiers",
+      "material_hash": null,
+      "wiring_status": "unreviewed",
+      "config_visibility": "unavailable",
+      "source_visibility": "external_unpublished",
+      "documentation_status": "not_applicable",
+      "review_depth": "entry_only",
+      "disposition": "blocked_by_gap",
+      "caller_refs": [],
+      "consumer_refs": [],
+      "missing_dependencies": [
+        "external:hidden_label_classifiers"
+      ],
+      "review_note": "标签消费路径公开不等于分类器公开",
+      "evidence_material_path": null,
+      "evidence_content_hash": null
+    },
+    {
+      "dependency_id": "external:limited_actions_policy_config",
+      "kind": "action_consumer",
+      "path": "../../visibility-limited-actions/main/limited_actions_policy.yml",
+      "symbol": "limited_actions_policy",
+      "material_hash": null,
+      "wiring_status": "definition_only",
+      "config_visibility": "unavailable",
+      "source_visibility": "external_unpublished",
+      "documentation_status": "not_applicable",
+      "review_depth": "entry_only",
+      "disposition": "blocked_by_gap",
+      "caller_refs": [
+        "visibility-filtering/params.rs:L35-37"
+      ],
+      "consumer_refs": [
+        "visibility-filtering/params/limited_actions_policy.rs::LimitedActionsPolicies::resolve"
+      ],
+      "missing_dependencies": [
+        "policy bundle not present in fixed repository"
+      ],
+      "review_note": "The fixed public source explicitly references this policy bundle, but the file is outside/not present in xai-org/x-algorithm@6258a154; exact runtime action lists cannot be claimed.",
+      "evidence_material_path": null,
+      "evidence_content_hash": null
+    },
+    {
+      "dependency_id": "filter:AgeFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/age_filter.rs",
+      "symbol": "AgeFilter",
+      "material_hash": "8b071a27cfcadbcc2cdeee6b9b2c58a4eafc55d5eedae37f02abd028f106739e",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "unreviewed",
+      "review_depth": "conditions_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "已读装配与事实卡所列条件；线上实际配置仍未知。",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_AgeFilter.txt",
+      "evidence_content_hash": "8b071a27cfcadbcc2cdeee6b9b2c58a4eafc55d5eedae37f02abd028f106739e"
+    },
+    {
+      "dependency_id": "filter:AuthorSocialgraphFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/author_socialgraph_filter.rs",
+      "symbol": "AuthorSocialgraphFilter",
+      "material_hash": "c0cac910b974522bb20b16c21e8ad2cb64306b4868ce367d2162ab1d25f0084a",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "unreviewed",
+      "review_depth": "conditions_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "已读装配与事实卡所列条件；线上实际配置仍未知。",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_AuthorSocialgraphFilter.txt",
+      "evidence_content_hash": "5076a61787124ec0cdb820e95e578f4f097c06a1a4ec7949b6441c5920fdd9e5"
+    },
+    {
+      "dependency_id": "filter:CoreDataHydrationFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/core_data_hydration_filter.rs",
+      "symbol": "CoreDataHydrationFilter",
+      "material_hash": "b4300e603951ea2fc5213bf3d7f9306c01531e02a79a18109bdb8bc8d987dd4b",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/core_data_hydration_filter.rs:L8-17; removes candidates whose author_id could not be hydrated; this is data integrity, not an editorial rule. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_CoreDataHydrationFilter.txt",
+      "evidence_content_hash": "cba688efc5008ef1d8bacb73d59b53fe351a1b5af8bf0c1336ac18c5db9c2bac"
+    },
+    {
+      "dependency_id": "filter:DropDuplicatesFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/drop_duplicates_filter.rs",
+      "symbol": "DropDuplicatesFilter",
+      "material_hash": "8b0a5e750c5d8ac44d0129a2c2b293a375f4d3a38dfb5510e2671791b010c91f",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "unreviewed",
+      "review_depth": "conditions_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "已读装配与事实卡所列条件；线上实际配置仍未知。",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_DropDuplicatesFilter.txt",
+      "evidence_content_hash": "8b0a5e750c5d8ac44d0129a2c2b293a375f4d3a38dfb5510e2671791b010c91f"
+    },
+    {
+      "dependency_id": "filter:FairShareRankingFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/fair_share_ranking_filter.rs",
+      "symbol": "FairShareRankingFilter",
+      "material_hash": "7c61de45f17cff34f9c51cba548641c87ff888743e7414a67e8298e4cf048e83",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "unreviewed",
+      "review_depth": "conditions_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "已读装配与事实卡所列条件；线上实际配置仍未知。",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_FairShareRankingFilter.txt",
+      "evidence_content_hash": "3b3e6e2c1a7d4e5eff4104f4718c38d9569e7f5c464a3e757ff82b41cccf8768"
+    },
+    {
+      "dependency_id": "filter:FavHoldoutFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/fav_holdout_filter.rs",
+      "symbol": "FavHoldoutFilter",
+      "material_hash": "e9b8810be5efde01830e4c1e251ff6dee0a3909ba4ffae91fd4e036439b0339e",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/fav_holdout_filter.rs:L51-167; viewer-specific experiment holdout varies by hydrated favorite-count bucket; it is not a public minimum-like rule. public config readers=EnableFavHoldout; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_FavHoldoutFilter.txt",
+      "evidence_content_hash": "d447d2b17b0ef68694cc750d617739d5b0662d993eed33703b7f5def05161f9e"
+    },
+    {
+      "dependency_id": "filter:IneligibleSubscriptionFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/ineligible_subscription_filter.rs",
+      "symbol": "IneligibleSubscriptionFilter",
+      "material_hash": "1419306bc078ea4ebf590185947e975b1e6cbc81e30e5e8fe734e042b467a3b6",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "unreviewed",
+      "review_depth": "conditions_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "已读装配与事实卡所列条件；线上实际配置仍未知。",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_IneligibleSubscriptionFilter.txt",
+      "evidence_content_hash": "1419306bc078ea4ebf590185947e975b1e6cbc81e30e5e8fe734e042b467a3b6"
+    },
+    {
+      "dependency_id": "filter:InventoryHoldoutFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/inventory_holdout_filter.rs",
+      "symbol": "InventoryHoldoutFilter",
+      "material_hash": "8ca989efd09b942c24a1181f184cb791c76948bd09b5b6cef8506670b1f1b184",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/inventory_holdout_filter.rs:L52-264; viewer-specific deterministic experiment holdout removes configured percentages by post kind; experiment configuration is not observable author advice. public config readers=EnableInventoryHoldout, InventoryHoldoutOriginalsPercent, InventoryHoldoutRepliesPercent, InventoryHoldoutRetweetsPercent; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_InventoryHoldoutFilter.txt",
+      "evidence_content_hash": "603641fbbad7fd0d6331613d7569214bb836436e5baddacd20d737a26ffb936d"
+    },
+    {
+      "dependency_id": "filter:NewUserMinEngagementFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/new_user_min_engagement_filter.rs",
+      "symbol": "NewUserMinEngagementFilter",
+      "material_hash": "796abf084789a5d25a1b2f6b94aa4bcec0107bd50799cd491d67ab308d38030e",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/new_user_min_engagement_filter.rs:L32-117; for a new/resurrected viewer, an enabled switch may filter out-of-network candidates below a configured fav/engagement/view value or ratio; no universal author threshold follows. public config readers=EnableNewUserMinEngagementFilter, NewUserMinEngagementFilterMetric, NewUserMinEngagementFilterUseRatio, NewUserMinEngagementThreshold; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_NewUserMinEngagementFilter.txt",
+      "evidence_content_hash": "18ce5ccc39a9f39f9aba73e1a1ffefa6886216520dcfc56ab44e0dcbe0040c5d"
+    },
+    {
+      "dependency_id": "filter:NewUserSoftNsfwFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/new_user_soft_nsfw_filter.rs",
+      "symbol": "NewUserSoftNsfwFilter",
+      "material_hash": "2967760ba589dff52a6bf6448936a11aa06fdfe7c86173e2a023d7c5aee99672",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients",
+        "home-mixer/params/param.rs",
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "加入scoring sequence长度门槛；配套公开params默认7天、长度100、开关false。仍是观看者年龄不是作者年龄。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/filter_NewUserSoftNsfwFilter-callers.json",
+      "evidence_content_hash": "6160712e6827cd38d2c28d6c2304b069125fba3d923953a8ca3c38b98cc514aa"
+    },
+    {
+      "dependency_id": "filter:OONNsfwSimclustersFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/oon_nsfw_simclusters_filter.rs",
+      "symbol": "OONNsfwSimclustersFilter",
+      "material_hash": "9994e73f6f9db4d26d4555a74acabd340a8fbcbe2fae38d232f12a649870b5c5",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/oon_nsfw_simclusters_filter.rs:L10-28; removes out-of-network SimClusters candidates whose hydrated author NSFW flag is true; label generation and request eligibility remain unavailable. public config readers=EnableSimclustersSource; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_OONNsfwSimclustersFilter.txt",
+      "evidence_content_hash": "951a0428144ac5a6c6f2640a8951fbde132b0ddd1b0cfececfefe742e1c18b97"
+    },
+    {
+      "dependency_id": "filter:OONRetweetReplyFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/oon_retweet_reply_filter.rs",
+      "symbol": "OONRetweetReplyFilter",
+      "material_hash": "f492d71f0e08f7c811ea0bc64ca6c5fb4518e7666e1cb911b97325c70b3788c5",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "unreviewed",
+      "review_depth": "conditions_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "已读装配与事实卡所列条件；线上实际配置仍未知。",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_OONRetweetReplyFilter.txt",
+      "evidence_content_hash": "f492d71f0e08f7c811ea0bc64ca6c5fb4518e7666e1cb911b97325c70b3788c5"
+    },
+    {
+      "dependency_id": "filter:PreviouslySeenPostsBackupFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/previously_seen_posts_backup_filter.rs",
+      "symbol": "PreviouslySeenPostsBackupFilter",
+      "material_hash": "5f5b7c8f50eaf47c19a3941ec7af280700ed5eb767a8816a21c8e44250f036d8",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/previously_seen_posts_backup_filter.rs:L10-90; backup path removes candidates related to explicitly impressed IDs; it does not prove global one-show behavior. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_PreviouslySeenPostsBackupFilter.txt",
+      "evidence_content_hash": "010c1f51cdaacf50c448ea13f1811c19c05688ae7d4d917821973e74122e502f"
+    },
+    {
+      "dependency_id": "filter:PreviouslySeenPostsFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/previously_seen_posts_filter.rs",
+      "symbol": "PreviouslySeenPostsFilter",
+      "material_hash": "f1f44a6ee8bf2cc412db8965b4f05abb1dff58efa2776f04921417d82a33db57",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "unreviewed",
+      "review_depth": "conditions_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "已读装配与事实卡所列条件；线上实际配置仍未知。",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_PreviouslySeenPostsFilter.txt",
+      "evidence_content_hash": "f1f44a6ee8bf2cc412db8965b4f05abb1dff58efa2776f04921417d82a33db57"
+    },
+    {
+      "dependency_id": "filter:PreviouslyServedPostsFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/previously_served_posts_filter.rs",
+      "symbol": "PreviouslyServedPostsFilter",
+      "material_hash": "6e10fc9a648deff2b451212374a3b0834131727614f11cc069452ece5f2cecd5",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/previously_served_posts_filter.rs:L14-35; when enabled for the request context, removes candidates related to served IDs; covered by C06 boundary. public config readers=EnableServedFilterAllRequests; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_PreviouslyServedPostsFilter.txt",
+      "evidence_content_hash": "fdf6a3d61387c665b8bf9870cf103e0475ef04aaf02b727aed9c04c4ad347e6b"
+    },
+    {
+      "dependency_id": "filter:RetweetDeduplicationFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/retweet_deduplication_filter.rs",
+      "symbol": "RetweetDeduplicationFilter",
+      "material_hash": "e414b6b80cf8d4e099b3ed81034d6ac857ba02dcfb5f5247d7b240ee4fe1a772",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/retweet_deduplication_filter.rs:L9-89; deduplicates original/retweet identity and merges retrieval sources; covered by C07. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_RetweetDeduplicationFilter.txt",
+      "evidence_content_hash": "5b2b8cfeb482f525f61f69119c01dc80310de8e3197eccfc1e81dca073d92522"
+    },
+    {
+      "dependency_id": "filter:SelfTweetFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/self_tweet_filter.rs",
+      "symbol": "SelfTweetFilter",
+      "material_hash": "3f581ff012957b89935afc9cc1e08579a4d437a4b1bdf568ab6777ba20c9d940",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/self_tweet_filter.rs:L8-21; removes the viewer own posts from that viewer request; it does not state an account-wide self-post penalty. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_SelfTweetFilter.txt",
+      "evidence_content_hash": "dea139f87b8c1fc334f9b28c8f413903bbdf23beb0381d3da30490eec4ffd6cc"
+    },
+    {
+      "dependency_id": "filter:TopicIdsFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/topic_ids_filter.rs",
+      "symbol": "TopicIdsFilter",
+      "material_hash": "9b6f13e3f76b018136b300bf8bcaada1e06548e0f69e4dcf27c309fb4a67ec18",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/topic_ids_filter.rs:L15-99; topic requests retain candidates matching expanded filtered topics and excluded-topic requests remove matching topics; topic mappings and request mode are not a keyword guarantee. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_TopicIdsFilter.txt",
+      "evidence_content_hash": "722bd7e6a3d8a10a30c525278395ab6b41b7e3a9d996b033f32504209efee8f0"
+    },
+    {
+      "dependency_id": "filter:VideoFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/video_filter.rs",
+      "symbol": "VideoFilter",
+      "material_hash": "fe268b2c6359b1342225308bc7ea11b0e8ffaae1cc281ea391c2b9212aeae5a1",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/video_filter.rs:L8-92; when the request excludes video, removes candidates whose original/quoted/ancestor content has video; request preference is viewer-side. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_VideoFilter.txt",
+      "evidence_content_hash": "5abd4f451c751b335e5038443030577e55010c96727173ea2bc39f176f38686c"
+    },
+    {
+      "dependency_id": "filter:ViewerMutedKeywordFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/viewer_muted_keyword_filter.rs",
+      "symbol": "ViewerMutedKeywordFilter",
+      "material_hash": "ffa9de69dd18ed30df2382392284d0851092a2f5b5f9c4b2727f9e7cad57f1fc",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "unreviewed",
+      "review_depth": "conditions_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "已读装配与事实卡所列条件；线上实际配置仍未知。",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_ViewerMutedKeywordFilter.txt",
+      "evidence_content_hash": "5f23d0da72ce3647d85647c1512ba0d2210e912681c06014645c16b7686bff43"
+    },
+    {
+      "dependency_id": "filter:ZeroFavCodivertFilter",
+      "kind": "filter",
+      "path": "home-mixer/filters/zero_fav_codivert_filter.rs",
+      "symbol": "ZeroFavCodivertFilter",
+      "material_hash": "94392565c511e4ccd3d6efd5f44b5d96b47725a21b667d2ecd9f36c13292b2fb",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/zero_fav_codivert_filter.rs:L60-111; viewer treatment removes zero-favorite-only codivert candidates except authors in an author treatment bucket; viewer/author buckets are internal, so no author action is justified. public config readers=ViewerZeroFavCodivertIsTreatment; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/filter_ZeroFavCodivertFilter.txt",
+      "evidence_content_hash": "b6a3a03967d72b3fc2c2a15fc262187c41c679292bb0d5a62abcdbe63f140c26"
+    },
+    {
+      "dependency_id": "post_selection_filter:AncestorVideoFilter",
+      "kind": "post_selection_filter",
+      "path": "home-mixer/filters/ancestor_video_filter.rs",
+      "symbol": "AncestorVideoFilter",
+      "material_hash": "3fafb56f4288c3de6eab494dabaf534deb41e32e849737fdd1354abbdfdcbb27",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/ancestor_video_filter.rs:L8-24; on exclude-video requests removes candidates with a video ancestor; viewer request preference is not author ranking advice. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/post_selection_filter_AncestorVideoFilter.txt",
+      "evidence_content_hash": "8e3fd4c6d1cb7ee57878ad7694d02f53083ef5b98f561dfabb7077cb8c5ae9f8"
+    },
+    {
+      "dependency_id": "post_selection_filter:AncillaryVFFilter",
+      "kind": "post_selection_filter",
+      "path": "home-mixer/filters/ancillary_vf_filter.rs",
+      "symbol": "AncillaryVFFilter",
+      "material_hash": "cdb8b10b49ae78708fb35a00662e3fea45db9c801db06c5a9595b4d7f0a4968c",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/filters/ancillary_vf_filter.rs:L8-20; removes candidates whose ancestor/quote/retweet visibility hydration set drop_ancillary_posts; covered by C15. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/post_selection_filter_AncillaryVFFilter.txt",
+      "evidence_content_hash": "595ece5e733ebbf589994545e135324ba610be07f8b0c7fe43ff22539ef3e3fd"
+    },
+    {
+      "dependency_id": "post_selection_filter:DedupConversationFilter",
+      "kind": "post_selection_filter",
+      "path": "home-mixer/filters/dedup_conversation_filter.rs",
+      "symbol": "DedupConversationFilter",
+      "material_hash": "cadf2a57f9e88b842179184641221672344582089f62afcc7c9f1f28e6fb3d30",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "unreviewed",
+      "review_depth": "conditions_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "已读装配与事实卡所列条件；线上实际配置仍未知。",
+      "evidence_material_path": "source-snapshots/review-excerpts/post_selection_filter_DedupConversationFilter.txt",
+      "evidence_content_hash": "9f0ef21ca77f4036fb0a52f1a2158cb0094e6a98c52d47dbceaf4d568ad23ce7"
+    },
+    {
+      "dependency_id": "post_selection_filter:VFFilter",
+      "kind": "post_selection_filter",
+      "path": "home-mixer/filters/vf_filter.rs",
+      "symbol": "VFFilter",
+      "material_hash": "33f42784645515722f4a38555d61f18757a9d8f38e2a1db0f3b89257c20e63f4",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "unreviewed",
+      "review_depth": "conditions_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients",
+        "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs",
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "已读装配与事实卡所列条件；线上实际配置仍未知。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/post_selection_filter_VFFilter-callers.json",
+      "evidence_content_hash": "c1ea5fe5d4e469563fc3b4882ed90d7fc8cf66a6c55a145d27ad70bebcceaf1d"
+    },
+    {
+      "dependency_id": "post_selection_filter:VideoCarouselFilter",
+      "kind": "post_selection_filter",
+      "path": "home-mixer/filters/video_carousel_filter.rs",
+      "symbol": "VideoCarouselFilter",
+      "material_hash": "5edcf248da8727df2a5144ee7f315104db7306f380c8b919171f175718065e9f",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_filter"
+      ],
+      "missing_dependencies": [],
+      "review_note": "extra从主流分离，主流外候选参与轮播；品牌安全及作者/语义/embedding去重门槛决定候选，非媒体固定加分。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/post_selection_filter_VideoCarouselFilter.json",
+      "evidence_content_hash": "038f1e681ba7aa204e86acb4fb4c5ddcf3fab873dbdac8b8cd3989997909074c"
+    },
+    {
+      "dependency_id": "post_selection_hydrator:AdsBrandSafetyVfHydrator",
+      "kind": "post_selection_hydrator",
+      "path": "home-mixer/candidate_hydrators/ads_brand_safety_vf_hydrator.rs",
+      "symbol": "AdsBrandSafetyVfHydrator",
+      "material_hash": "9941ce6edfa3a81916b9fe649b65bd25c05aad71d69c11872f13ef5b5e8e1b6a",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/ads_brand_safety_vf_hydrator.rs:L81-782; hydrates brand_safety_verdict, safety_labels for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. public config readers=EnableAdsAuthorBrandSafetyFallback, EnableAdsBrandSafetyVerdictV2; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/post_selection_hydrator_AdsBrandSafetyVfHydrator.txt",
+      "evidence_content_hash": "1cfc6552638a349124aa35fd8c4fa84d0c571d781fc235a3d2fe7303dfa773be"
+    },
+    {
+      "dependency_id": "post_selection_hydrator:AiTrendFeedbackContextHydrator",
+      "kind": "post_selection_hydrator",
+      "path": "home-mixer/candidate_hydrators/ai_trend_feedback_context_hydrator.rs",
+      "symbol": "AiTrendFeedbackContextHydrator",
+      "material_hash": "bc6f63013aaf5dafdbead9c66345ec95b5fb22a3723d1caab88c1793baba578b",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/ai_trend_feedback_context_hydrator.rs:L59-158; hydrates ai_trend_name, ai_trend_id for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. public config readers=EnableAiTrendFeedbackContext; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/post_selection_hydrator_AiTrendFeedbackContextHydrator.txt",
+      "evidence_content_hash": "9d68d13e2a711887f579971d561484f566952e8f8a04a2b186b6a4d2b2c85908"
+    },
+    {
+      "dependency_id": "post_selection_hydrator:AncestorVideoHydrator",
+      "kind": "post_selection_hydrator",
+      "path": "home-mixer/candidate_hydrators/ancestor_video_hydrator.rs",
+      "symbol": "AncestorVideoHydrator",
+      "material_hash": "a91094a970fd2c3aebae1a41cf67dfa150c444962b7d890ffec6a0b5fb794721",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/ancestor_video_hydrator.rs:L15-173; hydrates ancestor_has_video for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/post_selection_hydrator_AncestorVideoHydrator.txt",
+      "evidence_content_hash": "6cf8237ef74b6bc6147f76800ff9d9ef7a5fb664978fc3036756c0e67d4b1040"
+    },
+    {
+      "dependency_id": "post_selection_hydrator:FollowingRepliedUsersHydrator",
+      "kind": "post_selection_hydrator",
+      "path": "home-mixer/candidate_hydrators/following_replied_users_hydrator.rs",
+      "symbol": "FollowingRepliedUsersHydrator",
+      "material_hash": "6af42c7584b1dd22256218d1329f7047af38a977da543f6ebdb4c2e2a31e5300",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/following_replied_users_hydrator.rs:L42-191; hydrates following_replied_user_ids for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. public config readers=EnableFollowingRepliedUsersFacepile; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/post_selection_hydrator_FollowingRepliedUsersHydrator.txt",
+      "evidence_content_hash": "baf9e26f3c623b2387fbdd67a8c848e9218472c821668e98b500ac8d671f2b7b"
+    },
+    {
+      "dependency_id": "post_selection_hydrator:MutualFollowJaccardHydrator",
+      "kind": "post_selection_hydrator",
+      "path": "home-mixer/candidate_hydrators/mutual_follow_jaccard_hydrator.rs",
+      "symbol": "MutualFollowJaccardHydrator",
+      "material_hash": "0850bd354e85ecd1c6474f917524d1379edc001896eb4641df1ce7bc015806f0",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/mutual_follow_jaccard_hydrator.rs:L27-164; hydrates mutual_follow_jaccard for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. public config readers=EnableMutualFollowJaccardHydration; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/post_selection_hydrator_MutualFollowJaccardHydrator.txt",
+      "evidence_content_hash": "b08c4beeef7921bc8686d37b1535e6076fd096b4222046eeb1e5eaf67813b7f4"
+    },
+    {
+      "dependency_id": "post_selection_hydrator:TopicFeedbackContextHydrator",
+      "kind": "post_selection_hydrator",
+      "path": "home-mixer/candidate_hydrators/topic_feedback_context_hydrator.rs",
+      "symbol": "TopicFeedbackContextHydrator",
+      "material_hash": "d6944e99ed854999dfa452a5eadfa4f73fcc76531b50e32c6fd7d568fcf55f92",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/topic_feedback_context_hydrator.rs:L117-264; hydrates topic_feedback_topic, topic_feedback_topic_id, grok_topics for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. public config readers=EnableTopicFeedbackContext; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/post_selection_hydrator_TopicFeedbackContextHydrator.txt",
+      "evidence_content_hash": "2753de96884f3f7644b311db3d17da8ade1657cb9ea354252fae87fbd3853aae"
+    },
+    {
+      "dependency_id": "post_selection_hydrator:TweetTypeMetricsHydrator",
+      "kind": "post_selection_hydrator",
+      "path": "home-mixer/candidate_hydrators/tweet_type_metrics_hydrator.rs",
+      "symbol": "TweetTypeMetricsHydrator",
+      "material_hash": "f707c581a1f3e58e54dd7f366faab334ac2fd7f3a9035cd92eb1501e774d4e1c",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/tweet_type_metrics_hydrator.rs:L245-343; hydrates tweet_type_metrics for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/post_selection_hydrator_TweetTypeMetricsHydrator.txt",
+      "evidence_content_hash": "a9f3b327f91072ab45ee00feab127a27ae4903d61d28faa6759084a0d698ccc1"
+    },
+    {
+      "dependency_id": "post_selection_hydrator:VFCandidateHydrator",
+      "kind": "post_selection_hydrator",
+      "path": "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs",
+      "symbol": "VFCandidateHydrator",
+      "material_hash": "5a37ed35e1eed07551041778f5b36aceee5749f9699f5c6287e3341d0d7ab309",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "unreviewed",
+      "review_depth": "conditions_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "已读装配与事实卡所列条件；线上实际配置仍未知。",
+      "evidence_material_path": "source-snapshots/review-excerpts/post_selection_hydrator_VFCandidateHydrator.txt",
+      "evidence_content_hash": "6c0824cb742161d2536ca0a52a249f06f8fd475ab8a98a5dc1a5cd44ccf4324b"
+    },
+    {
+      "dependency_id": "post_selection_hydrator:VideoEmbeddingHydrator",
+      "kind": "post_selection_hydrator",
+      "path": "home-mixer/candidate_hydrators/video_embedding_hydrator.rs",
+      "symbol": "VideoEmbeddingHydrator",
+      "material_hash": "a412bd7427699c4c47c29ec3ae1233d59f19dae4dd7f6b0479eae3d80cef08ca",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "读取VideoCarouselEmbeddingVersion并传给embedding fetch；版本影响去重输入，不代表文本图片通用分数。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/post_selection_hydrator_VideoEmbeddingHydrator.json",
+      "evidence_content_hash": "a8012753c13d9590a3b1cad85f703e1d6ef9fb1186e675690923ccd130440b36"
+    },
+    {
+      "dependency_id": "post_selection_hydrator:VideoMediaHydrator",
+      "kind": "post_selection_hydrator",
+      "path": "home-mixer/candidate_hydrators/video_media_hydrator.rs",
+      "symbol": "VideoMediaHydrator",
+      "material_hash": "bfc988544c7e0f8a042c1c6e7dcc5b23cf985386f8633e5f199d66ceb6b34a3c",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::post_selection_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/candidate_hydrators/video_media_hydrator.rs:L39-130; hydrates video_aspect_ratio, video_media_id, video_md5_hashes for downstream filters/scoring/UI; the hydration itself does not establish an author-side operational action. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/post_selection_hydrator_VideoMediaHydrator.txt",
+      "evidence_content_hash": "08979306b19753064d505db52522b085b9391e0856f9266266dd84ac9c0dc762"
+    },
+    {
+      "dependency_id": "query_hydrator:BlockedUserIdsQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/blocked_user_ids_query_hydrator.rs",
+      "symbol": "BlockedUserIdsQueryHydrator",
+      "material_hash": "29a47698f4eba7d1a89af5e637daa553f45dd21a23095008b82fc904d75d3b1d",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/blocked_user_ids_query_hydrator.rs:L14-34; reads viewer/request context and hydrates BlockedUserIds for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_BlockedUserIdsQueryHydrator.txt",
+      "evidence_content_hash": "07be7260a247cd89295f865d27f9852d3d865a3c19d572e470d7525143012a13"
+    },
+    {
+      "dependency_id": "query_hydrator:CachedPostsQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/cached_posts_query_hydrator.rs",
+      "symbol": "CachedPostsQueryHydrator",
+      "material_hash": "c762a09fb96f74a99c5fea6c070731c5f8b4508e12f5e522455ad72938e28400",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/cached_posts_query_hydrator.rs:L20-83; reads viewer/request context and hydrates CachedPosts for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. public config readers=EnableCachedPosts; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_CachedPostsQueryHydrator.txt",
+      "evidence_content_hash": "d81996347d7d2ae94799a2c68ef63cf1c48a7b234ca86e254282b6cfc03f54e5"
+    },
+    {
+      "dependency_id": "query_hydrator:ExplicitEngagementSignalsQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/explicit_engagement_signals_query_hydrator.rs",
+      "symbol": "ExplicitEngagementSignalsQueryHydrator",
+      "material_hash": "c2edd73ec8dfc0b9ff3e198f3f21610b1dbf642f7b26c25f725405f1e2e7108a",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/explicit_engagement_signals_query_hydrator.rs:L31-113; reads viewer/request context and hydrates explicit_engagement_signals for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. public config readers=EnableExplicitEngagementSignals, EngagementSignalsMaxPerType; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_ExplicitEngagementSignalsQueryHydrator.txt",
+      "evidence_content_hash": "d7c6ae0420b6cffdee3545d78c5e265b8c98c697553d3cfaf15500eb21230d55"
+    },
+    {
+      "dependency_id": "query_hydrator:FollowedGrokTopicsQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/followed_grok_topics_query_hydrator.rs",
+      "symbol": "FollowedGrokTopicsQueryHydrator",
+      "material_hash": "ccd5491ff2b14c0812721f5a55728cb7a184d98544880202e5af3a802ad88c0b",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/followed_grok_topics_query_hydrator.rs:L24-45; reads viewer/request context and hydrates followed_grok_topics for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. public config readers=EnableContextFeatures; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_FollowedGrokTopicsQueryHydrator.txt",
+      "evidence_content_hash": "b1f0b50c22f51a4eaa6ce6b3d03dff4cb8b1772b4ff337be73ff4da41f2bb7e5"
+    },
+    {
+      "dependency_id": "query_hydrator:FollowedStarterPacksQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/followed_starter_packs_query_hydrator.rs",
+      "symbol": "FollowedStarterPacksQueryHydrator",
+      "material_hash": "42ad5314353c2dbefcf639304ea0ee8c8d66ef852386a292ec3a2db02c1fb433",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/followed_starter_packs_query_hydrator.rs:L24-45; reads viewer/request context and hydrates followed_starter_packs for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. public config readers=EnableContextFeatures; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_FollowedStarterPacksQueryHydrator.txt",
+      "evidence_content_hash": "f3af412d33e28b80c308507f135b05bfa180a207987480f3be5b01ce2b38e565"
+    },
+    {
+      "dependency_id": "query_hydrator:FollowedUserIdsQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/followed_user_ids_query_hydrator.rs",
+      "symbol": "FollowedUserIdsQueryHydrator",
+      "material_hash": "02ea8a56ccb59b272599be95cfc4a5d14ee88bd11a9e32f80c273d0549c4a3de",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/followed_user_ids_query_hydrator.rs:L14-38; reads viewer/request context and hydrates FollowedUserIds for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_FollowedUserIdsQueryHydrator.txt",
+      "evidence_content_hash": "1ac9fe3ec9898c6211dcfceb90049bb712762afd69c7f167729b5c7cfa50a15b"
+    },
+    {
+      "dependency_id": "query_hydrator:ImmersiveScoringSequenceQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/immersive_scoring_sequence_query_hydrator.rs",
+      "symbol": "ImmersiveScoringSequenceQueryHydrator",
+      "material_hash": "88f74c01cffdbe91f1c97e4c8eb4b27e1019b6f6080da50a2dd435317a7863eb",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/immersive_scoring_sequence_query_hydrator.rs:L33-76; reads viewer/request context and hydrates immersive_columnar_scoring_sequence for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. public config readers=VideoCarouselImmersiveAggregationType, UserActionsClusterId, MaxSeqLengthScoring, UasSourceDataType, UseXdsForUas; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_ImmersiveScoringSequenceQueryHydrator.txt",
+      "evidence_content_hash": "c702f4588ae6c524e86e692e5169364aa9bab9142a7e3f9f5dcd9af6507403ae"
+    },
+    {
+      "dependency_id": "query_hydrator:ImplicitEngagementSignalsQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/implicit_engagement_signals_query_hydrator.rs",
+      "symbol": "ImplicitEngagementSignalsQueryHydrator",
+      "material_hash": "6b03f8fba1c9aa2af9219e80d11143260e51ec53ad45342bb98fc03893b28cb9",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/implicit_engagement_signals_query_hydrator.rs:L35-138; reads viewer/request context and hydrates implicit_engagement_signals for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. public config readers=EnableImplicitEngagementSignals, EngagementSignalsMaxPerType; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_ImplicitEngagementSignalsQueryHydrator.txt",
+      "evidence_content_hash": "6ac9b641467941fd34ee17c44bb97eaaf995884f14489ae9d56bc3f56a2d38e5"
+    },
+    {
+      "dependency_id": "query_hydrator:ImpressionBloomFilterQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/impression_bloom_filter_query_hydrator.rs",
+      "symbol": "ImpressionBloomFilterQueryHydrator",
+      "material_hash": "05444f6b39e2bfba2bea162940023652036604eebda9f413b5747fedae48bf9f",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/impression_bloom_filter_query_hydrator.rs:L15-121; reads viewer/request context and hydrates bloom_filter_entries, user_id, user_id, user_id, bloom_filter_entries, bloom_filter, size_cap, false_positive_rate, bloom_filter_entries, bloom_filter, size_cap, false_positive_rate, bloom_filter_entries, bloom_filter, size_cap, false_positive_rate for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_ImpressionBloomFilterQueryHydrator.txt",
+      "evidence_content_hash": "4622665da43241569b051a4f84025edd5413794c020f577af2b88e5d17817371"
+    },
+    {
+      "dependency_id": "query_hydrator:IpQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/ip_query_hydrator.rs",
+      "symbol": "IpQueryHydrator",
+      "material_hash": "fa970086d075374207514a55de7467735a36a932023cbe095d0381e3cd5e5632",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/ip_query_hydrator.rs:L14-31; reads viewer/request context and hydrates ip_location for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. public config readers=EnableIpFeature; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_IpQueryHydrator.txt",
+      "evidence_content_hash": "2a1856dc8860f2e9e19b6cf98b16b8a318756723c45212913c3338152eb918a6"
+    },
+    {
+      "dependency_id": "query_hydrator:MutedUserIdsQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/muted_user_ids_query_hydrator.rs",
+      "symbol": "MutedUserIdsQueryHydrator",
+      "material_hash": "1aeb9866a0da1497458ceb14be7ba9b6b51d4b60203e69622f6587f59d7ef4a0",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/muted_user_ids_query_hydrator.rs:L14-34; reads viewer/request context and hydrates MutedUserIds for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_MutedUserIdsQueryHydrator.txt",
+      "evidence_content_hash": "d2aef33c27c629da0ecff4231e34f21b9fe081384fe60640787b2a0a48ff8d45"
+    },
+    {
+      "dependency_id": "query_hydrator:MutualFollowQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/mutual_follow_query_hydrator.rs",
+      "symbol": "MutualFollowQueryHydrator",
+      "material_hash": "eb98c66d74972ffa9b6967dafe425906c958d029fb3d1a9636b23cd1884b4a81",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/mutual_follow_query_hydrator.rs:L14-38; reads viewer/request context and hydrates MutualFollow for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. public config readers=EnableMutualFollowJaccardHydration; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_MutualFollowQueryHydrator.txt",
+      "evidence_content_hash": "8b563acde69e06b5fb4124b7b13e8e633630e1f200edc3bece340319dd433acb"
+    },
+    {
+      "dependency_id": "query_hydrator:RecentSearchQueriesQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/recent_search_queries_query_hydrator.rs",
+      "symbol": "RecentSearchQueriesQueryHydrator",
+      "material_hash": "6d508eddf01d7d6aca7ad225c09e907f026fcf852c1e4a542e974f410f75aa84",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "固定commit读取实现：开关或shadow traffic且user_id非零才启用；300ms请求超时，只保留早于请求时间、2048字节embedding的最近16条，清除查询文本。旧manifest hash落后于base，此次绑定真实新pin，不宣称本轮新增。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/query_hydrator_RecentSearchQueriesQueryHydrator.json",
+      "evidence_content_hash": "af278662939c500321a7f62a1cdedc6767dc5e70bd676146297641f323d14578"
+    },
+    {
+      "dependency_id": "query_hydrator:RetrievalSequenceQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/retrieval_sequence_query_hydrator.rs",
+      "symbol": "RetrievalSequenceQueryHydrator",
+      "material_hash": "9f2f29426e16117521d15907aba7b30c6215b7998bd133806e8ca23ff369ad04",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/retrieval_sequence_query_hydrator.rs:L32-75; reads viewer/request context and hydrates retrieval_sequence, columnar_retrieval_sequence for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. public config readers=EnableRetrievalSequenceHydration, UserActionsClusterId, UasSourceDataType, UseXdsForUas, MaxSeqLengthRetrieval, PhoenixRetrievalAggregationType; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_RetrievalSequenceQueryHydrator.txt",
+      "evidence_content_hash": "8f23890b2dd0bec513f2109a8f60aae735b53e87534c72c3aa3118927aff63f6"
+    },
+    {
+      "dependency_id": "query_hydrator:ScoringSequenceQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/scoring_sequence_query_hydrator.rs",
+      "symbol": "ScoringSequenceQueryHydrator",
+      "material_hash": "e6aff790dcf133a4dd2854f969479f1c16b7a218054606b5333b16634b1e81fd",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/scoring_sequence_query_hydrator.rs:L40-119; reads viewer/request context and hydrates ScoringSequence for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. public config readers=EnableScoringSequenceHydration, PhoenixAggregationType, HistoryTopicsEnabled, HistoryTopicsWindowDays, UserActionsClusterId, UasSourceDataType, MaxSeqLengthScoring, UseXdsForUas; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_ScoringSequenceQueryHydrator.txt",
+      "evidence_content_hash": "d307abdbced99fb9b0e50fe2a9126f05060774d1804891762239515e8ffb2225"
+    },
+    {
+      "dependency_id": "query_hydrator:SubscribedUserIdsQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/subscribed_user_ids_query_hydrator.rs",
+      "symbol": "SubscribedUserIdsQueryHydrator",
+      "material_hash": "c5abc5c7b111e5e16cb2e365b1cd1726f26c0b745a2b9fb32fa8e67c6120e220",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/subscribed_user_ids_query_hydrator.rs:L14-34; reads viewer/request context and hydrates SubscribedUserIds for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_SubscribedUserIdsQueryHydrator.txt",
+      "evidence_content_hash": "5757bc182e366b02270285adb3d57a5fcb33a4bfbb1d16252e11d29d74151b53"
+    },
+    {
+      "dependency_id": "query_hydrator:UserDemographicsQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/user_demographics_query_hydrator.rs",
+      "symbol": "UserDemographicsQueryHydrator",
+      "material_hash": "fab87bb9858f00fd70627f740f861195ab2748e27aa786fd743de66b57290569",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/user_demographics_query_hydrator.rs:L14-31; reads viewer/request context and hydrates user_demographics for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. public config readers=EnableContextFeatures; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_UserDemographicsQueryHydrator.txt",
+      "evidence_content_hash": "37e4fd97dee55eb79c6547b6f268813b1a75ae948815e02ca0effdd3dfb79275"
+    },
+    {
+      "dependency_id": "query_hydrator:UserInferredGenderQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/user_inferred_gender_query_hydrator.rs",
+      "symbol": "UserInferredGenderQueryHydrator",
+      "material_hash": "add2e6525cec630ad467106bf80592b2423d311847d9d33735c865192b9fce0a",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/user_inferred_gender_query_hydrator.rs:L33-66; reads viewer/request context and hydrates user_inferred_gender, InferredGenderLabel, user_inferred_gender_score for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. public config readers=EnableInferredGenderHydration; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_UserInferredGenderQueryHydrator.txt",
+      "evidence_content_hash": "96f4a4a511adcb8e94e46b6fff898d10b3ac0150eb11f44fe6d67acbfa97c994"
+    },
+    {
+      "dependency_id": "query_hydrator:UserInstalledAppsQueryHydrator",
+      "kind": "query_hydrator",
+      "path": "home-mixer/query_hydrators/user_installed_apps_query_hydrator.rs",
+      "symbol": "UserInstalledAppsQueryHydrator",
+      "material_hash": "7f9fcc8c6785e1af9033a8f2ddb0d6bcf03270f3f0ccb48c1ae6a5b29cbb9078",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::query_hydrator"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/query_hydrators/user_installed_apps_query_hydrator.rs:L24-51; reads viewer/request context and hydrates user_installed_apps for downstream retrieval/scoring; no author-observable qualification or controllable action is exposed. public config readers=EnableUserInstalledAppsHydration, EnableUserInstalledAppsV2; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/query_hydrator_UserInstalledAppsQueryHydrator.txt",
+      "evidence_content_hash": "5b089f3087ac026666b6472bf30c49336e283158e6e42a253645d8c0f96fb104"
+    },
+    {
+      "dependency_id": "scorer:AuthorColdStart",
+      "kind": "scorer",
+      "path": "home-mixer/scorers/author_cold_start.rs",
+      "symbol": "AuthorColdStart",
+      "material_hash": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "aligned",
+      "review_depth": "effects_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/scorers/author_cold_start.rs"
+      ],
+      "consumer_refs": [
+        "Home/For You public path"
+      ],
+      "missing_dependencies": [],
+      "review_note": "资格、抽样与目标已读，实际实验组未知。",
+      "evidence_material_path": "source-snapshots/review-excerpts/scorer_AuthorColdStart.txt",
+      "evidence_content_hash": "c0512aaae90ff9be53477f6147778e28801d70fa7c74bedec9a0c945df1c7213"
+    },
+    {
+      "dependency_id": "scorer:compute_weighted_score",
+      "kind": "scorer",
+      "path": "xai-value-model/scoring.rs",
+      "symbol": "compute_weighted_score",
+      "material_hash": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "aligned",
+      "review_depth": "effects_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/params/param.rs",
+        "vm-ranker/params.rs",
+        "vm-ranker/scoring/debias.rs",
+        "vm-ranker/scoring/value_model.rs",
+        "xai-value-model/scoring.rs",
+        "home-mixer/scorers/value_model.rs",
+        "home-mixer/scorers/vm_ranker_request.rs",
+        "vm-ranker/scoring/mod.rs"
+      ],
+      "consumer_refs": [
+        "Home/For You public path"
+      ],
+      "missing_dependencies": [],
+      "review_note": "融合头及评分调整依调用者weights；Home本地关闭作者多样性，远端VM按请求compute=true及可用配置决定重算。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/scorer_compute_weighted_score-callers.json",
+      "evidence_content_hash": "5b8e9ca001dc877fdfcc7cff403146d660ceba9a01e992c6bdfd5c792e929b24"
+    },
+    {
+      "dependency_id": "scorer:ImmersiveVideoScorer",
+      "kind": "scorer",
+      "path": "home-mixer/scorers/immersive_video_scorer.rs",
+      "symbol": "ImmersiveVideoScorer",
+      "material_hash": "d4725cb7365bfc9cce3b09ecc8e5f7ab0adbb270028b15aaed84382e030fc2af",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::scorer"
+      ],
+      "missing_dependencies": [],
+      "review_note": "不再整体排除cached请求；只补轮播视频缺失immersive_scores，已有分保留。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/scorer_ImmersiveVideoScorer.json",
+      "evidence_content_hash": "e31094315debea06e029b75ed639667af721dd0caf802adcdace7ed1081625aa"
+    },
+    {
+      "dependency_id": "scorer:PhoenixScorer",
+      "kind": "scorer",
+      "path": "home-mixer/scorers/phoenix_scorer.rs",
+      "symbol": "PhoenixScorer",
+      "material_hash": "6c7ebe54c6ceef156a768434a789df8db18726efb16390d8acc74c3dadd65111",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::scorer"
+      ],
+      "missing_dependencies": [],
+      "review_note": "开关控制page_decode请求并记录返回slot/prob供后续页面重排；原预测头不等于最终顺序。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/scorer_PhoenixScorer.json",
+      "evidence_content_hash": "a6efa94682e76a5a11893937b0f146582980f22ce16ef873db073605ff05ff4a"
+    },
+    {
+      "dependency_id": "scorer:VMRanker",
+      "kind": "scorer",
+      "path": "home-mixer/scorers/vm_ranker.rs",
+      "symbol": "VMRanker",
+      "material_hash": "d78684ec39c7ac4f914d00e2271d7c88ce66495b2da6afeb9d7af7af88a69263",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients",
+        "home-mixer/params/param.rs",
+        "vm-ranker/params.rs",
+        "vm-ranker/scoring/debias.rs",
+        "vm-ranker/scoring/value_model.rs"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::scorer"
+      ],
+      "missing_dependencies": [],
+      "review_note": "Home保留本地备用分并构造远端请求；compute_value_model=true在RequestShape明确，服务可用性及配置仍约束输出。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/scorer_VMRanker.json",
+      "evidence_content_hash": "0a7926bb9b9fe4a1062a44da2b2f0b8e116598c28a7acd8adad3294ef2edd542"
+    },
+    {
+      "dependency_id": "selector:TopKScoreSelector",
+      "kind": "selector",
+      "path": "home-mixer/selectors/top_k_score_selector.rs",
+      "symbol": "TopKScoreSelector",
+      "material_hash": "34706498fa63cb3f0923ca17eae7355c9c3ca1ded177f2ea4eaf05563a74c50c",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients",
+        "home-mixer/util/video_carousel.rs",
+        "home-mixer/filters/video_carousel_filter.rs",
+        "home-mixer/params/param.rs"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::selector"
+      ],
+      "missing_dependencies": [],
+      "review_note": "保留score TopK后按CarouselScoring选额外视频并标extra；零分不是硬删除条件。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/selector_TopKScoreSelector-callers.json",
+      "evidence_content_hash": "0c78a973b11b3091cf35eed144bbb6c59e02c531f49f8cacb1d94baa2d6d059e"
+    },
+    {
+      "dependency_id": "side_effect:AuthorServedMetricsSideEffect",
+      "kind": "side_effect",
+      "path": "home-mixer/side_effects/author_served_metrics_side_effect.rs",
+      "symbol": "AuthorServedMetricsSideEffect",
+      "material_hash": "fac3bc6bc76c637564adcd0c370fc7c5dac82fe345154612ee541a94b76d13bf",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::side_effect"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/side_effects/author_served_metrics_side_effect.rs:L1-160; runs after selection to emit telemetry and does not alter the current selected candidate result; no author action follows. public config readers=EnableAuthorServedMetricsExperimentBucket; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/side_effect_AuthorServedMetricsSideEffect.txt",
+      "evidence_content_hash": "9b58fe2940412d77516d4eb39993e516b640eb984f0f65509d28ca46051bff6d"
+    },
+    {
+      "dependency_id": "side_effect:DebugSideEffect",
+      "kind": "side_effect",
+      "path": "home-mixer/side_effects/debug_side_effect.rs",
+      "symbol": "DebugSideEffect",
+      "material_hash": "cdd1141f21403c3f1b8b4489616f308731f804e8753ded5cb734475e1c8891e7",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::side_effect"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/side_effects/debug_side_effect.rs:L1-41; runs after selection to emit telemetry and does not alter the current selected candidate result; no author action follows. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/side_effect_DebugSideEffect.txt",
+      "evidence_content_hash": "cdd1141f21403c3f1b8b4489616f308731f804e8753ded5cb734475e1c8891e7"
+    },
+    {
+      "dependency_id": "side_effect:MutualFollowStatsSideEffect",
+      "kind": "side_effect",
+      "path": "home-mixer/side_effects/mutual_follow_stats_side_effect.rs",
+      "symbol": "MutualFollowStatsSideEffect",
+      "material_hash": "fd9e78586021386eb936902226698fed32a9516f08ed04aae422c15c0a745a07",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::side_effect"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/side_effects/mutual_follow_stats_side_effect.rs:L18-67; runs after selection to emit telemetry and does not alter the current selected candidate result; no author action follows. public config readers=EnableMutualFollowJaccardHydration, PhoenixRetrievalInferenceClusterId, EnablePhoenixMOESource; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/side_effect_MutualFollowStatsSideEffect.txt",
+      "evidence_content_hash": "d01d026ff6c75d685e3c377d825c2e6dbf234447e9ea6c87c2b7dab57b0fcac4"
+    },
+    {
+      "dependency_id": "side_effect:PhoenixExperimentsSideEffect",
+      "kind": "side_effect",
+      "path": "home-mixer/side_effects/phoenix_experiments_side_effect.rs",
+      "symbol": "PhoenixExperimentsSideEffect",
+      "material_hash": "de4147326e1cd71aff583adbfbf57a4afc09a705dbc6f568acdc1f2d3d3003fe",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::side_effect"
+      ],
+      "missing_dependencies": [],
+      "review_note": "仅新增post_video分数记录，不改变选中候选或评分。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/side_effect_PhoenixExperimentsSideEffect.json",
+      "evidence_content_hash": "fe8170c052f26971515499d4a094b8812e928cccfde2928ee48fc9d38c81ba42"
+    },
+    {
+      "dependency_id": "side_effect:PhoenixRequestCacheSideEffect",
+      "kind": "side_effect",
+      "path": "home-mixer/side_effects/phoenix_request_cache_side_effect.rs",
+      "symbol": "PhoenixRequestCacheSideEffect",
+      "material_hash": "5df8865161d1f281960e7cf700a7639a3cc2432bc1340060296ae1371a04b92e",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::side_effect"
+      ],
+      "missing_dependencies": [],
+      "review_note": "提取双DC写入/错误占比逻辑；新增served_post_score_infos和ServedSlateCacheSideEffect：只记非零prediction ID的自然帖、总计至多64、转帖归原帖、按prediction ID分组并追加zset页面，最终组内位置不含广告/模块；Decode概率仅温度>0且启用有slot时记录。 新增页面日志而非排序开关；EnablePageLogging默认true且is_prod gate，TTL默认3600。Decode/RL默认false；缓存页记录当前实际served序。超过10%写错报告失败不更改排名。新增各类日志测试未运行。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/side_effect_PhoenixRequestCacheSideEffect.json",
+      "evidence_content_hash": "6e457348803c4067edb32945205cef267de1be41111466bb32bbe154c2dff3b7"
+    },
+    {
+      "dependency_id": "side_effect:RedisPostCandidateCacheSideEffect",
+      "kind": "side_effect",
+      "path": "home-mixer/side_effects/redis_post_candidate_cache_side_effect.rs",
+      "symbol": "RedisPostCandidateCacheSideEffect",
+      "material_hash": "a6d808723087d48641a5d3acfe027e4e096a0138b43e8abc9e2770c792001ede",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::side_effect"
+      ],
+      "missing_dependencies": [],
+      "review_note": "只新增mock Redis写入再CachedPostsQueryHydrator回读的page slot/prob三字段保留测试。 生产缓存写入/TTL180/仅正weighted过滤逻辑未变，字段持久化由PostCandidate serde新增实现。不得把静态用例说成已通过运行验收。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/side_effect_RedisPostCandidateCacheSideEffect.json",
+      "evidence_content_hash": "d6bc9b69c738f6a0aa2a3d2a0da4ea0034d3d71dbb89e6aab717527296b931b1"
+    },
+    {
+      "dependency_id": "side_effect:RerankingKafkaSideEffect",
+      "kind": "side_effect",
+      "path": "home-mixer/side_effects/reranking_kafka_side_effect.rs",
+      "symbol": "RerankingKafkaSideEffect",
+      "material_hash": "380deb0aeed9d037860a85ed8336e477341ae3a4c4695a8965e6b59b18a94b77",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::side_effect"
+      ],
+      "missing_dependencies": [],
+      "review_note": "预测分map新增post_video项。 用于日志记录，非新候选加分；不能把日志字段当固定视频boost。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/side_effect_RerankingKafkaSideEffect.json",
+      "evidence_content_hash": "2debfcadfffcbacf02db9239e913eb6afd8955e16a1c957ff99b6326c4558843"
+    },
+    {
+      "dependency_id": "side_effect:ResponseDiversityStatsSideEffect",
+      "kind": "side_effect",
+      "path": "home-mixer/side_effects/response_diversity_stats_side_effect.rs",
+      "symbol": "ResponseDiversityStatsSideEffect",
+      "material_hash": "f4575688be8e5ab099d7e9fd5f50ad27458ee7d5225309bc6c408a4506c02d47",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::side_effect"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/side_effects/response_diversity_stats_side_effect.rs:L1-160; runs after selection to emit telemetry and does not alter the current selected candidate result; no author action follows. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/side_effect_ResponseDiversityStatsSideEffect.txt",
+      "evidence_content_hash": "c937099a1f1ced339379c8b1c3563df1a064033892e46c8ecc1ff9ca04dffbe5"
+    },
+    {
+      "dependency_id": "side_effect:RetrievalCandidatesKafkaSideEffect",
+      "kind": "side_effect",
+      "path": "home-mixer/side_effects/retrieval_candidates_kafka_side_effect.rs",
+      "symbol": "RetrievalCandidatesKafkaSideEffect",
+      "material_hash": "740b5a8a957a02ecfa0fd8d212cd47d3b69726986b20c37a72b9bf9aed363e89",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::side_effect"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/side_effects/retrieval_candidates_kafka_side_effect.rs:L108-188; runs after selection to emit logging/Kafka data and does not alter the current selected candidate result; no author action follows. public config readers=RetrievalCandidatesKafkaMaxCandidates, RetrievalCandidatesKafkaSamplePercent; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/side_effect_RetrievalCandidatesKafkaSideEffect.txt",
+      "evidence_content_hash": "1fce1654960b82e83afa380300a3d5ba91cfa3addf86e2703ca23979ad6df4a4"
+    },
+    {
+      "dependency_id": "side_effect:ScoredStatsSideEffect",
+      "kind": "side_effect",
+      "path": "home-mixer/side_effects/scored_stats_side_effect.rs",
+      "symbol": "ScoredStatsSideEffect",
+      "material_hash": "fdb7fbc8877385f5ac346afa8e0976b184a1203de4defb6b980197301171f895",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::side_effect"
+      ],
+      "missing_dependencies": [],
+      "review_note": "移除PhoenixScorer引用与retrieval contribution统计中的ranker_cluster参数/标签；retrieval_cluster及实验桶标签保持。 降低指标维度，不改来源归因候选集合或模型选择，不能推导检索/排名权重变化。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/side_effect_ScoredStatsSideEffect.json",
+      "evidence_content_hash": "26b5ba2f97dce62bfa7f5b67852ce15433ba9dcc09b1a9f7b96551ff702db52c"
+    },
+    {
+      "dependency_id": "side_effect:SerendipityStatsSideEffect",
+      "kind": "side_effect",
+      "path": "home-mixer/side_effects/serendipity_stats_side_effect.rs",
+      "symbol": "SerendipityStatsSideEffect",
+      "material_hash": "0a2714425bdc0821ab36779f88e8740811da44662f35ee3b6a89f25dee42063e",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "no_operational_action",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::side_effect"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/side_effects/serendipity_stats_side_effect.rs:L1-160; runs after selection to emit telemetry and does not alter the current selected candidate result; no author action follows. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/side_effect_SerendipityStatsSideEffect.txt",
+      "evidence_content_hash": "7ddf803b081389d9281062068c4875d2570847e78fc61942f80ceccab55a050c"
+    },
+    {
+      "dependency_id": "source:CachedPostsSource",
+      "kind": "source",
+      "path": "home-mixer/sources/cached_posts_source.rs",
+      "symbol": "CachedPostsSource",
+      "material_hash": "d50d9b7fc814452497921c9264989d25810aa752ee927e4989a174fcfe200bbe",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "known_default",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::source"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/sources/cached_posts_source.rs:L10-18; when the query cache hydrator found enough cached posts, returns those cached candidates instead of fresh sources. no runtime parameter reader in this component.",
+      "evidence_material_path": "source-snapshots/review-excerpts/source_CachedPostsSource.txt",
+      "evidence_content_hash": "f9aa8f2c28d2857a946ada127ff35f86efba41fc5585301d17fbad789db96c45"
+    },
+    {
+      "dependency_id": "source:PhoenixMOESource",
+      "kind": "source",
+      "path": "home-mixer/sources/phoenix_moe_source.rs",
+      "symbol": "PhoenixMOESource",
+      "material_hash": "effcf65ae26bb5bb6dc6b5e9ce420c878bed2e15d6ed918b2ac11e9056a5ea26",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "partially_public",
+      "documentation_status": "not_applicable",
+      "review_depth": "conditions_verified",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::source"
+      ],
+      "missing_dependencies": [
+        "PhoenixMOESource external service implementation/runtime response"
+      ],
+      "review_note": "evidence=home-mixer/sources/phoenix_moe_source.rs:L25-126; requires switch, SID disabled, compatible topic mode, no cache and decider gate; external MOE retrieval remains request-specific. public config readers=EnablePhoenixMOESource, PhoenixRetrievalMOEInferenceClusterId, PhoenixMOEMaxResults, PhoenixMoeColdStartMaxResults, PhoenixXdsRetrievalMaxRetries; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/source_PhoenixMOESource.txt",
+      "evidence_content_hash": "43ff6ce3eb6e31043318bc9a1abe930b6046fec3feeee9d1f66097a429b973e4"
+    },
+    {
+      "dependency_id": "source:PhoenixSource",
+      "kind": "source",
+      "path": "home-mixer/sources/phoenix_source.rs",
+      "symbol": "PhoenixSource",
+      "material_hash": "b37a5721121cfd4329b1eaf6b0cb16e316fa1676fd19c89c003689fbaefbd5ce",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "partially_public",
+      "documentation_status": "not_applicable",
+      "review_depth": "conditions_verified",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::source"
+      ],
+      "missing_dependencies": [
+        "PhoenixSource external service implementation/runtime response"
+      ],
+      "review_note": "evidence=home-mixer/sources/phoenix_source.rs:L105-278; requires switch, out-of-network, no cache and compatible topic mode; sends viewer retrieval sequence, context, exclusions and configured weights to external retrieval. public config readers=PhoenixRetrievalInferenceClusterId, PhoenixRetrievalNewUserHistoryThreshold, PhoenixRetrievalNewUserInferenceClusterId, PhoenixRetrievalExcludeSeenPosts, EnablePhoenixSource, PhoenixMaxResults, PhoenixColdStartMaxResults, PhoenixXdsRetrievalMaxRetries, RetrievalValueModelWeights; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/source_PhoenixSource.txt",
+      "evidence_content_hash": "ac37f81cbda10926b7f5ceda7fba9aa01ce2a27bc7fd7758d49f6d4c116e1821"
+    },
+    {
+      "dependency_id": "source:PhoenixTopicsSource",
+      "kind": "source",
+      "path": "home-mixer/sources/phoenix_topics_source.rs",
+      "symbol": "PhoenixTopicsSource",
+      "material_hash": "66e599df2abad04369c8f4c8889dad2a8547db5f2bef1e83cba95815844296d7",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "partially_public",
+      "documentation_status": "not_applicable",
+      "review_depth": "conditions_verified",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::source"
+      ],
+      "missing_dependencies": [
+        "PhoenixTopicsSource external service implementation/runtime response"
+      ],
+      "review_note": "evidence=home-mixer/sources/phoenix_topics_source.rs:L27-95; runs only a non-bulk topic request, expands topic IDs and passes resolved topic-filter mode to external Phoenix retrieval. public config readers=PhoenixRetrievalTopicInferenceClusterId, TopicFilteringId, TopicFilteringOverrides, PhoenixMaxResults, PhoenixXdsRetrievalMaxRetries; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/source_PhoenixTopicsSource.txt",
+      "evidence_content_hash": "ca0f97d476b97ba7d250a61b2b528fe3feb0727d030b7af1141552deea29cd9e"
+    },
+    {
+      "dependency_id": "source:PopularPostsSource",
+      "kind": "source",
+      "path": "home-mixer/sources/popular_posts_source.rs",
+      "symbol": "PopularPostsSource",
+      "material_hash": "c194047540fe8c649258cc799594d026a1edf4f4209c6ec0f38872b317b6a991",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "end_to_end_traced",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::source"
+      ],
+      "missing_dependencies": [],
+      "review_note": "evidence=home-mixer/sources/popular_posts_source.rs:L27-66; runs only out-of-network with its switch and no cache, then removes seen IDs from the public popular cache result. public config readers=EnablePopularPostsSource, PopularPostsMaxResults; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/source_PopularPostsSource.txt",
+      "evidence_content_hash": "8b062918c6061c3e0b76c6a1ead40675e545dfdefac291ccb7836dae43c7c090"
+    },
+    {
+      "dependency_id": "source:SidSource",
+      "kind": "source",
+      "path": "home-mixer/sources/sid_source.rs",
+      "symbol": "SidSource",
+      "material_hash": "4e9e502f1c026ade2035846c7b9477371d3321c6baecae599b3e943483a462ce",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "partially_public",
+      "documentation_status": "not_applicable",
+      "review_depth": "conditions_verified",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::source"
+      ],
+      "missing_dependencies": [
+        "SidSource external service implementation/runtime response"
+      ],
+      "review_note": "evidence=home-mixer/sources/sid_source.rs:L58-113; requires SID enabled, non-topic out-of-network no-cache request plus post signals; sends bounded seeds/prefix settings to external SID retrieval. public config readers=EnableSidSource, SidSourceMaxSeeds, SidSourceMaxResults, SidSourceMaxPerSeed, SidSourceMinPrefixDepth; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/source_SidSource.txt",
+      "evidence_content_hash": "a12e2be7db9beae97b2c0aca73210c2d792eef83a9f77cd9a13f28b19ef56c6f"
+    },
+    {
+      "dependency_id": "source:SimclustersSource",
+      "kind": "source",
+      "path": "home-mixer/sources/simclusters_source.rs",
+      "symbol": "SimclustersSource",
+      "material_hash": "794128cae2c0a970affb3599b1f48e7b30c35887f8246c46323fa2c32e4ef605",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "partially_public",
+      "documentation_status": "not_applicable",
+      "review_depth": "conditions_verified",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::source"
+      ],
+      "missing_dependencies": [
+        "SimclustersSource external service implementation/runtime response"
+      ],
+      "review_note": "evidence=home-mixer/sources/simclusters_source.rs:L215-302; requires switch, out-of-network, no cache and eligible post signals; seed age/min ANN score/candidate ages are bounded locally but ANN service internals are external. public config readers=EnableSimclustersSource, SimclustersMaxCandidateAgeHours; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/source_SimclustersSource.txt",
+      "evidence_content_hash": "80da6510f246ca73f73c4ad0c2f44dcf2088cd2fa197393b46bfda7ab5617d82"
+    },
+    {
+      "dependency_id": "source:ThunderSource",
+      "kind": "source",
+      "path": "home-mixer/sources/thunder_source.rs",
+      "symbol": "ThunderSource",
+      "material_hash": "0b72776ca67e385ec809fcb5618ebc7cc6c9c68fdc712547913d4b40c7dbe767",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "partially_public",
+      "documentation_status": "not_applicable",
+      "review_depth": "conditions_verified",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::source"
+      ],
+      "missing_dependencies": [
+        "ThunderSource external service implementation/runtime response"
+      ],
+      "review_note": "移除ThunderClusterId与decider解析，改为无cluster参数的get_random_channel；召回请求路由变化，服务内部与实际响应未知。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/source_ThunderSource.json",
+      "evidence_content_hash": "5706505e87c5093175936e205d61a4bd1cc882bcf44ce087e0aa8e8125fcf978"
+    },
+    {
+      "dependency_id": "source:TweetMixerSource",
+      "kind": "source",
+      "path": "home-mixer/sources/tweet_mixer_source.rs",
+      "symbol": "TweetMixerSource",
+      "material_hash": "38c143dbf28c9b7d1a3e98c8ac7e692233d484e2535f312f1c0eebe3eec6ac25",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "partially_public",
+      "documentation_status": "not_applicable",
+      "review_depth": "conditions_verified",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs::build_with_clients"
+      ],
+      "consumer_refs": [
+        "PhoenixCandidatePipeline::source"
+      ],
+      "missing_dependencies": [
+        "TweetMixerSource external service implementation/runtime response"
+      ],
+      "review_note": "evidence=home-mixer/sources/tweet_mixer_source.rs:L25-142; runs only out-of-network with switch/no cache, sends viewer context and exclusions to external TweetMixer, and locally rejects candidates older than 48 hours. public config readers=EnableTweetMixerSource, TweetMixerMaxResults; actual per-request values remain unknown.",
+      "evidence_material_path": "source-snapshots/review-excerpts/source_TweetMixerSource.txt",
+      "evidence_content_hash": "d762be60a8c5854265b4f708a3fc1b652bc9816354e18ac5b71d6130e077041d"
+    },
+    {
+      "dependency_id": "training_label:compute_post_unexplored_labels",
+      "kind": "training_label",
+      "path": "phoenix/xrex/data/recsys/recsys_batch.py",
+      "symbol": "compute_post_unexplored_labels",
+      "material_hash": "9102d2825e12493a5d6e61b11514253abc84a62dfebe20ed112a6df120577ac8",
+      "wiring_status": "definition_only",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "aligned",
+      "review_depth": "conditions_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "phoenix/xrex/data/recsys/recsys_batch.py"
+      ],
+      "consumer_refs": [
+        "model training input"
+      ],
+      "missing_dependencies": [],
+      "review_note": "批次读取增加late labels、early counterpart处理、广告计数log2桶及与人工负样本不兼容校验；非reply模式计算最早自身候选请求时间和不晚于请求的最新历史时间并填充int64。 供Python模型特征准备和可选广告侧输入消费；零值区分不了缺失与零计数，时间gap不能误解为帖子年龄或作者发帖频率。训练和Rust输入都排除reply槽位，但空/异常输入行为不能凭静态审查宣称完全一致。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/training_label_compute_post_unexplored_labels.json",
+      "evidence_content_hash": "44a89e9bec29755cdaccbd6a1784f9d6c3433a3d5caa63256de6a9ed6fd4c5cf"
+    },
+    {
+      "dependency_id": "training_label:PhoenixContinuousActionLosses",
+      "kind": "training_label",
+      "path": "phoenix/xrex/configs/xrecsys.py",
+      "symbol": "continuous_action_losses",
+      "material_hash": "2d36ba64ab7ec698ecb4f557f5ecb51573078884b69b98238299d53d08573635",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "effects_verified",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "phoenix/xrex/configs/xrecsys.py"
+      ],
+      "consumer_refs": [
+        "xai-value-model/scoring.rs::compute_weighted_score"
+      ],
+      "missing_dependencies": [],
+      "review_note": "新增immersive_page_rl_cread配方用cread两项.1替代Tweedie/MAE；home_direct_packed将view loss=.5、time-gap=true/lr4、clip1.4、embedding WD5.6e-4/window37/SR及三类LR缩放.25；新增多项可选模型/dataset开关并更换H100 remat。 这是具体训练配方与mparams接线，不是Home价值融合系数；泛型开关默认false/0/1，home_direct_packed是明确局部覆盖且不扩散到GB300/nano。可建议补机制说明，但OP01–10无新确定性写法。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/training_label_PhoenixContinuousActionLosses.json",
+      "evidence_content_hash": "e189881681959530887943a961811e40a257a650c6bd0074513e46af0e9d39ac"
+    },
+    {
+      "dependency_id": "training_label:PhoenixDiscreteActionLabels",
+      "kind": "training_label",
+      "path": "phoenix/crates/serving/xai-recsys-proto/proto/recsys.proto",
+      "symbol": "ActionName",
+      "material_hash": "81aa9fa308609271a31e0c055762587fa5febe49d9421cc4b61fab5d2cf6c33f",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "not_applicable",
+      "review_depth": "effects_verified",
+      "disposition": "dependency_only",
+      "caller_refs": [
+        "phoenix/crates/serving/xai-recsys-proto/proto/recsys.proto"
+      ],
+      "consumer_refs": [
+        "xai-value-model/scoring.rs::compute_weighted_score"
+      ],
+      "missing_dependencies": [],
+      "review_note": "Rust proto新增PageDecodeParams.rewardHead、ScoreInfo.pageDecoded、广告late-window/leadgen动作、AdTargeting/ad_taxonomy_id、两个history aggregation类型；44号动作ReactWithVideo重命名PostVideo，wire编号不变。 Home调用者传reward_head并缓存decoded标志，Python proto同步；这是请求/日志/训练契约变更，不保证服务端消费rewardHead。广告目标字段不是organic受众限制；动作名迁移应同步旧解释。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/training_label_PhoenixDiscreteActionLabels.json",
+      "evidence_content_hash": "5e93ea1b45dec480b513e6132a3bc3cfd46bb2b1f5b03dc4b317583dcc0dfdd6"
+    },
+    {
+      "dependency_id": "visibility_level:SafetyLevel",
+      "kind": "visibility_level",
+      "path": "visibility-filtering/rules/safety_level.rs",
+      "symbol": "SafetyLevel",
+      "material_hash": "04fd6c5a1aca8ef31543dc2de4bd8abbce5cc50c2645b27fc4dce3df34e7892a",
+      "wiring_status": "wired_reviewed",
+      "config_visibility": "partial",
+      "source_visibility": "public",
+      "documentation_status": "stale",
+      "review_depth": "effects_verified",
+      "disposition": "fact_card",
+      "caller_refs": [
+        "visibility-filtering/rules/safety_level.rs"
+      ],
+      "consumer_refs": [
+        "Home/For You public path"
+      ],
+      "missing_dependencies": [],
+      "review_note": "LevelSpec拆Posts/QuotePass/Notifications，parse区分Unknown/NotServed；WriterV2注册Mention/Reply/MediaTagged，kind映射Users或ActorPosts；Immersive不暴露EvaluateTweets thrift。 明确服务入口和kind范围，保持已有FilterTweets/EvaluateTweets承载集合；新增仅通知帖子支持。",
+      "evidence_material_path": "source-snapshots/reviews/b220448/visibility_level_SafetyLevel.json",
+      "evidence_content_hash": "024eab0758d2993de3bec041814a561a6202501d0fa817d71fd5ea1a4847052f"
+    }
+  ]
+}

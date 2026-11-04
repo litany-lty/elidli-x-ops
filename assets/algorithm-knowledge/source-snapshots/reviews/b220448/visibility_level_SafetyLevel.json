@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "visibility_level:SafetyLevel",
+  "semantic_review": "LevelSpec拆Posts/QuotePass/Notifications，parse区分Unknown/NotServed；WriterV2注册Mention/Reply/MediaTagged，kind映射Users或ActorPosts；Immersive不暴露EvaluateTweets thrift。 明确服务入口和kind范围，保持已有FilterTweets/EvaluateTweets承载集合；新增仅通知帖子支持。",
+  "files": [
+    {
+      "path": "visibility-filtering/rules/safety_level.rs",
+      "sha256": "04fd6c5a1aca8ef31543dc2de4bd8abbce5cc50c2645b27fc4dce3df34e7892a"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

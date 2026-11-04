@@ -1,0 +1,23 @@
+{
+  "contract_version": 2,
+  "rule_id": "CS01",
+  "rule_version_id": "fact-cs01-b220448766ab",
+  "repo": "xai-org/x-algorithm",
+  "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "path": "home-mixer/scorers/author_cold_start.rs",
+  "symbol": "cold_start_base_eligible",
+  "source_material_ref": "artifact-cs01-b220448",
+  "source_content_hash": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+  "checked_at": "2026-11-04T07:56:43.457Z",
+  "publicly_available_from": null,
+  "applicable_surface": "home_for_you_public_path",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证",
+    "当前事实只约束b220448公开源码中的该路径；生产命中和配置仍未知"
+  ],
+  "observed_behavior": "冷启动资格依赖帖子类型、年龄、Home views等条件，候选预算不是曝光承诺。",
+  "inference_boundary": "只陈述所列公开路径；不推算个人账号内部得分、曝光配额、隐藏标签或增长结果。",
+  "production_status": "unknown",
+  "supersedes": "fact-cs01-6258a1549ef8"
+}

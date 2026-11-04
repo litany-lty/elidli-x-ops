@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "action_consumer:EvaluateTweetsTreatment",
+  "semantic_review": "迁移ingress/RequestViewer并按新evaluation状态产生结果；viewer/国家/quote处理须以新入口核验，外部policy未公开。",
+  "files": [
+    {
+      "path": "visibility-filtering/evaluate_tweets.rs",
+      "sha256": "b7cb080eb509435d7241e297fff084a18b7e1237ed24fb17b31ba6e5b124bb00"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

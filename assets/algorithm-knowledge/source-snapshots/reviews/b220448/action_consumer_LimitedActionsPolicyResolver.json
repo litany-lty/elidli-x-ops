@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "action_consumer:LimitedActionsPolicyResolver",
+  "semantic_review": "仅将missing-policy计数从可选StatsReceiver迁移到Metrics；reason去重、action解析、空动作不生成policy未改变。外部policy内容仍未知。",
+  "files": [
+    {
+      "path": "visibility-filtering/params/limited_actions_policy.rs",
+      "sha256": "989574f8d8af7554e29c0c6fcac348cd17f37a9e6ec76a2d9893d4984cf446de"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

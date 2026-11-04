@@ -1,0 +1,27 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "dependency_id": "selector:TopKScoreSelector",
+  "semantic_review": "保留score TopK后按CarouselScoring选额外视频并标extra；零分不是硬删除条件。",
+  "files": [
+    {
+      "path": "home-mixer/selectors/top_k_score_selector.rs",
+      "sha256": "34706498fa63cb3f0923ca17eae7355c9c3ca1ded177f2ea4eaf05563a74c50c"
+    },
+    {
+      "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+      "sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22"
+    },
+    {
+      "path": "home-mixer/util/video_carousel.rs",
+      "sha256": "1c90cc7318030215555a2f49d38ebd2b6ae1e71596d7f748340cc5c8dde2f3a5"
+    },
+    {
+      "path": "home-mixer/filters/video_carousel_filter.rs",
+      "sha256": "5edcf248da8727df2a5144ee7f315104db7306f380c8b919171f175718065e9f"
+    },
+    {
+      "path": "home-mixer/params/param.rs",
+      "sha256": "3dc29c907ad756dbefe23b670fb71084848eb7687f8a8a1c5b771cb8ae61cc53"
+    }
+  ]
+}

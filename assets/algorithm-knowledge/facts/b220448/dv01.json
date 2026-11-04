@@ -1,0 +1,23 @@
+{
+  "contract_version": 2,
+  "rule_id": "DV01",
+  "rule_version_id": "fact-dv01-b220448766ab",
+  "repo": "xai-org/x-algorithm",
+  "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "path": "xai-value-model/scoring.rs",
+  "symbol": "diversity_multiplier",
+  "source_material_ref": "artifact-dv01-b220448",
+  "source_content_hash": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+  "checked_at": "2026-11-04T07:56:43.457Z",
+  "publicly_available_from": null,
+  "applicable_surface": "home_for_you_public_path",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证",
+    "当前事实只约束b220448公开源码中的该路径；生产命中和配置仍未知"
+  ],
+  "observed_behavior": "作者多样性乘子属于启用的VM重算路径；Home本地weights明确关闭它。Home请求compute_value_model=true，但VM仍需可用配置和路径；不能推成每日固定发帖上限或所有请求实际执行。",
+  "inference_boundary": "只陈述所列公开路径；不推算个人账号内部得分、曝光配额、隐藏标签或增长结果。",
+  "production_status": "unknown",
+  "supersedes": "fact-dv01-6258a1549ef8"
+}

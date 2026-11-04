@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "side_effect:PhoenixRequestCacheSideEffect",
+  "semantic_review": "提取双DC写入/错误占比逻辑；新增served_post_score_infos和ServedSlateCacheSideEffect：只记非零prediction ID的自然帖、总计至多64、转帖归原帖、按prediction ID分组并追加zset页面，最终组内位置不含广告/模块；Decode概率仅温度>0且启用有slot时记录。 新增页面日志而非排序开关；EnablePageLogging默认true且is_prod gate，TTL默认3600。Decode/RL默认false；缓存页记录当前实际served序。超过10%写错报告失败不更改排名。新增各类日志测试未运行。",
+  "files": [
+    {
+      "path": "home-mixer/side_effects/phoenix_request_cache_side_effect.rs",
+      "sha256": "5df8865161d1f281960e7cf700a7639a3cc2432bc1340060296ae1371a04b92e"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

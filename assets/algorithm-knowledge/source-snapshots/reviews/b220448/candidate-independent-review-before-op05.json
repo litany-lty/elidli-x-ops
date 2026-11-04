@@ -1,0 +1,1986 @@
+{
+  "purpose": "review_knowledge",
+  "subject_ref": "knowledge-proposal-f6ee0d3e8af4dadf910680d4",
+  "subject_hash": "0d1c6f9146f2f360b2007afa6fac2d7b828a91d62a67969c8dae357648f0a8e3",
+  "subject_content_hash": "0d1c6f9146f2f360b2007afa6fac2d7b828a91d62a67969c8dae357648f0a8e3",
+  "decision": "revision_required",
+  "checks": {
+    "proposal_hash_matches_payload": true,
+    "source_inventory_331_bindings_verified": true,
+    "proposal_86_source_bindings_verified": true,
+    "thirty_new_pin_facts_bounded": true,
+    "priority_actual_consumers_checked": true,
+    "all_248_diff_paths_accounted_for": true,
+    "prior_68_manifest_files_byte_preserved": true,
+    "sixty_recorded_replay_cases_match_expected": true,
+    "editorial_actions_and_predicates_unchanged": true,
+    "production_unknowns_preserved": true,
+    "all_operational_rules_approved": false,
+    "affected_dependency_gaps_closed": false,
+    "op05_derivation_matches_predicate": false,
+    "safe_to_activate_whole_bundle": false
+  },
+  "issues": [
+    "整包激活仍被10条pending运营规则阻断；此报告没有把pending改成approved，也不是各条规则或20个回放结果的独立批准凭据。",
+    "真实受影响未决依赖共10项：3项action consumer与7项source。4项本体变动，加6项共享caller受影响。已阅读公开diff不等于关闭外部policy、召回服务、请求配置和实际响应缺口，不得把这些依赖改为已完全解决来放行。",
+    "OP05.derivation仍称planned_topic_overlap>=0.75，但editorial_predicate与action_template实际要求substantive_repeat和绑定历史的精确语义审核。此不一致在旧规则已存在，本次沿用；应修正解释文案，而非引入数值阈值或放宽现有安全动作。"
+  ],
+  "reviewer": "/root/update_x_algorithm_rules/review_exact_candidate_bundle",
+  "generator_ref": "/root/update_x_algorithm_rules",
+  "reviewed_at": "2026-11-04T08:02:38.908341+00:00",
+  "reviewed_payload": {
+    "contract_version": 5,
+    "proposal_id": "knowledge-proposal-f6ee0d3e8af4dadf910680d4",
+    "prior_catalog_ref": "x-algorithm-2f252142-signals-candidate-v5",
+    "candidate_catalog_ref": "x-algorithm-b220448-operational-candidate-v6",
+    "candidate_catalog_hash": "0397ee50e721dec4200787f31444fe9376d4e12140e8f5871df645ce1f204395",
+    "candidate_bundle_hash": "440faa39c9aa9aa830eec68c59eb6ea538cb5001b8c3f030b0d45e5c81cf54ca",
+    "check_ref": "knowledge-check-3620f15daf1a3066619cde8f",
+    "check_hash": "ee656f24c173d4bcaf80037c846463d5b374fc9913958386ba71d1f37f3700fa",
+    "source_binding_version": "git-source-v1",
+    "source_bindings": [
+      {
+        "source_ref": "artifact:artifact-c01-b220448",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22"
+      },
+      {
+        "source_ref": "artifact:artifact-c02-b220448",
+        "path": "home-mixer/filters/fair_share_ranking_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "208fd3b67415a76128135f972ff0f104e4d497e7",
+        "file_sha256": "7c61de45f17cff34f9c51cba548641c87ff888743e7414a67e8298e4cf048e83",
+        "material_hash": "7c61de45f17cff34f9c51cba548641c87ff888743e7414a67e8298e4cf048e83"
+      },
+      {
+        "source_ref": "artifact:artifact-c03-b220448",
+        "path": "home-mixer/filters/fair_share_ranking_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "208fd3b67415a76128135f972ff0f104e4d497e7",
+        "file_sha256": "7c61de45f17cff34f9c51cba548641c87ff888743e7414a67e8298e4cf048e83",
+        "material_hash": "7c61de45f17cff34f9c51cba548641c87ff888743e7414a67e8298e4cf048e83"
+      },
+      {
+        "source_ref": "artifact:artifact-c04-b220448",
+        "path": "home-mixer/filters/age_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "614c0cd77cc49cdf9454060eb15bd6c39ed10886",
+        "file_sha256": "8b071a27cfcadbcc2cdeee6b9b2c58a4eafc55d5eedae37f02abd028f106739e",
+        "material_hash": "8b071a27cfcadbcc2cdeee6b9b2c58a4eafc55d5eedae37f02abd028f106739e"
+      },
+      {
+        "source_ref": "artifact:artifact-c05-b220448",
+        "path": "home-mixer/filters/oon_retweet_reply_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "8fe4c0d24c8af927d83ec4f9c9e9ad79ef3f89bb",
+        "file_sha256": "f492d71f0e08f7c811ea0bc64ca6c5fb4518e7666e1cb911b97325c70b3788c5",
+        "material_hash": "f492d71f0e08f7c811ea0bc64ca6c5fb4518e7666e1cb911b97325c70b3788c5"
+      },
+      {
+        "source_ref": "artifact:artifact-c06-b220448",
+        "path": "home-mixer/filters/previously_seen_posts_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "ec5597a7c4294cf9068a9bdb256b2aedad36da3b",
+        "file_sha256": "f1f44a6ee8bf2cc412db8965b4f05abb1dff58efa2776f04921417d82a33db57",
+        "material_hash": "f1f44a6ee8bf2cc412db8965b4f05abb1dff58efa2776f04921417d82a33db57"
+      },
+      {
+        "source_ref": "artifact:artifact-c07-b220448",
+        "path": "home-mixer/filters/drop_duplicates_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "faae79a0f301f4f724ff7cfde9f591f1dc77d16e",
+        "file_sha256": "8b0a5e750c5d8ac44d0129a2c2b293a375f4d3a38dfb5510e2671791b010c91f",
+        "material_hash": "8b0a5e750c5d8ac44d0129a2c2b293a375f4d3a38dfb5510e2671791b010c91f"
+      },
+      {
+        "source_ref": "artifact:artifact-c08-b220448",
+        "path": "home-mixer/filters/dedup_conversation_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9e73fc2f546ab76b91f9ae0841469cc5e1c95c37",
+        "file_sha256": "cadf2a57f9e88b842179184641221672344582089f62afcc7c9f1f28e6fb3d30",
+        "material_hash": "cadf2a57f9e88b842179184641221672344582089f62afcc7c9f1f28e6fb3d30"
+      },
+      {
+        "source_ref": "artifact:artifact-c09-b220448",
+        "path": "home-mixer/filters/author_socialgraph_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9b04ad34dc40cc5a64dd6145a664f3a1447a76ff",
+        "file_sha256": "c0cac910b974522bb20b16c21e8ad2cb64306b4868ce367d2162ab1d25f0084a",
+        "material_hash": "c0cac910b974522bb20b16c21e8ad2cb64306b4868ce367d2162ab1d25f0084a"
+      },
+      {
+        "source_ref": "artifact:artifact-c10-b220448",
+        "path": "home-mixer/filters/ineligible_subscription_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "39fe76b41b268976c82f47a165e0bfd1265247de",
+        "file_sha256": "1419306bc078ea4ebf590185947e975b1e6cbc81e30e5e8fe734e042b467a3b6",
+        "material_hash": "1419306bc078ea4ebf590185947e975b1e6cbc81e30e5e8fe734e042b467a3b6"
+      },
+      {
+        "source_ref": "artifact:artifact-c11-b220448",
+        "path": "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "68009a83e94329f02f842fb7294e632824b7448e",
+        "file_sha256": "5a37ed35e1eed07551041778f5b36aceee5749f9699f5c6287e3341d0d7ab309",
+        "material_hash": "5a37ed35e1eed07551041778f5b36aceee5749f9699f5c6287e3341d0d7ab309"
+      },
+      {
+        "source_ref": "artifact:artifact-c12-b220448",
+        "path": "home-mixer/filters/vf_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "2e2c0cefaceb9c38ebf30af44eb9e61312fdc25e",
+        "file_sha256": "33f42784645515722f4a38555d61f18757a9d8f38e2a1db0f3b89257c20e63f4",
+        "material_hash": "33f42784645515722f4a38555d61f18757a9d8f38e2a1db0f3b89257c20e63f4"
+      },
+      {
+        "source_ref": "artifact:artifact-c13-b220448",
+        "path": "visibility-filtering/rules/levels.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "0108e7accab8ce30b15719a935d2c3916dffabdc",
+        "file_sha256": "221105b62b0890f5644728a9ccc5597837bf4ce8e302562b59931f3ad7b404f8",
+        "material_hash": "221105b62b0890f5644728a9ccc5597837bf4ce8e302562b59931f3ad7b404f8"
+      },
+      {
+        "source_ref": "artifact:artifact-c14-b220448",
+        "path": "visibility-filtering/rules/tweet_rules.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "84bc98a018e0e8d41c05a1672089c5683de643f5",
+        "file_sha256": "e093bc2eb27d288476e03240aea9a2a936ae5112cff77133c7ac3dd7670fa172",
+        "material_hash": "e093bc2eb27d288476e03240aea9a2a936ae5112cff77133c7ac3dd7670fa172"
+      },
+      {
+        "source_ref": "artifact:artifact-c15-b220448",
+        "path": "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "68009a83e94329f02f842fb7294e632824b7448e",
+        "file_sha256": "5a37ed35e1eed07551041778f5b36aceee5749f9699f5c6287e3341d0d7ab309",
+        "material_hash": "5a37ed35e1eed07551041778f5b36aceee5749f9699f5c6287e3341d0d7ab309"
+      },
+      {
+        "source_ref": "artifact:artifact-c16-b220448",
+        "path": "home-mixer/selectors/top_k_score_selector.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "0834a604055d9899e64489c7beb93fcee63f4a66",
+        "file_sha256": "34706498fa63cb3f0923ca17eae7355c9c3ca1ded177f2ea4eaf05563a74c50c",
+        "material_hash": "34706498fa63cb3f0923ca17eae7355c9c3ca1ded177f2ea4eaf05563a74c50c"
+      },
+      {
+        "source_ref": "artifact:artifact-c17-b220448",
+        "path": "visibility-filtering/params/limited_actions_policy.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "061a6613939888a8729d921057e898625e2b84ba",
+        "file_sha256": "989574f8d8af7554e29c0c6fcac348cd17f37a9e6ec76a2d9893d4984cf446de",
+        "material_hash": "989574f8d8af7554e29c0c6fcac348cd17f37a9e6ec76a2d9893d4984cf446de"
+      },
+      {
+        "source_ref": "artifact:artifact-c18-b220448",
+        "path": "home-mixer/filters/new_user_min_engagement_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "4231141150daf50bef37201a5dc43141ebcc250e",
+        "file_sha256": "796abf084789a5d25a1b2f6b94aa4bcec0107bd50799cd491d67ab308d38030e",
+        "material_hash": "796abf084789a5d25a1b2f6b94aa4bcec0107bd50799cd491d67ab308d38030e"
+      },
+      {
+        "source_ref": "artifact:artifact-c19-b220448",
+        "path": "home-mixer/filters/new_user_soft_nsfw_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "dd37dc324c3c1953d0c659d8852eb69c23b31637",
+        "file_sha256": "2967760ba589dff52a6bf6448936a11aa06fdfe7c86173e2a023d7c5aee99672",
+        "material_hash": "2967760ba589dff52a6bf6448936a11aa06fdfe7c86173e2a023d7c5aee99672"
+      },
+      {
+        "source_ref": "artifact:artifact-cf01-b220448",
+        "path": "README.md",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "d03c0ded14ed4d26f9f294ba1dd2350f5fd2b6d3",
+        "file_sha256": "f42bdc76d2f9905cccfb88aca6de08a19e3e141df5116c7dfc2d57037a172f70",
+        "material_hash": "f42bdc76d2f9905cccfb88aca6de08a19e3e141df5116c7dfc2d57037a172f70"
+      },
+      {
+        "source_ref": "artifact:artifact-cs01-b220448",
+        "path": "home-mixer/scorers/author_cold_start.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "cda3c30f6348c4ae820575ff3118f8d10d809a9a",
+        "file_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+        "material_hash": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69"
+      },
+      {
+        "source_ref": "artifact:artifact-cs02-b220448",
+        "path": "home-mixer/scorers/author_cold_start.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "cda3c30f6348c4ae820575ff3118f8d10d809a9a",
+        "file_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+        "material_hash": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69"
+      },
+      {
+        "source_ref": "artifact:artifact-cs03-b220448",
+        "path": "home-mixer/scorers/author_cold_start.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "cda3c30f6348c4ae820575ff3118f8d10d809a9a",
+        "file_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+        "material_hash": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69"
+      },
+      {
+        "source_ref": "artifact:artifact-dv01-b220448",
+        "path": "xai-value-model/scoring.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "7e586cd4104d8e6f0b9c9d307316c7628cf85ec7",
+        "file_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+        "material_hash": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce"
+      },
+      {
+        "source_ref": "artifact:artifact-ex01-b220448",
+        "path": "phoenix/xrex/data/recsys/recsys_batch.py",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "86500fd66c1a60051b2402a893d51927f6266fbe",
+        "file_sha256": "9102d2825e12493a5d6e61b11514253abc84a62dfebe20ed112a6df120577ac8",
+        "material_hash": "9102d2825e12493a5d6e61b11514253abc84a62dfebe20ed112a6df120577ac8"
+      },
+      {
+        "source_ref": "artifact:artifact-sc01-b220448",
+        "path": "xai-value-model/scoring.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "7e586cd4104d8e6f0b9c9d307316c7628cf85ec7",
+        "file_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+        "material_hash": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce"
+      },
+      {
+        "source_ref": "artifact:artifact-sc02-b220448",
+        "path": "xai-value-model/scoring.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "7e586cd4104d8e6f0b9c9d307316c7628cf85ec7",
+        "file_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+        "material_hash": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce"
+      },
+      {
+        "source_ref": "artifact:artifact-sc03-b220448",
+        "path": "xai-value-model/scoring.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "7e586cd4104d8e6f0b9c9d307316c7628cf85ec7",
+        "file_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+        "material_hash": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce"
+      },
+      {
+        "source_ref": "artifact:artifact-sc04-b220448",
+        "path": "xai-value-model/scoring.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "7e586cd4104d8e6f0b9c9d307316c7628cf85ec7",
+        "file_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+        "material_hash": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce"
+      },
+      {
+        "source_ref": "artifact:artifact-sc05-b220448",
+        "path": "xai-value-model/inputs.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "c75087f6c84ed7413497079359382750ebf4d00b",
+        "file_sha256": "58cd9b864933dff0f071b744304bcbcbffab3585f6fe000bb4d7e197255b1570",
+        "material_hash": "58cd9b864933dff0f071b744304bcbcbffab3585f6fe000bb4d7e197255b1570"
+      },
+      {
+        "source_ref": "caller:filter:NewUserSoftNsfwFilter:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:filter:NewUserSoftNsfwFilter:home-mixer/params/param.rs",
+        "path": "home-mixer/params/param.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "e59d16afa1b5112fbf1a252ca035d7ee084f8252",
+        "file_sha256": "3dc29c907ad756dbefe23b670fb71084848eb7687f8a8a1c5b771cb8ae61cc53",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:post_selection_filter:VFFilter:home-mixer/candidate_hydrators/vf_candidate_hydrator.rs",
+        "path": "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "68009a83e94329f02f842fb7294e632824b7448e",
+        "file_sha256": "5a37ed35e1eed07551041778f5b36aceee5749f9699f5c6287e3341d0d7ab309",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:post_selection_filter:VFFilter:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:post_selection_filter:VideoCarouselFilter:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:post_selection_hydrator:VideoEmbeddingHydrator:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:query_hydrator:RecentSearchQueriesQueryHydrator:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:compute_weighted_score:home-mixer/params/param.rs",
+        "path": "home-mixer/params/param.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "e59d16afa1b5112fbf1a252ca035d7ee084f8252",
+        "file_sha256": "3dc29c907ad756dbefe23b670fb71084848eb7687f8a8a1c5b771cb8ae61cc53",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:compute_weighted_score:home-mixer/scorers/value_model.rs",
+        "path": "home-mixer/scorers/value_model.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "f9fc90fafd4174e4082a770301b9dddde4c14322",
+        "file_sha256": "7a46788bd84b7dbf62d67032261e7c35d41b5a9cf82cadd2f7c6148d2739460c",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:compute_weighted_score:home-mixer/scorers/vm_ranker_request.rs",
+        "path": "home-mixer/scorers/vm_ranker_request.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "c693a6290d090a9da8016a82b6120afa0731dc6c",
+        "file_sha256": "8c9e3ae50796789989e964c7d506753d96f4487fea5df4f0aa44716b4da64ff7",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:compute_weighted_score:vm-ranker/params.rs",
+        "path": "vm-ranker/params.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "88b7fa2c79b69144b7a690f2fe1c0358c92ead58",
+        "file_sha256": "6c950916fced6af4ad6518ef8e058ca7d78d7d899ec3af9de176adaed2cd9fe9",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:compute_weighted_score:vm-ranker/scoring/debias.rs",
+        "path": "vm-ranker/scoring/debias.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "00b380b5b6ffdf4bd745730e0e06ccc4118af552",
+        "file_sha256": "03f579728ecb90405afb77d1f639e23e0b61a3c54536f28e533746ce30d718c3",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:compute_weighted_score:vm-ranker/scoring/mod.rs",
+        "path": "vm-ranker/scoring/mod.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "02f6a8cc05b57014ecbc1146f1b299f1f86b5206",
+        "file_sha256": "a401e627560b592d6e146511ab57e70eda035062624c0f99d7e3037a1555941a",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:compute_weighted_score:vm-ranker/scoring/value_model.rs",
+        "path": "vm-ranker/scoring/value_model.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "5cc1df2d0747f0ef217566451c386b9730103a2b",
+        "file_sha256": "d10f4f287de60c63c563e601b63a22f3f5a039af309c925263668b50968b391c",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:ImmersiveVideoScorer:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:PhoenixScorer:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:VMRanker:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:VMRanker:home-mixer/params/param.rs",
+        "path": "home-mixer/params/param.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "e59d16afa1b5112fbf1a252ca035d7ee084f8252",
+        "file_sha256": "3dc29c907ad756dbefe23b670fb71084848eb7687f8a8a1c5b771cb8ae61cc53",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:VMRanker:vm-ranker/params.rs",
+        "path": "vm-ranker/params.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "88b7fa2c79b69144b7a690f2fe1c0358c92ead58",
+        "file_sha256": "6c950916fced6af4ad6518ef8e058ca7d78d7d899ec3af9de176adaed2cd9fe9",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:VMRanker:vm-ranker/scoring/debias.rs",
+        "path": "vm-ranker/scoring/debias.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "00b380b5b6ffdf4bd745730e0e06ccc4118af552",
+        "file_sha256": "03f579728ecb90405afb77d1f639e23e0b61a3c54536f28e533746ce30d718c3",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:scorer:VMRanker:vm-ranker/scoring/value_model.rs",
+        "path": "vm-ranker/scoring/value_model.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "5cc1df2d0747f0ef217566451c386b9730103a2b",
+        "file_sha256": "d10f4f287de60c63c563e601b63a22f3f5a039af309c925263668b50968b391c",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:selector:TopKScoreSelector:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:selector:TopKScoreSelector:home-mixer/filters/video_carousel_filter.rs",
+        "path": "home-mixer/filters/video_carousel_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "7bb5c6f8a1dab3ac3f98a31bd88e9f33fba0315d",
+        "file_sha256": "5edcf248da8727df2a5144ee7f315104db7306f380c8b919171f175718065e9f",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:selector:TopKScoreSelector:home-mixer/params/param.rs",
+        "path": "home-mixer/params/param.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "e59d16afa1b5112fbf1a252ca035d7ee084f8252",
+        "file_sha256": "3dc29c907ad756dbefe23b670fb71084848eb7687f8a8a1c5b771cb8ae61cc53",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:selector:TopKScoreSelector:home-mixer/util/video_carousel.rs",
+        "path": "home-mixer/util/video_carousel.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "d11bfb3903e2e7f5b18c91265fa61040f9df1507",
+        "file_sha256": "1c90cc7318030215555a2f49d38ebd2b6ae1e71596d7f748340cc5c8dde2f3a5",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:side_effect:PhoenixExperimentsSideEffect:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:side_effect:PhoenixRequestCacheSideEffect:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:side_effect:RedisPostCandidateCacheSideEffect:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:side_effect:RerankingKafkaSideEffect:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:side_effect:ScoredStatsSideEffect:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "caller:source:ThunderSource:home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "9ddaa17ae464365013e31e915c47f88f0306e23e",
+        "file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+        "material_hash": null
+      },
+      {
+        "source_ref": "dependency:action_consumer:EvaluateTweetsTreatment",
+        "path": "visibility-filtering/evaluate_tweets.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "63e8de28f0fbcaac1f12e5632fdb9ef39140a8c8",
+        "file_sha256": "b7cb080eb509435d7241e297fff084a18b7e1237ed24fb17b31ba6e5b124bb00",
+        "material_hash": "71f901066038db5b077c5cff8b6d9062c2d5423a0d2b7ee05bfe978cd9e3d092"
+      },
+      {
+        "source_ref": "dependency:action_consumer:LimitedActionsPolicies",
+        "path": "visibility-filtering/treatment.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "8d386be733d6d2184f8c0cf06b60dd7a6c939837",
+        "file_sha256": "842f2d9b171db1ad7029af942a0acb7cdd7d68e2b9e3f60522b578af08fbef82",
+        "material_hash": "2da6bad2e6d8590a52c0514b52fc758e13ec550ea5f456cb560dbc0b44684565"
+      },
+      {
+        "source_ref": "dependency:action_consumer:LimitedActionsPolicyResolver",
+        "path": "visibility-filtering/params/limited_actions_policy.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "061a6613939888a8729d921057e898625e2b84ba",
+        "file_sha256": "989574f8d8af7554e29c0c6fcac348cd17f37a9e6ec76a2d9893d4984cf446de",
+        "material_hash": "a96f7156628393385146f94efc8722e15b27d53b15007bfaf812ba138ef54623"
+      },
+      {
+        "source_ref": "dependency:action_consumer:VisibilityPolicyEngine",
+        "path": "visibility-filtering/rules/engine.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "466133061fc8baa0995ebfb61faaea418b9d4a30",
+        "file_sha256": "b6ea73b4f8f33ac5673282289535128ea5f5098ed6d2c30123ae77e25f220942",
+        "material_hash": "5edfb6628110ac530b2d612fc79596cd20520b7af9caed56311ebe8418a2b102"
+      },
+      {
+        "source_ref": "dependency:filter:NewUserSoftNsfwFilter",
+        "path": "home-mixer/filters/new_user_soft_nsfw_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "dd37dc324c3c1953d0c659d8852eb69c23b31637",
+        "file_sha256": "2967760ba589dff52a6bf6448936a11aa06fdfe7c86173e2a023d7c5aee99672",
+        "material_hash": "6160712e6827cd38d2c28d6c2304b069125fba3d923953a8ca3c38b98cc514aa"
+      },
+      {
+        "source_ref": "dependency:post_selection_filter:VFFilter",
+        "path": "home-mixer/filters/vf_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "2e2c0cefaceb9c38ebf30af44eb9e61312fdc25e",
+        "file_sha256": "33f42784645515722f4a38555d61f18757a9d8f38e2a1db0f3b89257c20e63f4",
+        "material_hash": "c1ea5fe5d4e469563fc3b4882ed90d7fc8cf66a6c55a145d27ad70bebcceaf1d"
+      },
+      {
+        "source_ref": "dependency:post_selection_filter:VideoCarouselFilter",
+        "path": "home-mixer/filters/video_carousel_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "7bb5c6f8a1dab3ac3f98a31bd88e9f33fba0315d",
+        "file_sha256": "5edcf248da8727df2a5144ee7f315104db7306f380c8b919171f175718065e9f",
+        "material_hash": "038f1e681ba7aa204e86acb4fb4c5ddcf3fab873dbdac8b8cd3989997909074c"
+      },
+      {
+        "source_ref": "dependency:post_selection_hydrator:VideoEmbeddingHydrator",
+        "path": "home-mixer/candidate_hydrators/video_embedding_hydrator.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "c9102da36d33892fc92d1f0d0d56f7cb2a21fb9f",
+        "file_sha256": "a412bd7427699c4c47c29ec3ae1233d59f19dae4dd7f6b0479eae3d80cef08ca",
+        "material_hash": "a8012753c13d9590a3b1cad85f703e1d6ef9fb1186e675690923ccd130440b36"
+      },
+      {
+        "source_ref": "dependency:query_hydrator:RecentSearchQueriesQueryHydrator",
+        "path": "home-mixer/query_hydrators/recent_search_queries_query_hydrator.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "226cd952ec03c6e88578ba12054335b34b0f4e65",
+        "file_sha256": "6d508eddf01d7d6aca7ad225c09e907f026fcf852c1e4a542e974f410f75aa84",
+        "material_hash": "af278662939c500321a7f62a1cdedc6767dc5e70bd676146297641f323d14578"
+      },
+      {
+        "source_ref": "dependency:scorer:compute_weighted_score",
+        "path": "xai-value-model/scoring.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "7e586cd4104d8e6f0b9c9d307316c7628cf85ec7",
+        "file_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+        "material_hash": "5b8e9ca001dc877fdfcc7cff403146d660ceba9a01e992c6bdfd5c792e929b24"
+      },
+      {
+        "source_ref": "dependency:scorer:ImmersiveVideoScorer",
+        "path": "home-mixer/scorers/immersive_video_scorer.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "5bdfe00d1b88000038a4a40e1ad375d037967269",
+        "file_sha256": "d4725cb7365bfc9cce3b09ecc8e5f7ab0adbb270028b15aaed84382e030fc2af",
+        "material_hash": "e31094315debea06e029b75ed639667af721dd0caf802adcdace7ed1081625aa"
+      },
+      {
+        "source_ref": "dependency:scorer:PhoenixScorer",
+        "path": "home-mixer/scorers/phoenix_scorer.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "13aa58f7b1ae890c71d93590e9225ec2ad103e23",
+        "file_sha256": "6c7ebe54c6ceef156a768434a789df8db18726efb16390d8acc74c3dadd65111",
+        "material_hash": "a6efa94682e76a5a11893937b0f146582980f22ce16ef873db073605ff05ff4a"
+      },
+      {
+        "source_ref": "dependency:scorer:VMRanker",
+        "path": "home-mixer/scorers/vm_ranker.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "31c35dc3f195a66cade88a9669594155eb0a26c2",
+        "file_sha256": "d78684ec39c7ac4f914d00e2271d7c88ce66495b2da6afeb9d7af7af88a69263",
+        "material_hash": "0a7926bb9b9fe4a1062a44da2b2f0b8e116598c28a7acd8adad3294ef2edd542"
+      },
+      {
+        "source_ref": "dependency:selector:TopKScoreSelector",
+        "path": "home-mixer/selectors/top_k_score_selector.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "0834a604055d9899e64489c7beb93fcee63f4a66",
+        "file_sha256": "34706498fa63cb3f0923ca17eae7355c9c3ca1ded177f2ea4eaf05563a74c50c",
+        "material_hash": "0c78a973b11b3091cf35eed144bbb6c59e02c531f49f8cacb1d94baa2d6d059e"
+      },
+      {
+        "source_ref": "dependency:side_effect:PhoenixExperimentsSideEffect",
+        "path": "home-mixer/side_effects/phoenix_experiments_side_effect.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "a90781302bc08b2a0b5b9f29c457b0f0477b8f81",
+        "file_sha256": "de4147326e1cd71aff583adbfbf57a4afc09a705dbc6f568acdc1f2d3d3003fe",
+        "material_hash": "fe8170c052f26971515499d4a094b8812e928cccfde2928ee48fc9d38c81ba42"
+      },
+      {
+        "source_ref": "dependency:side_effect:PhoenixRequestCacheSideEffect",
+        "path": "home-mixer/side_effects/phoenix_request_cache_side_effect.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "2c7fb2aaacfdd72af12286948fda299e9d945625",
+        "file_sha256": "5df8865161d1f281960e7cf700a7639a3cc2432bc1340060296ae1371a04b92e",
+        "material_hash": "6e457348803c4067edb32945205cef267de1be41111466bb32bbe154c2dff3b7"
+      },
+      {
+        "source_ref": "dependency:side_effect:RedisPostCandidateCacheSideEffect",
+        "path": "home-mixer/side_effects/redis_post_candidate_cache_side_effect.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "c23dcfef6748ac78b098c56d60874635c19af9af",
+        "file_sha256": "a6d808723087d48641a5d3acfe027e4e096a0138b43e8abc9e2770c792001ede",
+        "material_hash": "d6bc9b69c738f6a0aa2a3d2a0da4ea0034d3d71dbb89e6aab717527296b931b1"
+      },
+      {
+        "source_ref": "dependency:side_effect:RerankingKafkaSideEffect",
+        "path": "home-mixer/side_effects/reranking_kafka_side_effect.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "1c33ec4be05ed446a49e266d225bfe5b86085e9d",
+        "file_sha256": "380deb0aeed9d037860a85ed8336e477341ae3a4c4695a8965e6b59b18a94b77",
+        "material_hash": "2debfcadfffcbacf02db9239e913eb6afd8955e16a1c957ff99b6326c4558843"
+      },
+      {
+        "source_ref": "dependency:side_effect:ScoredStatsSideEffect",
+        "path": "home-mixer/side_effects/scored_stats_side_effect.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "7108a0a59ebe39d2280792796750e93544240b6a",
+        "file_sha256": "fdb7fbc8877385f5ac346afa8e0976b184a1203de4defb6b980197301171f895",
+        "material_hash": "26b5ba2f97dce62bfa7f5b67852ce15433ba9dcc09b1a9f7b96551ff702db52c"
+      },
+      {
+        "source_ref": "dependency:source:ThunderSource",
+        "path": "home-mixer/sources/thunder_source.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "86a3d51388a3937592e1edad0d3332c8f48b25b2",
+        "file_sha256": "0b72776ca67e385ec809fcb5618ebc7cc6c9c68fdc712547913d4b40c7dbe767",
+        "material_hash": "5706505e87c5093175936e205d61a4bd1cc882bcf44ce087e0aa8e8125fcf978"
+      },
+      {
+        "source_ref": "dependency:training_label:compute_post_unexplored_labels",
+        "path": "phoenix/xrex/data/recsys/recsys_batch.py",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "86500fd66c1a60051b2402a893d51927f6266fbe",
+        "file_sha256": "9102d2825e12493a5d6e61b11514253abc84a62dfebe20ed112a6df120577ac8",
+        "material_hash": "44a89e9bec29755cdaccbd6a1784f9d6c3433a3d5caa63256de6a9ed6fd4c5cf"
+      },
+      {
+        "source_ref": "dependency:training_label:PhoenixContinuousActionLosses",
+        "path": "phoenix/xrex/configs/xrecsys.py",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "0368037211e8c20fde0bc70dcd6cc89801d4facb",
+        "file_sha256": "2d36ba64ab7ec698ecb4f557f5ecb51573078884b69b98238299d53d08573635",
+        "material_hash": "e189881681959530887943a961811e40a257a650c6bd0074513e46af0e9d39ac"
+      },
+      {
+        "source_ref": "dependency:training_label:PhoenixDiscreteActionLabels",
+        "path": "phoenix/crates/serving/xai-recsys-proto/proto/recsys.proto",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "6cddd2dac8a91120e364632c2fffb26b3488b6d6",
+        "file_sha256": "81aa9fa308609271a31e0c055762587fa5febe49d9421cc4b61fab5d2cf6c33f",
+        "material_hash": "5e93ea1b45dec480b513e6132a3bc3cfd46bb2b1f5b03dc4b317583dcc0dfdd6"
+      },
+      {
+        "source_ref": "dependency:visibility_level:SafetyLevel",
+        "path": "visibility-filtering/rules/safety_level.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "present",
+        "git_blob_oid": "f6ad16df09c1d7350d3520f3583f1493457b2a87",
+        "file_sha256": "04fd6c5a1aca8ef31543dc2de4bd8abbce5cc50c2645b27fc4dce3df34e7892a",
+        "material_hash": "024eab0758d2993de3bec041814a561a6202501d0fa817d71fd5ea1a4847052f"
+      },
+      {
+        "source_ref": "removed_dependency:filter:Brazil2026ElectionFilter",
+        "path": "home-mixer/filters/brazil_2026_election_filter.rs",
+        "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+        "status": "deleted",
+        "git_blob_oid": null,
+        "file_sha256": null,
+        "material_hash": null
+      }
+    ],
+    "dependency_diff": {
+      "added": [],
+      "modified": [
+        "action_consumer:EvaluateTweetsTreatment",
+        "action_consumer:LimitedActionsPolicies",
+        "action_consumer:LimitedActionsPolicyResolver",
+        "action_consumer:VisibilityPolicyEngine",
+        "candidate_hydrator:BidirectionalFollowHydrator",
+        "candidate_hydrator:BlockedByHydrator",
+        "candidate_hydrator:CoreDataCandidateHydrator",
+        "candidate_hydrator:EngagementCountsHydrator",
+        "candidate_hydrator:FilteredTopicsHydrator",
+        "candidate_hydrator:GizmoduckCandidateHydrator",
+        "candidate_hydrator:InNetworkCandidateHydrator",
+        "candidate_hydrator:LanguageCodeHydrator",
+        "candidate_hydrator:MediaInfoHydrator",
+        "candidate_hydrator:NewUserSoftNsfwLabelHydrator",
+        "candidate_hydrator:PhoenixReplyAncestorsHydrator",
+        "candidate_hydrator:PostEngagersHydrator",
+        "candidate_hydrator:QuoteHydrator",
+        "candidate_hydrator:SemanticIdHydrator",
+        "candidate_hydrator:SubscriptionHydrator",
+        "filter:AgeFilter",
+        "filter:AuthorSocialgraphFilter",
+        "filter:CoreDataHydrationFilter",
+        "filter:DropDuplicatesFilter",
+        "filter:FairShareRankingFilter",
+        "filter:FavHoldoutFilter",
+        "filter:IneligibleSubscriptionFilter",
+        "filter:InventoryHoldoutFilter",
+        "filter:NewUserMinEngagementFilter",
+        "filter:NewUserSoftNsfwFilter",
+        "filter:OONNsfwSimclustersFilter",
+        "filter:OONRetweetReplyFilter",
+        "filter:PreviouslySeenPostsBackupFilter",
+        "filter:PreviouslySeenPostsFilter",
+        "filter:PreviouslyServedPostsFilter",
+        "filter:RetweetDeduplicationFilter",
+        "filter:SelfTweetFilter",
+        "filter:TopicIdsFilter",
+        "filter:VideoFilter",
+        "filter:ViewerMutedKeywordFilter",
+        "filter:ZeroFavCodivertFilter",
+        "post_selection_filter:AncestorVideoFilter",
+        "post_selection_filter:AncillaryVFFilter",
+        "post_selection_filter:DedupConversationFilter",
+        "post_selection_filter:VFFilter",
+        "post_selection_filter:VideoCarouselFilter",
+        "post_selection_hydrator:AdsBrandSafetyVfHydrator",
+        "post_selection_hydrator:AiTrendFeedbackContextHydrator",
+        "post_selection_hydrator:AncestorVideoHydrator",
+        "post_selection_hydrator:FollowingRepliedUsersHydrator",
+        "post_selection_hydrator:MutualFollowJaccardHydrator",
+        "post_selection_hydrator:TopicFeedbackContextHydrator",
+        "post_selection_hydrator:TweetTypeMetricsHydrator",
+        "post_selection_hydrator:VFCandidateHydrator",
+        "post_selection_hydrator:VideoEmbeddingHydrator",
+        "post_selection_hydrator:VideoMediaHydrator",
+        "query_hydrator:BlockedUserIdsQueryHydrator",
+        "query_hydrator:CachedPostsQueryHydrator",
+        "query_hydrator:ExplicitEngagementSignalsQueryHydrator",
+        "query_hydrator:FollowedGrokTopicsQueryHydrator",
+        "query_hydrator:FollowedStarterPacksQueryHydrator",
+        "query_hydrator:FollowedUserIdsQueryHydrator",
+        "query_hydrator:ImmersiveScoringSequenceQueryHydrator",
+        "query_hydrator:ImplicitEngagementSignalsQueryHydrator",
+        "query_hydrator:ImpressionBloomFilterQueryHydrator",
+        "query_hydrator:IpQueryHydrator",
+        "query_hydrator:MutedUserIdsQueryHydrator",
+        "query_hydrator:MutualFollowQueryHydrator",
+        "query_hydrator:RecentSearchQueriesQueryHydrator",
+        "query_hydrator:RetrievalSequenceQueryHydrator",
+        "query_hydrator:ScoringSequenceQueryHydrator",
+        "query_hydrator:SubscribedUserIdsQueryHydrator",
+        "query_hydrator:UserDemographicsQueryHydrator",
+        "query_hydrator:UserInferredGenderQueryHydrator",
+        "query_hydrator:UserInstalledAppsQueryHydrator",
+        "scorer:ImmersiveVideoScorer",
+        "scorer:PhoenixScorer",
+        "scorer:VMRanker",
+        "scorer:compute_weighted_score",
+        "selector:TopKScoreSelector",
+        "side_effect:AuthorServedMetricsSideEffect",
+        "side_effect:DebugSideEffect",
+        "side_effect:MutualFollowStatsSideEffect",
+        "side_effect:PhoenixExperimentsSideEffect",
+        "side_effect:PhoenixRequestCacheSideEffect",
+        "side_effect:RedisPostCandidateCacheSideEffect",
+        "side_effect:RerankingKafkaSideEffect",
+        "side_effect:ResponseDiversityStatsSideEffect",
+        "side_effect:RetrievalCandidatesKafkaSideEffect",
+        "side_effect:ScoredStatsSideEffect",
+        "side_effect:SerendipityStatsSideEffect",
+        "source:CachedPostsSource",
+        "source:PhoenixMOESource",
+        "source:PhoenixSource",
+        "source:PhoenixTopicsSource",
+        "source:PopularPostsSource",
+        "source:SidSource",
+        "source:SimclustersSource",
+        "source:ThunderSource",
+        "source:TweetMixerSource",
+        "training_label:PhoenixContinuousActionLosses",
+        "training_label:PhoenixDiscreteActionLabels",
+        "training_label:compute_post_unexplored_labels",
+        "visibility_level:SafetyLevel"
+      ],
+      "removed": [
+        "filter:Brazil2026ElectionFilter"
+      ],
+      "moved": []
+    },
+    "affected_rule_version_refs": [
+      "operational-op01-b220448-candidate",
+      "operational-op01-v3",
+      "operational-op02-b220448-candidate",
+      "operational-op02-v3",
+      "operational-op03-b220448-candidate",
+      "operational-op03-v3",
+      "operational-op04-b220448-candidate",
+      "operational-op04-v3",
+      "operational-op05-b220448-candidate",
+      "operational-op05-v3",
+      "operational-op06-b220448-candidate",
+      "operational-op06-v3",
+      "operational-op07-b220448-candidate",
+      "operational-op07-v1",
+      "operational-op08-b220448-candidate",
+      "operational-op08-v5",
+      "operational-op09-b220448-candidate",
+      "operational-op09-v5",
+      "operational-op10-b220448-candidate",
+      "operational-op10-v1"
+    ],
+    "impact_limitations": [],
+    "repository_diff": [
+      {
+        "path": "abuse-enforcement-service/service-lib/src/action_control_path_tests.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/service-lib/src/action_control_rollback.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/service-lib/src/action_control.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/service-lib/src/backfill_path_tests.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/service-lib/src/backfill.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/service-lib/src/confidence_adversarial_tests.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/service-lib/src/confidence_path_tests.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/service-lib/src/decision.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/service-lib/src/dedup_cache.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/service-lib/src/facts.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/service-lib/src/fixtures/replay_no_records.golden",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/service-lib/src/gizmoduck.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/service-lib/src/lib.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/service-lib/src/safety_audit_tests.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/types/src/action_control.rs",
+        "change": "M"
+      },
+      {
+        "path": "abuse-enforcement-service/types/src/backfill.rs",
+        "change": "M"
+      },
+      {
+        "path": "candidate-pipeline/candidate_pipeline.rs",
+        "change": "M"
+      },
+      {
+        "path": "grox/config/config.py",
+        "change": "M"
+      },
+      {
+        "path": "grox/core/data_loaders/data_types.py",
+        "change": "M"
+      },
+      {
+        "path": "grox/core/data_loaders/post_mapper.py",
+        "change": "M"
+      },
+      {
+        "path": "grox/core/lm/convo.py",
+        "change": "M"
+      },
+      {
+        "path": "grox/core/lm/json_output.py",
+        "change": "A"
+      },
+      {
+        "path": "grox/libs/video_tools/image.py",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/ads/drops.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/ads/health_metrics.rs",
+        "change": "A"
+      },
+      {
+        "path": "home-mixer/ads/least_movement_blender.rs",
+        "change": "A"
+      },
+      {
+        "path": "home-mixer/ads/mod.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/ads/multi_risk_blender.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/ads/neighbours.rs",
+        "change": "A"
+      },
+      {
+        "path": "home-mixer/ads/slot_spread_blender.rs",
+        "change": "A"
+      },
+      {
+        "path": "home-mixer/ads/tests/blender_comparison_test.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/ads/tests/least_movement_blender_tests.rs",
+        "change": "A"
+      },
+      {
+        "path": "home-mixer/ads/tests/mod.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/ads/tests/slot_spread_blender_tests.rs",
+        "change": "A"
+      },
+      {
+        "path": "home-mixer/ads/util.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/candidate_hydrators/video_embedding_hydrator.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/candidate_pipeline/mod.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/candidate_pipeline/ranked_following_candidate_pipeline.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/clients/post_v8_search_embedding_client.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/filters/brazil_2026_election_filter.rs",
+        "change": "D"
+      },
+      {
+        "path": "home-mixer/filters/mod.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/filters/new_user_soft_nsfw_filter.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/filters/video_carousel_filter.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/models/candidate.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/models/query.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/params/config.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/params/param.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/query_hydrators/served_history_query_hydrator.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/scored_posts_server.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/scorers/immersive_video_scorer.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/scorers/mod.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/scorers/page_decode_rerank_scorer.rs",
+        "change": "A"
+      },
+      {
+        "path": "home-mixer/scorers/page_rl_exploration_scorer.rs",
+        "change": "A"
+      },
+      {
+        "path": "home-mixer/scorers/phoenix_scorer.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/scorers/value_model.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/scorers/vm_ranker_request.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/scorers/vm_ranker.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/selectors/blender_selector.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/selectors/top_k_score_selector.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/side_effects/ads_injection_logging_side_effect.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/side_effects/phoenix_experiments_side_effect.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/side_effects/phoenix_request_cache_side_effect.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/side_effects/redis_post_candidate_cache_side_effect.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/side_effects/reranking_kafka_side_effect.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/side_effects/scored_stats_side_effect.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/side_effects/video_carousel_candidates_kafka_side_effect.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/sources/thunder_source.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/util/under_the_hood.rs",
+        "change": "M"
+      },
+      {
+        "path": "home-mixer/util/video_carousel.rs",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/crates/common/xai-recsys/build.rs",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/crates/common/xai-recsys/src/model_config.rs",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/crates/common/xai-recsys/src/reply.rs",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/crates/common/xai-recsys/src/util.rs",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/crates/serving/xai-recsys-engine/src/copy_port_client.rs",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/crates/serving/xai-recsys-engine/src/sid_client.rs",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/crates/serving/xai-recsys-mm-server/src/mm_embedding_fetcher.rs",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/crates/serving/xai-recsys-proto/proto/recsys.proto",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/crates/serving/xai-recsys-proto/src/lib.rs",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/python/common/xai-configlib/src/xai_configlib/__init__.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/python/common/xai-proto/proto/recsys.proto",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/configs/data_feeds.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/configs/xrecsys.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/cuda/async_emb/async_emb.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/cuda/async_emb/src/async_emb_api.cc",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/cuda/async_emb/src/async_emb_kernel.cu",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/cuda/async_emb/src/async_emb_kernel.hpp",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/cuda/row_emb/row_emb.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/cuda/row_emb/src/row_emb_api.cc",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/cuda/row_emb/src/row_emb_comm.cc",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/cuda/row_emb/src/row_emb_kernel.cu",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/cuda/row_emb/src/row_emb_kernel.hpp",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/data/parquet_recsys_metadata.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/data/parquet_recsys.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/data/recsys/ads_head_masking.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/data/recsys/ads_late_window.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/data/recsys/constants.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/data/recsys/feature_config.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/data/recsys/recsys_batch.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/data/rust_parquet_recsys.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/data/streaming/kafkaloader.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/inference/model_runner.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/models/layers.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/models/recsys_attention.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/models/recsys_feature_prep.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/models/recsys_model.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/models/remat.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/models/scaling.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/models/transformer.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/optimizers/recsys/config.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/optimizers/recsys/rowwise_adagrad.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/testing.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/train/follow_data_end.py",
+        "change": "A"
+      },
+      {
+        "path": "phoenix/xrex/train/recsys_bundle_export.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/train/trainer_recsys.py",
+        "change": "M"
+      },
+      {
+        "path": "phoenix/xrex/train/trainer.py",
+        "change": "M"
+      },
+      {
+        "path": "README.md",
+        "change": "M"
+      },
+      {
+        "path": "safety-label-source/connect.rs",
+        "change": "A"
+      },
+      {
+        "path": "safety-label-source/decode.rs",
+        "change": "A"
+      },
+      {
+        "path": "safety-label-source/lib.rs",
+        "change": "A"
+      },
+      {
+        "path": "safety-label-source/metrics.rs",
+        "change": "A"
+      },
+      {
+        "path": "safety-label-source/mh_client.rs",
+        "change": "A"
+      },
+      {
+        "path": "safety-label-source/remote.rs",
+        "change": "A"
+      },
+      {
+        "path": "safety-label-source/source.rs",
+        "change": "A"
+      },
+      {
+        "path": "safety-label-source/testing.rs",
+        "change": "A"
+      },
+      {
+        "path": "safety-label-source/warmer.rs",
+        "change": "A"
+      },
+      {
+        "path": "under-the-hood/jetfuel/gql/underTheHoodReport.gql",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/jetfuel/routes/_lib/load.ts",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/jetfuel/routes/_lib/mock.ts",
+        "change": "D"
+      },
+      {
+        "path": "under-the-hood/jetfuel/routes/_lib/report.ts",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/jetfuel/routes/index.tsx",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/jetfuel/routes/report.tsx",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/scalding/UnderTheHoodCommon.scala",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/scalding/UthDailyPostsBackfillJob.scala",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/scalding/UthDailyPostsJob.scala",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/scalding/UthDailyPostTakedownLabelsJob.scala",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/scalding/UthUserMonthMhPublisherJob.scala",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/strato/columns/underTheHoodReport.User.strato",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/strato/graphql/under_the_hood.thrift",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/strato/lib/params.strato",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/strato/lib/underTheHoodLabels.strato",
+        "change": "M"
+      },
+      {
+        "path": "under-the-hood/thrift/uth_serving.thrift",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering-client/evaluated.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering-client/notifications.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering-client/vf_client.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/bin/vf-gate.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/clients/label_warm_client.rs",
+        "change": "A"
+      },
+      {
+        "path": "visibility-filtering/clients/mod.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/evaluate_tweets.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/explain.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/filter_notifications.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/filter_tweets.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/get_safety_labels.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/execute.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/fallback_cache.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/fetcher.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/hydrator.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/inventory.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/metrics.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/mod.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/plan.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/relation.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/sources.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/sources/fake_backends.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/sources/in_memory.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/store.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/store/conversation_root.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/store/edges.rs",
+        "change": "A"
+      },
+      {
+        "path": "visibility-filtering/hydration/store/key_origin.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/store/quotes.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/store/resolve.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/hydration/tweet_source.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/ingress.rs",
+        "change": "A"
+      },
+      {
+        "path": "visibility-filtering/lib.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/metrics.rs",
+        "change": "D"
+      },
+      {
+        "path": "visibility-filtering/metrics/families.rs",
+        "change": "A"
+      },
+      {
+        "path": "visibility-filtering/metrics/mod.rs",
+        "change": "A"
+      },
+      {
+        "path": "visibility-filtering/models/mod.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/models/verdict.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/models/viewer.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/params.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/params/client_switches.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/params/limited_actions_copy.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/params/limited_actions_policy.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/pinned.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/post_evaluator.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/post_evaluator/author.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/post_evaluator/notification.rs",
+        "change": "A"
+      },
+      {
+        "path": "visibility-filtering/post_evaluator/retweet.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/quote.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/catalog.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/context.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/engine.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/expansion.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/fixtures.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/age_gating.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/age_verification.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/author_state.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/community.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/exclusive_content.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/interstitial.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/legacy_interstitial.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/mod.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/notifications.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/oon_media.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/oon_tweet_label.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/oon_user_label.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/post_notifications.rs",
+        "change": "A"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/reaction_video.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/relationship.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/takedown.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/tweet_label.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/golden_corpus/tweet_state.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/levels.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/mod.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/rule_spec.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/rule_spec/conditions.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/rule_spec/features.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/rule_spec/features/compound.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/rule_spec/features/request.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/rule_spec/laws.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/safety_level.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/rules/tweet_rules.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/safety_label_source/decode.rs",
+        "change": "D"
+      },
+      {
+        "path": "visibility-filtering/safety_label_source/metrics.rs",
+        "change": "D"
+      },
+      {
+        "path": "visibility-filtering/safety_label_source/mh_client.rs",
+        "change": "D"
+      },
+      {
+        "path": "visibility-filtering/safety_label_source/mod.rs",
+        "change": "D"
+      },
+      {
+        "path": "visibility-filtering/safety_label_source/remote.rs",
+        "change": "D"
+      },
+      {
+        "path": "visibility-filtering/safety_label_source/source.rs",
+        "change": "D"
+      },
+      {
+        "path": "visibility-filtering/safety_label_source/warmer.rs",
+        "change": "D"
+      },
+      {
+        "path": "visibility-filtering/scenario.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/server_deps.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/server.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/staging/reference/mod.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/staging/reference/tweetypie.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/staging/reference/tweetypie/quotes.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/treatment.rs",
+        "change": "M"
+      },
+      {
+        "path": "visibility-filtering/verdict_gate.rs",
+        "change": "M"
+      },
+      {
+        "path": "vm-ranker/params.rs",
+        "change": "M"
+      },
+      {
+        "path": "vm-ranker/scoring/debias.rs",
+        "change": "M"
+      },
+      {
+        "path": "vm-ranker/scoring/mod.rs",
+        "change": "M"
+      },
+      {
+        "path": "vm-ranker/scoring/value_model.rs",
+        "change": "M"
+      },
+      {
+        "path": "xai-value-model/lib.rs",
+        "change": "M"
+      },
+      {
+        "path": "xai-value-model/phoenix_scores.rs",
+        "change": "M"
+      },
+      {
+        "path": "xai-value-model/proto.rs",
+        "change": "M"
+      },
+      {
+        "path": "xai-value-model/scoring.rs",
+        "change": "M"
+      },
+      {
+        "path": "xai-value-model/weights.rs",
+        "change": "M"
+      }
+    ],
+    "unreviewed_paths": [],
+    "inventory_scope": "full_repository",
+    "gaps": [
+      "action_consumer:EvaluateTweetsTreatment",
+      "action_consumer:LimitedActionsPolicies",
+      "action_consumer:LimitedActionsPolicyResolver",
+      "external:botmaker_rules",
+      "external:deployment_configuration",
+      "external:grok_prompts",
+      "external:hidden_label_classifiers",
+      "external:limited_actions_policy_config",
+      "source:PhoenixMOESource",
+      "source:PhoenixSource",
+      "source:PhoenixTopicsSource",
+      "source:SidSource",
+      "source:SimclustersSource",
+      "source:ThunderSource",
+      "source:TweetMixerSource"
+    ]
+  },
+  "readable_report": {
+    "结论": "认可候选的公开事实限定、材料留存和编辑谓词回放记录，但不批准当前整包安全激活。",
+    "审核范围": "独立只读核对候选和已有分组账本；重点直接阅读C12/C16/C19及Home/VM评分实际consumer。没有重跑上游或全量测试，没有修改候选，没有代替PR审核。248路径语义全量结论依赖所附五组已有审查，本审核独立核对其账本覆盖与关键消费路径，不声称重新逐行审查全部248路径。",
+    "证据": [
+      "331个源码检查条目已逐条与固定commit的git对象核对SHA256/blob；proposal的86项绑定另行核对，均未发现差异。",
+      "30条新pin事实均限定公开路径且production_status=unknown。C12正确区分保留Allow/Interstitial/Avoid/Downrank/缺失action与移除Drop/Tombstone/NotEvaluated；无固定降权乘子。",
+      "C16正确区分TopK、额外轮播视频和后置品牌安全/去重消费者，不保证展示。C19是观看者年龄与sequence条件，不是新作者处罚；缺sequence和阈值0分支仍需按源码解释。",
+      "SC/DV正确区分Home本地备用分、compute_value_model=true的VM请求、服务配置/返回决定的重算；Home本地关闭author diversity；RPC失败或缺候选响应保留本地分。",
+      "248路径账本与repository_diff集合完全相等且无重复；旧catalog列出的68个文件均逐字节保留。",
+      "20个已有实际回放结果共60条：applicable、not_applicable、unknown各20条，actual均等于expected。未将其冒充生产X运行或模型验收。",
+      "10个新候选规则相对当前有效旧规则的action_template、editorial_predicate、required_signals、derivation均未改变。"
+    ],
+    "阻断范围": "10项未决受影响依赖阻断当前整包激活。外部部署、隐藏标签、BotMaker规则、Grok提示词等未公开信息保留unknown，不应追求伪造闭环。若今后采用明确隔离机制的editorial-only独立包，应另建受控候选并证明不消费这些缺口，重新审核，不能用此报告直接豁免。",
+    "编辑动作判断": "现有10条编辑动作未见由本次上游变更导致必须更改的实质结论；继续保留缺信号unknown、原文满足时不改、不作曝光保证。OP05仅需修正推导文案与实际谓词一致。",
+    "activation": "blocked_not_activated",
+    "inventory_status_counts": {
+      "present": 321,
+      "deleted": 10
+    }
+  }
+}

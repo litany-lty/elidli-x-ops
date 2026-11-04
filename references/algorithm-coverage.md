@@ -8,7 +8,7 @@
 
 从操作目录起点到本次上游有 242 项变动；其中 6 项重命名按旧/新路径分别计入检查时为 248 条路径变动。新检查读取全仓变动清单，自动纳入登记源文件与调用者/配置文件。列入检查或 hash 一致不等于完成语义审查：新增、删除、调用者变动和未审配置必须保留在 `unreviewed_paths` / `gaps`，不能把“已登记公开范围审完”扩写为“整个新版已审完”。
 
-本次是定向源码研究，不是整个上游全审或生产线上观测；未审路径详见研究清单。以下覆盖统计只描述历史操作目录。
+续审已完成该固定 diff 的全部248条路径，含原234条未审与14条此前定向路径；1860条源码定位及before/after/patch绑定见[增量账本](algorithm-diff-review-2026-11-04.md)。研究现为38条规则。该增量不再有未审路径，但不等于2353文件全部分支审核或生产线上观测。新操作候选仍有10个受影响的部分公开依赖未决，详见[候选状态](algorithm-candidate-2026-11-04.md)。以下统计只描述历史操作目录。
 
 ## 历史操作目录结论
 
@@ -26,7 +26,7 @@
 
 ## 明确外部缺口
 
-- TweetMixer、Phoenix、MOE、SID、SimClusters、Thunder 的服务内部实现与当次响应不在本仓库。
+- 后续完整盘点纠正了旧的笼统说法：Phoenix、SID、SimClusters、Thunder等部分模型、索引、离线算法或服务实现公开；生产权重、完整私有依赖、索引快照与当次响应仍不可得。
 - `visibility-filtering/params.rs` 引用的 `../../visibility-limited-actions/main/limited_actions_policy.yml` 不在固定仓库；只能确认解析器、reason、可能动作类型和 treatment 消费，不能给出 LOW_QUALITY/MISINFO 的精确生产动作矩阵。
 - 隐藏标签分类器、部分 Grok prompts、botmaker rules、部署材料及每请求实验配置未公开。
 - 公开时间和代码相容性不能替代生产生效证据；历史适用性和具体账号命中仍保持 `unknown`。

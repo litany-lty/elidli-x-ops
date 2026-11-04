@@ -1,0 +1,661 @@
+{
+  "status": "not_activated",
+  "upstream": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "old_catalog": "x-algorithm-2f252142-signals-candidate-v5",
+  "active_fact_count": 30,
+  "historical_fact_file_count": 34,
+  "facts": [
+    {
+      "rule_id": "C01",
+      "old_version": "fact-c01-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c01-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "b711a995ed37e6feec4a3c981f9ae1c38c2a4b327437421c89f15da4b1e6ce58",
+      "new_upstream_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+      "old_excerpt_sha256": "f60357c8f9c7d4b9c547f8c9b34b5ca9d6ff875012e78a2166b84a60d23858db",
+      "new_excerpt_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+      "statement_change": "bounded_consumer_clarification",
+      "consumer_rule_ids": [
+        "OP10",
+        "OP01"
+      ]
+    },
+    {
+      "rule_id": "C02",
+      "old_version": "fact-c02-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c02-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "7c61de45f17cff34f9c51cba548641c87ff888743e7414a67e8298e4cf048e83",
+      "new_upstream_sha256": "7c61de45f17cff34f9c51cba548641c87ff888743e7414a67e8298e4cf048e83",
+      "old_excerpt_sha256": "d409586846013bb04969b519f333ac0e957d86141088b634d3210a01c22440a1",
+      "new_excerpt_sha256": "7c61de45f17cff34f9c51cba548641c87ff888743e7414a67e8298e4cf048e83",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": []
+    },
+    {
+      "rule_id": "C03",
+      "old_version": "fact-c03-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c03-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "7c61de45f17cff34f9c51cba548641c87ff888743e7414a67e8298e4cf048e83",
+      "new_upstream_sha256": "7c61de45f17cff34f9c51cba548641c87ff888743e7414a67e8298e4cf048e83",
+      "old_excerpt_sha256": "8f7dd8907bbd5b5909461dd49b4df8f564792ee9d944ff340b7478ce4fb96ab5",
+      "new_excerpt_sha256": "7c61de45f17cff34f9c51cba548641c87ff888743e7414a67e8298e4cf048e83",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": []
+    },
+    {
+      "rule_id": "C04",
+      "old_version": "fact-c04-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c04-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "8b071a27cfcadbcc2cdeee6b9b2c58a4eafc55d5eedae37f02abd028f106739e",
+      "new_upstream_sha256": "8b071a27cfcadbcc2cdeee6b9b2c58a4eafc55d5eedae37f02abd028f106739e",
+      "old_excerpt_sha256": "5804e8188074b7aa850f7f299dfc9cb68b6284040fc49e4bdba41b540bd5c6ee",
+      "new_excerpt_sha256": "8b071a27cfcadbcc2cdeee6b9b2c58a4eafc55d5eedae37f02abd028f106739e",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": []
+    },
+    {
+      "rule_id": "C05",
+      "old_version": "fact-c05-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c05-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "f492d71f0e08f7c811ea0bc64ca6c5fb4518e7666e1cb911b97325c70b3788c5",
+      "new_upstream_sha256": "f492d71f0e08f7c811ea0bc64ca6c5fb4518e7666e1cb911b97325c70b3788c5",
+      "old_excerpt_sha256": "2bc0e555d379531d04427495453d09cfa32903f8bb02a928087b05bea7153ff0",
+      "new_excerpt_sha256": "f492d71f0e08f7c811ea0bc64ca6c5fb4518e7666e1cb911b97325c70b3788c5",
+      "statement_change": "bounded_consumer_clarification",
+      "consumer_rule_ids": [
+        "OP03"
+      ]
+    },
+    {
+      "rule_id": "C06",
+      "old_version": "fact-c06-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c06-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "f1f44a6ee8bf2cc412db8965b4f05abb1dff58efa2776f04921417d82a33db57",
+      "new_upstream_sha256": "f1f44a6ee8bf2cc412db8965b4f05abb1dff58efa2776f04921417d82a33db57",
+      "old_excerpt_sha256": "2515546cb4db5d8082c0e2c17d55c4bdd20a75efb5e9558ca6e7cfab0ba2ea9b",
+      "new_excerpt_sha256": "f1f44a6ee8bf2cc412db8965b4f05abb1dff58efa2776f04921417d82a33db57",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": [
+        "OP05"
+      ]
+    },
+    {
+      "rule_id": "C07",
+      "old_version": "fact-c07-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c07-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "8b0a5e750c5d8ac44d0129a2c2b293a375f4d3a38dfb5510e2671791b010c91f",
+      "new_upstream_sha256": "8b0a5e750c5d8ac44d0129a2c2b293a375f4d3a38dfb5510e2671791b010c91f",
+      "old_excerpt_sha256": "15cf45912a2bed8615d886836d0a59e8b36375a25c930f1ac1c2b9336b52c1a3",
+      "new_excerpt_sha256": "8b0a5e750c5d8ac44d0129a2c2b293a375f4d3a38dfb5510e2671791b010c91f",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": [
+        "OP05"
+      ]
+    },
+    {
+      "rule_id": "C08",
+      "old_version": "fact-c08-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c08-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "cadf2a57f9e88b842179184641221672344582089f62afcc7c9f1f28e6fb3d30",
+      "new_upstream_sha256": "cadf2a57f9e88b842179184641221672344582089f62afcc7c9f1f28e6fb3d30",
+      "old_excerpt_sha256": "6941bf9b48901a77f810e807a359f4ffa1ee059ea491ad57d3e1b11f7efe5445",
+      "new_excerpt_sha256": "cadf2a57f9e88b842179184641221672344582089f62afcc7c9f1f28e6fb3d30",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": [
+        "OP03",
+        "OP05"
+      ]
+    },
+    {
+      "rule_id": "C09",
+      "old_version": "fact-c09-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c09-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "c0cac910b974522bb20b16c21e8ad2cb64306b4868ce367d2162ab1d25f0084a",
+      "new_upstream_sha256": "c0cac910b974522bb20b16c21e8ad2cb64306b4868ce367d2162ab1d25f0084a",
+      "old_excerpt_sha256": "f5e1f2c4052da1f0b4ae768de83d4bf1aa5eaddca0c789e1b172cdf9716f6ad9",
+      "new_excerpt_sha256": "c0cac910b974522bb20b16c21e8ad2cb64306b4868ce367d2162ab1d25f0084a",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": []
+    },
+    {
+      "rule_id": "C10",
+      "old_version": "fact-c10-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c10-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "1419306bc078ea4ebf590185947e975b1e6cbc81e30e5e8fe734e042b467a3b6",
+      "new_upstream_sha256": "1419306bc078ea4ebf590185947e975b1e6cbc81e30e5e8fe734e042b467a3b6",
+      "old_excerpt_sha256": "326f3d2e63ac284071b5f1b6758b90feaf6086db82fa4617b794999d29d1c7db",
+      "new_excerpt_sha256": "1419306bc078ea4ebf590185947e975b1e6cbc81e30e5e8fe734e042b467a3b6",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": []
+    },
+    {
+      "rule_id": "C11",
+      "old_version": "fact-c11-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c11-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "5a37ed35e1eed07551041778f5b36aceee5749f9699f5c6287e3341d0d7ab309",
+      "new_upstream_sha256": "5a37ed35e1eed07551041778f5b36aceee5749f9699f5c6287e3341d0d7ab309",
+      "old_excerpt_sha256": "8937e3f1bc7a5c5e5dfe5c70db5c5bd42f8b746e69ce0637cf84b4f0e99ebf0f",
+      "new_excerpt_sha256": "5a37ed35e1eed07551041778f5b36aceee5749f9699f5c6287e3341d0d7ab309",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": [
+        "OP08"
+      ]
+    },
+    {
+      "rule_id": "C12",
+      "old_version": "fact-c12-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c12-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "33f42784645515722f4a38555d61f18757a9d8f38e2a1db0f3b89257c20e63f4",
+      "new_upstream_sha256": "33f42784645515722f4a38555d61f18757a9d8f38e2a1db0f3b89257c20e63f4",
+      "old_excerpt_sha256": "37a2d41dcec10b693e17886748f0b2cf777239b36b73bf686d5bda718377865e",
+      "new_excerpt_sha256": "33f42784645515722f4a38555d61f18757a9d8f38e2a1db0f3b89257c20e63f4",
+      "statement_change": "bounded_consumer_clarification",
+      "consumer_rule_ids": [
+        "OP08"
+      ]
+    },
+    {
+      "rule_id": "C13",
+      "old_version": "fact-c13-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c13-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "32dc730210c7e43c84b3329a9adf056b9a2efa2331d68b2d324f6bacc134dbf8",
+      "new_upstream_sha256": "221105b62b0890f5644728a9ccc5597837bf4ce8e302562b59931f3ad7b404f8",
+      "old_excerpt_sha256": "ffeb4698a35f93aa3e4374546ca29ec7d079fc02c77782005bda8ad59d42a45d",
+      "new_excerpt_sha256": "221105b62b0890f5644728a9ccc5597837bf4ce8e302562b59931f3ad7b404f8",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": [
+        "OP08"
+      ]
+    },
+    {
+      "rule_id": "C14",
+      "old_version": "fact-c14-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c14-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "e10e466f5b0d6095e7c8ca7566595feb9aa1956dc7af4bc86c7fcbfd97496f82",
+      "new_upstream_sha256": "e093bc2eb27d288476e03240aea9a2a936ae5112cff77133c7ac3dd7670fa172",
+      "old_excerpt_sha256": "307dd1b1d43bbee19afaf62356a5919e8c50229d4df2f3991453eced5ce53ed8",
+      "new_excerpt_sha256": "e093bc2eb27d288476e03240aea9a2a936ae5112cff77133c7ac3dd7670fa172",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": [
+        "OP08"
+      ]
+    },
+    {
+      "rule_id": "C15",
+      "old_version": "fact-c15-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c15-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "5a37ed35e1eed07551041778f5b36aceee5749f9699f5c6287e3341d0d7ab309",
+      "new_upstream_sha256": "5a37ed35e1eed07551041778f5b36aceee5749f9699f5c6287e3341d0d7ab309",
+      "old_excerpt_sha256": "fb279f1ea8698fb6556a78c39f3efe9897c54e0b3905b8563544fd7be25a5c38",
+      "new_excerpt_sha256": "5a37ed35e1eed07551041778f5b36aceee5749f9699f5c6287e3341d0d7ab309",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": [
+        "OP03",
+        "OP08"
+      ]
+    },
+    {
+      "rule_id": "CF01",
+      "old_version": "fact-cf01-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-cf01-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "790ef2cd65a2fff7dff8e7ad399e7e1e87cb66596985bb134224293be61865fc",
+      "new_upstream_sha256": "f42bdc76d2f9905cccfb88aca6de08a19e3e141df5116c7dfc2d57037a172f70",
+      "old_excerpt_sha256": "58db7c69a3a1cf5c1febf170c523b8793b79a3995d5c02b325c6a9f574eac98a",
+      "new_excerpt_sha256": "f42bdc76d2f9905cccfb88aca6de08a19e3e141df5116c7dfc2d57037a172f70",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": []
+    },
+    {
+      "rule_id": "CS01",
+      "old_version": "fact-cs01-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-cs01-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+      "new_upstream_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+      "old_excerpt_sha256": "ab1e30ec6994661be46279863e76b2068367bbe520578a209805dfa972f605bf",
+      "new_excerpt_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": [
+        "OP06"
+      ]
+    },
+    {
+      "rule_id": "CS02",
+      "old_version": "fact-cs02-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-cs02-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+      "new_upstream_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+      "old_excerpt_sha256": "95ffd28394fa457ebb9d9c25e99d376d08b35ff359bbf7e8170db77db51cf494",
+      "new_excerpt_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": [
+        "OP06"
+      ]
+    },
+    {
+      "rule_id": "CS03",
+      "old_version": "fact-cs03-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-cs03-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+      "new_upstream_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+      "old_excerpt_sha256": "f874587dbce4ae9fa865ec56f5803be8d9bde9892539d0d190eeaab5b9dff5d9",
+      "new_excerpt_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": [
+        "OP06"
+      ]
+    },
+    {
+      "rule_id": "DV01",
+      "old_version": "fact-dv01-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-dv01-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "db4757ee53bbbaa7ef83226d5426e2cdf5c6b6c129374e71693aaef8981364e2",
+      "new_upstream_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+      "old_excerpt_sha256": "e3648b9f81f5c56a1c498a184fd15ef267a5fa2e4875e6602591d207d353b764",
+      "new_excerpt_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+      "statement_change": "bounded_consumer_clarification",
+      "consumer_rule_ids": [
+        "OP05"
+      ]
+    },
+    {
+      "rule_id": "EX01",
+      "old_version": "fact-ex01-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-ex01-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "666be0ae658fba2ce1c8983de2e4c30bf301166f6cbf54764ea12cbefc934955",
+      "new_upstream_sha256": "9102d2825e12493a5d6e61b11514253abc84a62dfebe20ed112a6df120577ac8",
+      "old_excerpt_sha256": "2ad7c28b9d8cbc6435e75fd78448496fed830121ef1f8f373469210158206e89",
+      "new_excerpt_sha256": "9102d2825e12493a5d6e61b11514253abc84a62dfebe20ed112a6df120577ac8",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": [
+        "OP06"
+      ]
+    },
+    {
+      "rule_id": "SC01",
+      "old_version": "fact-sc01-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-sc01-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "db4757ee53bbbaa7ef83226d5426e2cdf5c6b6c129374e71693aaef8981364e2",
+      "new_upstream_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+      "old_excerpt_sha256": "5ae8aae6aaa967d3da3c266c757f2039e3db628848a9bad3b68238c6729a183f",
+      "new_excerpt_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+      "statement_change": "bounded_consumer_clarification",
+      "consumer_rule_ids": [
+        "OP10",
+        "OP01",
+        "OP09"
+      ]
+    },
+    {
+      "rule_id": "SC02",
+      "old_version": "fact-sc02-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-sc02-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "db4757ee53bbbaa7ef83226d5426e2cdf5c6b6c129374e71693aaef8981364e2",
+      "new_upstream_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+      "old_excerpt_sha256": "aba3d9532c86ef9199ab1fa632de03d8e9383590b570857cf5bed51d61439b0c",
+      "new_excerpt_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+      "statement_change": "bounded_consumer_clarification",
+      "consumer_rule_ids": [
+        "OP02"
+      ]
+    },
+    {
+      "rule_id": "SC03",
+      "old_version": "fact-sc03-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-sc03-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "db4757ee53bbbaa7ef83226d5426e2cdf5c6b6c129374e71693aaef8981364e2",
+      "new_upstream_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+      "old_excerpt_sha256": "042975d4ddf48749cd6957a343b98b8828630c2e00041b03c02bf454316acff5",
+      "new_excerpt_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+      "statement_change": "bounded_consumer_clarification",
+      "consumer_rule_ids": [
+        "OP02"
+      ]
+    },
+    {
+      "rule_id": "SC04",
+      "old_version": "fact-sc04-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-sc04-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "db4757ee53bbbaa7ef83226d5426e2cdf5c6b6c129374e71693aaef8981364e2",
+      "new_upstream_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+      "old_excerpt_sha256": "1aead31d9379cdbae41a348f3278fdf5abf782f12cbcd5156bdffb12eaa09f73",
+      "new_excerpt_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+      "statement_change": "bounded_consumer_clarification",
+      "consumer_rule_ids": [
+        "OP04"
+      ]
+    },
+    {
+      "rule_id": "SC05",
+      "old_version": "fact-sc05-6258a1549ef8",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-sc05-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "58cd9b864933dff0f071b744304bcbcbffab3585f6fe000bb4d7e197255b1570",
+      "new_upstream_sha256": "58cd9b864933dff0f071b744304bcbcbffab3585f6fe000bb4d7e197255b1570",
+      "old_excerpt_sha256": "50183b423682adb0ad229810dc53cbb4f2f2aab26683e51e23da59793e094e57",
+      "new_excerpt_sha256": "58cd9b864933dff0f071b744304bcbcbffab3585f6fe000bb4d7e197255b1570",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": [
+        "OP07"
+      ]
+    },
+    {
+      "rule_id": "C16",
+      "old_version": "fact-c16-6258a1549ef8-timefix1",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c16-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "29967326c4c054531ef8e06037f921a2684d3d66848d859e30f06b776fa61bae",
+      "new_upstream_sha256": "34706498fa63cb3f0923ca17eae7355c9c3ca1ded177f2ea4eaf05563a74c50c",
+      "old_excerpt_sha256": "3a9509cb51c6b684e5a4e865e8c00e4cd4f9ed7b75f7d5bc25fa6e131b4b4058",
+      "new_excerpt_sha256": "34706498fa63cb3f0923ca17eae7355c9c3ca1ded177f2ea4eaf05563a74c50c",
+      "statement_change": "bounded_consumer_clarification",
+      "consumer_rule_ids": [
+        "OP09"
+      ]
+    },
+    {
+      "rule_id": "C17",
+      "old_version": "fact-c17-6258a1549ef8-timefix1",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c17-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "827076686f8671b080080127d068353e8b15e9ae58d2718a953f45b4571b6640",
+      "new_upstream_sha256": "989574f8d8af7554e29c0c6fcac348cd17f37a9e6ec76a2d9893d4984cf446de",
+      "old_excerpt_sha256": "ce18f626ce32d13eb49e2b439ff1af8680d0b59f60d833f64a9fdf901abd081f",
+      "new_excerpt_sha256": "989574f8d8af7554e29c0c6fcac348cd17f37a9e6ec76a2d9893d4984cf446de",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": [
+        "OP08"
+      ]
+    },
+    {
+      "rule_id": "C18",
+      "old_version": "fact-c18-6258a1549ef8-timefix1",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c18-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "796abf084789a5d25a1b2f6b94aa4bcec0107bd50799cd491d67ab308d38030e",
+      "new_upstream_sha256": "796abf084789a5d25a1b2f6b94aa4bcec0107bd50799cd491d67ab308d38030e",
+      "old_excerpt_sha256": "0b36731ef483cad35417483de607b4dd64be24179cd4b932d07b6620f8c7b56f",
+      "new_excerpt_sha256": "796abf084789a5d25a1b2f6b94aa4bcec0107bd50799cd491d67ab308d38030e",
+      "statement_change": "prior_bounded_statement_retained",
+      "consumer_rule_ids": []
+    },
+    {
+      "rule_id": "C19",
+      "old_version": "fact-c19-6258a1549ef8-timefix1",
+      "old_pin": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "new_version": "fact-c19-b220448766ab",
+      "new_pin": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "old_upstream_sha256": "d77b03347647f3428db5a99c07e5512851edcbc57dbc63035969d6bf6d392156",
+      "new_upstream_sha256": "2967760ba589dff52a6bf6448936a11aa06fdfe7c86173e2a023d7c5aee99672",
+      "old_excerpt_sha256": "5bb3e05226100e677122d6e91afc4167934a7358adc34fb0ec9a4d3b0fbd90d0",
+      "new_excerpt_sha256": "2967760ba589dff52a6bf6448936a11aa06fdfe7c86173e2a023d7c5aee99672",
+      "statement_change": "bounded_consumer_clarification",
+      "consumer_rule_ids": [
+        "OP08"
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "dependency_id": "action_consumer:EvaluateTweetsTreatment",
+      "status": "modified",
+      "path": "visibility-filtering/evaluate_tweets.rs",
+      "visibility": "partially_public",
+      "semantic_review": "迁移ingress/RequestViewer并按新evaluation状态产生结果；viewer/国家/quote处理须以新入口核验，外部policy未公开。"
+    },
+    {
+      "dependency_id": "action_consumer:LimitedActionsPolicies",
+      "status": "modified",
+      "path": "visibility-filtering/treatment.rs",
+      "visibility": "partially_public",
+      "semantic_review": "treatment新增Deleted和NotFound的EvaluateTweets输出，以及notification post-not-found分类；不能视为仅logging。精确限制动作仍来自外部policy。"
+    },
+    {
+      "dependency_id": "action_consumer:LimitedActionsPolicyResolver",
+      "status": "modified",
+      "path": "visibility-filtering/params/limited_actions_policy.rs",
+      "visibility": "partially_public",
+      "semantic_review": "仅将missing-policy计数从可选StatsReceiver迁移到Metrics；reason去重、action解析、空动作不生成policy未改变。外部policy内容仍未知。"
+    },
+    {
+      "dependency_id": "action_consumer:VisibilityPolicyEngine",
+      "status": "modified",
+      "path": "visibility-filtering/rules/engine.rs",
+      "visibility": "public",
+      "semantic_review": "新增PostKinds独立policy和ActorPosts联合hydration plan；admit_under按具体policy校验计划；新增post_kind evaluate/fold供通知与测试调用。 以通知kind区分规则，不影响Home的consumer边界；无生产启用覆盖证明。"
+    },
+    {
+      "dependency_id": "filter:Brazil2026ElectionFilter",
+      "status": "removed",
+      "path": "home-mixer/filters/brazil_2026_election_filter.rs",
+      "reason": "固定新commit删除此组件；旧manifest完整保留，不伪造空文件hash。"
+    },
+    {
+      "dependency_id": "filter:NewUserSoftNsfwFilter",
+      "status": "modified",
+      "path": "home-mixer/filters/new_user_soft_nsfw_filter.rs",
+      "visibility": "public",
+      "semantic_review": "加入scoring sequence长度门槛；配套公开params默认7天、长度100、开关false。仍是观看者年龄不是作者年龄。"
+    },
+    {
+      "dependency_id": "post_selection_filter:VideoCarouselFilter",
+      "status": "modified",
+      "path": "home-mixer/filters/video_carousel_filter.rs",
+      "visibility": "public",
+      "semantic_review": "extra从主流分离，主流外候选参与轮播；品牌安全及作者/语义/embedding去重门槛决定候选，非媒体固定加分。"
+    },
+    {
+      "dependency_id": "post_selection_hydrator:VideoEmbeddingHydrator",
+      "status": "modified",
+      "path": "home-mixer/candidate_hydrators/video_embedding_hydrator.rs",
+      "visibility": "public",
+      "semantic_review": "读取VideoCarouselEmbeddingVersion并传给embedding fetch；版本影响去重输入，不代表文本图片通用分数。"
+    },
+    {
+      "dependency_id": "query_hydrator:RecentSearchQueriesQueryHydrator",
+      "status": "modified",
+      "path": "home-mixer/query_hydrators/recent_search_queries_query_hydrator.rs",
+      "visibility": "public",
+      "semantic_review": "固定commit读取实现：开关或shadow traffic且user_id非零才启用；300ms请求超时，只保留早于请求时间、2048字节embedding的最近16条，清除查询文本。旧manifest hash落后于base，此次绑定真实新pin，不宣称本轮新增。"
+    },
+    {
+      "dependency_id": "scorer:compute_weighted_score",
+      "status": "modified",
+      "path": "xai-value-model/scoring.rs",
+      "visibility": "public",
+      "semantic_review": "融合头及评分调整依调用者weights；Home本地关闭作者多样性，远端VM按请求compute=true及可用配置决定重算。"
+    },
+    {
+      "dependency_id": "scorer:ImmersiveVideoScorer",
+      "status": "modified",
+      "path": "home-mixer/scorers/immersive_video_scorer.rs",
+      "visibility": "public",
+      "semantic_review": "不再整体排除cached请求；只补轮播视频缺失immersive_scores，已有分保留。"
+    },
+    {
+      "dependency_id": "scorer:PhoenixScorer",
+      "status": "modified",
+      "path": "home-mixer/scorers/phoenix_scorer.rs",
+      "visibility": "public",
+      "semantic_review": "开关控制page_decode请求并记录返回slot/prob供后续页面重排；原预测头不等于最终顺序。"
+    },
+    {
+      "dependency_id": "scorer:VMRanker",
+      "status": "modified",
+      "path": "home-mixer/scorers/vm_ranker.rs",
+      "visibility": "public",
+      "semantic_review": "Home保留本地备用分并构造远端请求；compute_value_model=true在RequestShape明确，服务可用性及配置仍约束输出。"
+    },
+    {
+      "dependency_id": "selector:TopKScoreSelector",
+      "status": "modified",
+      "path": "home-mixer/selectors/top_k_score_selector.rs",
+      "visibility": "public",
+      "semantic_review": "保留score TopK后按CarouselScoring选额外视频并标extra；零分不是硬删除条件。"
+    },
+    {
+      "dependency_id": "side_effect:PhoenixExperimentsSideEffect",
+      "status": "modified",
+      "path": "home-mixer/side_effects/phoenix_experiments_side_effect.rs",
+      "visibility": "public",
+      "semantic_review": "仅新增post_video分数记录，不改变选中候选或评分。"
+    },
+    {
+      "dependency_id": "side_effect:PhoenixRequestCacheSideEffect",
+      "status": "modified",
+      "path": "home-mixer/side_effects/phoenix_request_cache_side_effect.rs",
+      "visibility": "public",
+      "semantic_review": "提取双DC写入/错误占比逻辑；新增served_post_score_infos和ServedSlateCacheSideEffect：只记非零prediction ID的自然帖、总计至多64、转帖归原帖、按prediction ID分组并追加zset页面，最终组内位置不含广告/模块；Decode概率仅温度>0且启用有slot时记录。 新增页面日志而非排序开关；EnablePageLogging默认true且is_prod gate，TTL默认3600。Decode/RL默认false；缓存页记录当前实际served序。超过10%写错报告失败不更改排名。新增各类日志测试未运行。"
+    },
+    {
+      "dependency_id": "side_effect:RedisPostCandidateCacheSideEffect",
+      "status": "modified",
+      "path": "home-mixer/side_effects/redis_post_candidate_cache_side_effect.rs",
+      "visibility": "public",
+      "semantic_review": "只新增mock Redis写入再CachedPostsQueryHydrator回读的page slot/prob三字段保留测试。 生产缓存写入/TTL180/仅正weighted过滤逻辑未变，字段持久化由PostCandidate serde新增实现。不得把静态用例说成已通过运行验收。"
+    },
+    {
+      "dependency_id": "side_effect:RerankingKafkaSideEffect",
+      "status": "modified",
+      "path": "home-mixer/side_effects/reranking_kafka_side_effect.rs",
+      "visibility": "public",
+      "semantic_review": "预测分map新增post_video项。 用于日志记录，非新候选加分；不能把日志字段当固定视频boost。"
+    },
+    {
+      "dependency_id": "side_effect:ScoredStatsSideEffect",
+      "status": "modified",
+      "path": "home-mixer/side_effects/scored_stats_side_effect.rs",
+      "visibility": "public",
+      "semantic_review": "移除PhoenixScorer引用与retrieval contribution统计中的ranker_cluster参数/标签；retrieval_cluster及实验桶标签保持。 降低指标维度，不改来源归因候选集合或模型选择，不能推导检索/排名权重变化。"
+    },
+    {
+      "dependency_id": "source:ThunderSource",
+      "status": "modified",
+      "path": "home-mixer/sources/thunder_source.rs",
+      "visibility": "partially_public",
+      "semantic_review": "移除ThunderClusterId与decider解析，改为无cluster参数的get_random_channel；召回请求路由变化，服务内部与实际响应未知。"
+    },
+    {
+      "dependency_id": "training_label:compute_post_unexplored_labels",
+      "status": "modified",
+      "path": "phoenix/xrex/data/recsys/recsys_batch.py",
+      "visibility": "public",
+      "semantic_review": "批次读取增加late labels、early counterpart处理、广告计数log2桶及与人工负样本不兼容校验；非reply模式计算最早自身候选请求时间和不晚于请求的最新历史时间并填充int64。 供Python模型特征准备和可选广告侧输入消费；零值区分不了缺失与零计数，时间gap不能误解为帖子年龄或作者发帖频率。训练和Rust输入都排除reply槽位，但空/异常输入行为不能凭静态审查宣称完全一致。"
+    },
+    {
+      "dependency_id": "training_label:PhoenixContinuousActionLosses",
+      "status": "modified",
+      "path": "phoenix/xrex/configs/xrecsys.py",
+      "visibility": "public",
+      "semantic_review": "新增immersive_page_rl_cread配方用cread两项.1替代Tweedie/MAE；home_direct_packed将view loss=.5、time-gap=true/lr4、clip1.4、embedding WD5.6e-4/window37/SR及三类LR缩放.25；新增多项可选模型/dataset开关并更换H100 remat。 这是具体训练配方与mparams接线，不是Home价值融合系数；泛型开关默认false/0/1，home_direct_packed是明确局部覆盖且不扩散到GB300/nano。可建议补机制说明，但OP01–10无新确定性写法。"
+    },
+    {
+      "dependency_id": "training_label:PhoenixDiscreteActionLabels",
+      "status": "modified",
+      "path": "phoenix/crates/serving/xai-recsys-proto/proto/recsys.proto",
+      "visibility": "public",
+      "semantic_review": "Rust proto新增PageDecodeParams.rewardHead、ScoreInfo.pageDecoded、广告late-window/leadgen动作、AdTargeting/ad_taxonomy_id、两个history aggregation类型；44号动作ReactWithVideo重命名PostVideo，wire编号不变。 Home调用者传reward_head并缓存decoded标志，Python proto同步；这是请求/日志/训练契约变更，不保证服务端消费rewardHead。广告目标字段不是organic受众限制；动作名迁移应同步旧解释。"
+    },
+    {
+      "dependency_id": "visibility_level:SafetyLevel",
+      "status": "modified",
+      "path": "visibility-filtering/rules/safety_level.rs",
+      "visibility": "public",
+      "semantic_review": "LevelSpec拆Posts/QuotePass/Notifications，parse区分Unknown/NotServed；WriterV2注册Mention/Reply/MediaTagged，kind映射Users或ActorPosts；Immersive不暴露EvaluateTweets thrift。 明确服务入口和kind范围，保持已有FilterTweets/EvaluateTweets承载集合；新增仅通知帖子支持。"
+    }
+  ],
+  "blocking_changed_partial": [
+    {
+      "dependency_id": "action_consumer:EvaluateTweetsTreatment",
+      "status": "modified",
+      "path": "visibility-filtering/evaluate_tweets.rs",
+      "visibility": "partially_public",
+      "semantic_review": "迁移ingress/RequestViewer并按新evaluation状态产生结果；viewer/国家/quote处理须以新入口核验，外部policy未公开。"
+    },
+    {
+      "dependency_id": "action_consumer:LimitedActionsPolicies",
+      "status": "modified",
+      "path": "visibility-filtering/treatment.rs",
+      "visibility": "partially_public",
+      "semantic_review": "treatment新增Deleted和NotFound的EvaluateTweets输出，以及notification post-not-found分类；不能视为仅logging。精确限制动作仍来自外部policy。"
+    },
+    {
+      "dependency_id": "action_consumer:LimitedActionsPolicyResolver",
+      "status": "modified",
+      "path": "visibility-filtering/params/limited_actions_policy.rs",
+      "visibility": "partially_public",
+      "semantic_review": "仅将missing-policy计数从可选StatsReceiver迁移到Metrics；reason去重、action解析、空动作不生成policy未改变。外部policy内容仍未知。"
+    },
+    {
+      "dependency_id": "source:ThunderSource",
+      "status": "modified",
+      "path": "home-mixer/sources/thunder_source.rs",
+      "visibility": "partially_public",
+      "semantic_review": "移除ThunderClusterId与decider解析，改为无cluster参数的get_random_channel；召回请求路由变化，服务内部与实际响应未知。"
+    }
+  ],
+  "pending_rule_refs": [
+    "operational-op07-b220448-candidate",
+    "operational-op10-b220448-candidate",
+    "operational-op01-b220448-candidate",
+    "operational-op02-b220448-candidate",
+    "operational-op03-b220448-candidate",
+    "operational-op04-b220448-candidate",
+    "operational-op05-b220448-candidate",
+    "operational-op06-b220448-candidate",
+    "operational-op08-b220448-candidate",
+    "operational-op09-b220448-candidate"
+  ]
+}

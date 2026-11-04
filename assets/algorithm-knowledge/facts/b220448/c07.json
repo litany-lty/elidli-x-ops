@@ -1,0 +1,23 @@
+{
+  "contract_version": 2,
+  "rule_id": "C07",
+  "rule_version_id": "fact-c07-b220448766ab",
+  "repo": "xai-org/x-algorithm",
+  "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "path": "home-mixer/filters/drop_duplicates_filter.rs",
+  "symbol": "DropDuplicatesFilter",
+  "source_material_ref": "artifact-c07-b220448",
+  "source_content_hash": "8b0a5e750c5d8ac44d0129a2c2b293a375f4d3a38dfb5510e2671791b010c91f",
+  "checked_at": "2026-11-04T07:56:43.457Z",
+  "publicly_available_from": null,
+  "applicable_surface": "home_for_you_public_path",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证",
+    "当前事实只约束b220448公开源码中的该路径；生产命中和配置仍未知"
+  ],
+  "observed_behavior": "同帖多来源按ID去重并合并来源，不是文本相似分类器。",
+  "inference_boundary": "只陈述所列公开路径；不推算个人账号内部得分、曝光配额、隐藏标签或增长结果。",
+  "production_status": "unknown",
+  "supersedes": "fact-c07-6258a1549ef8"
+}

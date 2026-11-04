@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "side_effect:RedisPostCandidateCacheSideEffect",
+  "semantic_review": "只新增mock Redis写入再CachedPostsQueryHydrator回读的page slot/prob三字段保留测试。 生产缓存写入/TTL180/仅正weighted过滤逻辑未变，字段持久化由PostCandidate serde新增实现。不得把静态用例说成已通过运行验收。",
+  "files": [
+    {
+      "path": "home-mixer/side_effects/redis_post_candidate_cache_side_effect.rs",
+      "sha256": "a6d808723087d48641a5d3acfe027e4e096a0138b43e8abc9e2770c792001ede"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}
