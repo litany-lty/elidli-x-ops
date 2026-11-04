@@ -1,0 +1,101 @@
+  val numCandidatesProcessed = receiverStats.counter("num_candidates_processed")
+  val numMissingMetadata = receiverStats.counter("num_missing_metadata")
+  val numMissingAuthorId = receiverStats.counter("num_missing_author_id")
+  val numInvalidEventSource = receiverStats.counter("num_invalid_event_source")
+
+  numRequestsReceived.incr(1)
+
+  val postId: Long = ctx.arg.postId
+  val postMetadata: Option[Tweet] = eventProcessing.getPostMetadataLightweight(postId)
+
+  postMetadata match {
+    case Some(post) =>
+      val authorId: Option[Long] = eventProcessing.getAuthorId(post)
+      authorId match {
+        case Some(id) =>
+          val unifiedPostAnnotations = eventProcessing.getUnifiedPostAnnotations(postId)
+          val engagementCount = eventProcessing.getEngagementCount(postId)
+          val authorFollowers = eventProcessing.getAuthorFollowers(post)
+          val candidate = {
+            postId = postId,
+            authorId = id,
+            eventSource = eventSource,
+            unifiedPostAnnotations = unifiedPostAnnotations,
+            tweetMedadata = postMetadata,
+            engagementCount = engagementCount,
+            authorFollowers = authorFollowers
+          }
+          val hasImmersiveVideo = eventProcessing.hasImmersiveVideo(post)
+
+          if (eventSource == EvergreenVideo) {
+            if(hasImmersiveVideo) {
+              buildEvergreenVideoIndex(candidate, receiverStats)
+              numCandidatesProcessed.incr(1)
+            }
+          } else if (eventSource == EvergreenNsfwVideo) {
+            if(hasImmersiveVideo) {
+              buildEvergreenNsfwVideoIndex(candidate, receiverStats)
+              numCandidatesProcessed.incr(1)
+            }
+          } else {
+            val isCommunityPost = eventProcessing.isCommunityPost(post)
+            val isRepost = eventProcessing.isRepost(post)
+
+            if (eventSource == Fav && !isCommunityPost && !isRepost) {
+              buildSearchUnfilteredIndex(candidate, receiverStats)
+            }
+
+            val isReply = eventProcessing.isReply(post)
+            val isAdultPost = eventProcessing.isNsfwPost(unifiedPostAnnotations)
+            val shouldDropPostByVF = eventProcessing.shouldDropPostByVF(postId)
+            val shouldDropPost = shouldDropPostByVF || isAdultPost
+            if(isCommunityPost) {
+              numSkippedCommunity.incr(1)
+            } else if (isReply) {
+              numSkippedReplies.incr(1)
+              if (eventSource == Fav) {
+                if (eventProcessing.isSelfReply(post)) {
+                  numSkippedSelfReplies.incr(1)
+                } else if (shouldDropPost) {
+                  numSkippedFilteredReplies.incr(1)
+                } else {
+                  build1FavReplyIndex(candidate, receiverStats)
+                  build32FavReplyIndex(candidate, receiverStats)
+                  buildMetadataDump(candidate, receiverStats, isReply)
+                }
+              }
+            } else if (isRepost) {
+              numSkippedReposts.incr(1)
+            } else if (shouldDropPost) {
+              if (hasImmersiveVideo && eventSource == Fav && isAdultPost) {
+                buildNsfwVideoIndex(candidate, receiverStats)
+                buildMetadataDump(candidate, receiverStats, isReply)
+                buildMMEmbMetadataDump(candidate, receiverStats)
+              } else {
+                numSkippedPosts.incr(1)
+              }
+            } else {
+              eventSource match {
+                case Fav =>
+                  build1FavIndex(candidate, receiverStats)
+                  build1FavIndexBackup(candidate, receiverStats)
+                  build1FavTopicIndex(candidate, receiverStats)
+                  build32FavIndex(candidate, receiverStats)
+                  if(hasImmersiveVideo) {
+                    buildVideoIndex(candidate, receiverStats)
+                    build1FavVideoIndex(candidate, receiverStats)
+                    buildImagineIndex(candidate, receiverStats)
+                  }
+                  buildMetadataDump(candidate, receiverStats, isReply)
+                  buildMMEmbMetadataDump(candidate, receiverStats)
+                case PostCreation =>
+                  buildPostCreationIndex(candidate, receiverStats)
+                  if(hasImmersiveVideo) {
+                    buildVideoIndex(candidate, receiverStats)
+                  }
+                  buildMetadataDump(candidate, receiverStats, isReply)
+                case _ =>
+                  numInvalidEventSource.incr(1)
+              }
+              numCandidatesProcessed.incr(1)
+            }

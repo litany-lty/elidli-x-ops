@@ -1,0 +1,15 @@
+  description = PlainText(
+    "Per-user Under the Hood transparency report (keyed by user id). " +
+      "Picks the latest prior UTC month past the 10-day calendar floor (keep at 10+), capped by FS " +
+      "under_the_hood_report_max_month_bucket when > 0; if that month lacks complete observation " +
+      "(finalThroughDay), falls back one month. Takedown rows (label = reason name + countryCodes) in " +
+      "postLabelAgg / accountLabelAgg render only when FS under_the_hood_report_takedowns_enabled. " +
+      "When FS under_the_hood_report_appeals_enabled, post labels with a way to appeal carry " +
+      "howToAppeal (urls in parentheses), and reportInfo.postLabelAppeals carries the same sentences " +
+      "as RichText keyed by label; accountLabelAppeals is always absent. When FS under_the_hood_report_post_ids_enabled, post-label " +
+      "rows carry postIds (strings; all when the label is on <= always_show_up_to posts, none with a " +
+      "postIdsNotShownNote when on > max_share_pct of the month's posts, else the newest max_per_label; takedown " +
+      "rows always the newest max_per_label) and reportInfo.maxPostIdsPerLabel. " +
+      "Uses the per-user row when present; if missing, userId=-1 month-meta can still return " +
+      "reportInfo without reportJson. Missing only when both user and meta are absent/incomplete. " +
+      "eligibilityChecks = posts/age only. Called by underTheHoodReport for the authenticated viewer."

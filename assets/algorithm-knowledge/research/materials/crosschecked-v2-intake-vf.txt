@@ -1,0 +1,27 @@
+def shouldDropPostByVF(postId: Long): Boolean = {
+  val useRust = try {
+    #<visibility/decider>.fetch("enable_vf_rust_should_drop_tweet", None).v.getOrElse(false)
+  } catch {
+    case _ => false
+  }
+  if (useRust) {
+    val verdictOpt = try {
+      #<visibility/xai/shouldDropTweet>
+        .fetch(postId, { safetyLevel = TimelineHomeRecommendations }).v
+    } catch {
+      case _ => None
+    }
+    verdictOpt.getOrElse(false)
+  } else {
+    #Tweet<visibility/service/shouldDropTweetV2>
+      .fetch(postId, { safetyLevel = TimelineHomeRecommendations, forUserId = None }).v
+      .getOrElse(false)
+  }
+}
+
+def getEngagementCount(tweetId: Long): Option[EngagementCount] = {
+  val engagementsOpt =
+    #Tweet<unified-counter/service/UecAggTotal>.fetch(
+      tweetId,
+      {
+        engagements = Some(Seq(Retweet, Reply, Fav, QuoteTweet, Bookmark, Displayed, NotInterested, Report, Block)),

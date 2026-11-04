@@ -6,6 +6,14 @@ elidli-x-ops 是一个面向个人 X（Twitter）运营的 Agent 技能。它把
 
 它不会自行发帖、回复、点赞、购买 API 或创建后台任务，也不承诺流量增长。
 
+## 当前算法研究
+
+- [交叉核查后的三类规则](references/algorithm-rules-2026-11-04.md)：降权、增流、账号与上下文规则，附调用条件、源码材料和未知边界。
+- [完整规则与交叉审查](references/algorithm-full-review-2026-11-04.md)：全目录清单、关键链路、默认参数和未完成审查范围。2353个文件盘点不等于逐文件语义审查通过。
+- contract5 `knowledge-step` 的 `research` 操作只读返回当前研究。调用者参数覆盖、缺失输入、VF动作消费和DPP多层开关单独记录在 `runtime_bindings`；旧研究按内容哈希保存。
+
+研究更新不等于运行规则包激活，不等于生产验证。尤其 Home 明确请求 `compute_value_model=true`，不能被VM服务自身的false默认值误导；Home未传`viewer_following_count`，也不能把相关新用户OON参数说成已命中。
+
 ## 环境要求
 
 - Node.js 24.x

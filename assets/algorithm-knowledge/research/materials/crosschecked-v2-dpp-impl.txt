@@ -1,0 +1,136 @@
+pub fn rescore(
+    inputs: &[DppInput],
+    seed: Option<&DppInput>,
+    config: &DppConfig,
+    _viewer_id: u64,
+) -> Vec<DppResult> {
+    let n = inputs.len();
+    if n == 0 {
+        return Vec::new();
+    }
+
+    let mut sorted: Vec<usize> = (0..n).collect();
+    sorted.sort_unstable_by(|&a, &b| {
+        inputs[b]
+            .score
+            .partial_cmp(&inputs[a].score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    let top_count = config.max_selected_rank.min(n);
+    let top_indices: &[usize] = &sorted[..top_count];
+    let m: usize = top_count;
+
+    DPP_POOL_SIZE
+        .with_label_values(&[&config.max_selected_rank.to_string()])
+        .observe(m as f64);
+
+    let miss_count = top_indices
+        .iter()
+        .filter(|&&i| inputs[i].embedding_missing)
+        .count();
+    DPP_EMBEDDING_MISS_RATIO
+        .with_label_values(&[&m.to_string()])
+        .observe(miss_count as f64 / m as f64);
+
+    {
+        let top_score = inputs[top_indices[0]].score;
+        let bot_score = inputs[top_indices[m - 1]].score;
+        let med_score = inputs[top_indices[m / 2]].score;
+        DPP_POOL_SCORES
+            .with_label_values(&["max"])
+            .observe(top_score);
+        DPP_POOL_SCORES
+            .with_label_values(&["min"])
+            .observe(bot_score);
+        DPP_POOL_SCORES
+            .with_label_values(&["median"])
+            .observe(med_score);
+        let safe_max = top_score.max(EPSILON);
+        DPP_POOL_SCORES
+            .with_label_values(&["q_min"])
+            .observe(bot_score / safe_max);
+        DPP_POOL_SCORES
+            .with_label_values(&["q_median"])
+            .observe(med_score / safe_max);
+    }
+
+    let max_score = inputs[top_indices[0]].score.max(EPSILON);
+
+    let theta = config.theta.clamp(0.0, 1.0 - EPSILON);
+    let alpha = theta / (2.0 * (1.0 - theta));
+
+    let total = m + usize::from(seed.is_some());
+    let item_at = |ki: usize| -> &DppInput {
+        if ki < m {
+            &inputs[top_indices[ki]]
+        } else {
+            seed.expect("index m only exists when seed is present")
+        }
+    };
+
+    let qf: Vec<f64> = (0..total)
+        .map(|ki| {
+            let q = if ki < m {
+                item_at(ki).score / max_score
+            } else {
+                1.0
+            };
+            (alpha * q).exp()
+        })
+        .collect();
+
+    let norms: Vec<f64> = (0..total).map(|ki| item_at(ki).norm).collect();
+
+    let mut kernel = vec![0.0f64; total * total];
+    for i in 0..total {
+        kernel[i * total + i] = qf[i] * qf[i];
+        for j in (i + 1)..total {
+            let denom = norms[i] * norms[j];
+            let cos = if denom > EPSILON {
+                dot_product(&item_at(i).embedding, &item_at(j).embedding) / denom
+            } else {
+                0.0
+            };
+            let val = qf[i] * qf[j] * cos;
+            kernel[i * total + j] = val;
+            kernel[j * total + i] = val;
+        }
+    }
+
+    let pinned = seed.map(|_| m);
+    let dpp_result = greedy_dpp(&kernel, total, config.top_k, pinned);
+    let selected: Vec<(usize, f64)> = dpp_result
+        .selected
+        .iter()
+        .copied()
+        .filter(|&(ki, _)| ki < m)
+        .collect();
+    let selected = &selected;
+
+    let reason = if dpp_result.rank_exhausted {
+        "rank_exhausted"
+    } else {
+        "top_k_reached"
+    };
+    DPP_TERMINAL_CV
+        .with_label_values(&[reason])
+        .observe(dpp_result.terminal_cv);
+
+    let mut dpp_selected: Vec<usize> = selected.iter().map(|&(ki, _)| top_indices[ki]).collect();
+    dpp_selected.sort_unstable_by(|&a, &b| {
+        inputs[b]
+            .score
+            .partial_cmp(&inputs[a].score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    let results: Vec<DppResult> = dpp_selected
+        .iter()
+        .map(|&orig_idx| {
+            let score = inputs[orig_idx].score;
+            DppResult {
+                id: inputs[orig_idx].id,
+                score,
+            }
+        })

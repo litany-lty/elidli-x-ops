@@ -4,6 +4,8 @@
 
 2026-11-04 重新核对的上游为 `b220448766ab4ee4c83d58a67d51f0cb5bda86c2`。最新三类规则、开关及源码链接见 [本次研究](algorithm-rules-2026-11-04.md)。已安装操作目录仍固定到 `2f252142…`，其中继承事实还保留各自原始提交。以下 `6258a154…` 是历史证据起点，不代表最新研究或当前生产版本。保留原件，不只替换文档中的 SHA 来假装完成更新。
 
+交叉核查后的研究显式记录运行接线。Home请求里的 `compute_value_model=true` 优先于VM服务的默认false；`viewer_following_count`未在Home请求构造时填写；Home的VFFilter保留Downrank/Avoid并不在此乘降权系数；DPP部署开关和请求开关分层处理。详见 [完整审查](algorithm-full-review-2026-11-04.md) 与研究包 `runtime_bindings`，不能只从参数或标签名推断效果。
+
 ## 历史固定基线
 
 - 仓库：`xai-org/x-algorithm`

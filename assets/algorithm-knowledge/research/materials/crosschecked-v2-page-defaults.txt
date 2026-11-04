@@ -1,0 +1,48 @@
+    EnablePageDecodeRerank,
+    bool,
+    "rust_home_mixer_enable_page_decode_rerank",
+    false
+);
+param!(
+    PageDecodePoolN,
+    u32,
+    "rust_home_mixer_page_decode_pool_n",
+    200
+);
+param!(
+    PageDecodeSteps,
+    u32,
+    "rust_home_mixer_page_decode_steps",
+    64
+);
+param!(
+    PageDecodeTemperature,
+    f64,
+    "rust_home_mixer_page_decode_temperature",
+    0.0
+);
+param!(
+    PageDecodeRewardHead,
+    u32,
+    "rust_home_mixer_page_decode_reward_head",
+    0
+);
+param!(
+    EnablePageRlExploration,
+    bool,
+    "rust_home_mixer_enable_page_rl_exploration",
+    false
+);
+param!(
+    PageRlExplorationTemperature,
+    f64,
+    "rust_home_mixer_page_rl_exploration_temperature",
+    0.2
+);
+param!(
+    PageRlExplorationTopK,
+    usize,
+    "rust_home_mixer_page_rl_exploration_top_k",
+    64
+);
+

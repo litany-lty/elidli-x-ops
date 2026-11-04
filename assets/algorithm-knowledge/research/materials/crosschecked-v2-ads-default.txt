@@ -1,0 +1,6 @@
+param!(
+    AdsBlenderType,
+    String,
+    "rust_home_mixer_ads_blender",
+    "multi_risk"
+);

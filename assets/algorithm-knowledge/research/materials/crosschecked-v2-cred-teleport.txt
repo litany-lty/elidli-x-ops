@@ -1,0 +1,46 @@
+      .group
+      .sum
+
+    val rawEngagementWeights = engagementCounts
+      .map { case ((engagerId, destinationId), count) => (engagerId, (destinationId, count)) }
+      .group
+      .join(totalCountsPerEngager)
+      .join(priorMassPipe.groupBy(_.id))
+      .map {
+        case (_, (((destinationId, count), totalCount), engagerMass)) =>
+          (destinationId, engagerMass.mass * count.toDouble / totalCount.toDouble)
+      }
+      .group
+      .sum
+
+    val normalizedEngagement = getNormalizedUserMassPipe(
+      rawEngagementWeights.toTypedPipe.map { case (id, weight) => UserMass(id, weight) }
+    )
+
+    val normalizedUniform = getNormalizedUserMassPipe(
+      validUserInfoPipe.filter(u => !u.isNearZero && u.isPremium).map(u => UserMass(u.id, 1.0))
+    )
+
+    val blended = normalizedUniform
+      .map(u => (u.id, u.mass))
+      .group
+      .outerJoin(normalizedEngagement.groupBy(_.id).mapValues(_.mass))
+      .map {
+        case (id, (Some(uniform), Some(engagement))) =>
+          UserMass(id, (1.0 - beta) * uniform + beta * engagement)
+        case (id, (Some(uniform), None)) =>
+          UserMass(id, (1.0 - beta) * uniform)
+        case (id, (None, Some(engagement))) =>
+          UserMass(id, beta * engagement)
+        case (id, (None, None)) =>
+          UserMass(id, 0.0)
+      }
+
+    getNormalizedUserMassPipe(blended)
+  }
+
+  private[user_cred_v2] def pageRankMain(
+    validUserInfoPipe: TypedPipe[ValidUserInfo],
+    edgePipe: TypedPipe[Edge],
+    engagementPipe: TypedPipe[Edge],
+    config: UserCredV2Config,

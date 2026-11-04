@@ -7,6 +7,8 @@ import { canonicalHash, ContractError } from './contracts.mjs';
 const defaultPackageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../../assets/algorithm-knowledge');
 const fail = (path, message) => { throw new ContractError('MISSING_EVIDENCE', path, message); };
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const nonempty = value => typeof value === 'string' && value.trim().length > 0;
 
 /** Read source-reviewed research without pretending it activated the operational catalog. */
 export function loadAlgorithmResearch(packageDir = defaultPackageDir, { now = new Date() } = {}) {
@@ -27,6 +29,22 @@ export function loadAlgorithmResearch(packageDir = defaultPackageDir, { now = ne
     if (source.commit !== research.upstream.commit) fail('/research/sources', 'Source commit differs from research');
     sources.set(source.source_id, source);
   }
+  // Call-site overrides and required inputs are evidence, not production observations.
+  // Keep their references explicit so a service default cannot silently replace them.
+  const bindings = new Map();
+  if (research.research_revision) {
+    if (!Array.isArray(research.runtime_bindings) || !research.runtime_bindings.length) fail('/research/runtime_bindings', 'Crosschecked research needs runtime bindings');
+    if (!/^[a-f0-9]{64}$/.test(research.supersedes_content_hash ?? '')) fail('/research/supersedes_content_hash', 'Crosschecked research must preserve its previous version');
+    const prior = JSON.parse(readFileSync(resolve(root, 'research/history', `${research.supersedes_content_hash}.json`), 'utf8'));
+    const { content_hash: priorHash, ...priorContent } = prior;
+    if (priorHash !== research.supersedes_content_hash || canonicalHash(priorContent) !== priorHash) fail('/research/supersedes_content_hash', 'Previous research manifest changed');
+  }
+  for (const binding of research.runtime_bindings ?? []) {
+    if (!['binding_id', 'component', 'caller', 'effective_condition'].every(key => nonempty(binding[key])) || bindings.has(binding.binding_id)) fail('/research/runtime_bindings', 'Invalid or duplicate runtime binding');
+    if (!object(binding.declared_defaults) || !object(binding.request_fields) || binding.production_status !== 'unknown') fail('/research/runtime_bindings', 'Runtime binding must distinguish defaults, request fields and unknown production status');
+    if (!Array.isArray(binding.source_refs) || !binding.source_refs.length || binding.source_refs.some(ref => !sources.has(ref))) fail('/research/runtime_bindings', `Missing source for ${binding.binding_id}`);
+    bindings.set(binding.binding_id, binding);
+  }
   const categories = new Set(['demotion', 'distribution_opportunity', 'account_and_context']);
   const ids = new Set();
   for (const rule of research.rules) {
@@ -34,6 +52,7 @@ export function loadAlgorithmResearch(packageDir = defaultPackageDir, { now = ne
     ids.add(rule.rule_id);
     if (!rule.source_refs.length || rule.source_refs.some(ref => !sources.has(ref))) fail('/research/rules', `Missing source for ${rule.rule_id}`);
     if (!rule.preconditions.length || !rule.not_proven.length) fail('/research/rules', `Missing boundaries for ${rule.rule_id}`);
+    if ((research.research_revision && !Array.isArray(rule.runtime_binding_refs)) || (rule.runtime_binding_refs ?? []).some(ref => !bindings.has(ref))) fail('/research/rules', `Missing runtime binding for ${rule.rule_id}`);
   }
   if (new Set(research.rules.map(rule => rule.category)).size !== categories.size) fail('/research/rules', 'Research must cover all three requested categories');
   return Object.freeze(research);
