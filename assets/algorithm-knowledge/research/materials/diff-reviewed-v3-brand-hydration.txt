@@ -1,0 +1,24 @@
+        let tweet_ids: Vec<u64> = all_ids.into_iter().collect();
+        let batch = match self.client.get_safety_labels(tweet_ids).await {
+            Ok(batch) => batch,
+            Err(e) => {
+                let err = format!("VF get_safety_labels failed: {e}");
+                return candidates.iter().map(|_| Err(err.clone())).collect();
+            }
+        };
+
+        let failed_ids: HashSet<u64> = batch.failures.keys().copied().collect();
+        let label_map = batch.labels;
+        let author_fallbacks = self
+            .author_fallbacks(query, candidates, &label_map, &failed_ids)
+            .await;
+
+        let v2 = query.params.get(EnableAdsBrandSafetyVerdictV2);
+        let require_ptos_review = author_fallbacks.is_none();
+        let compute = |labels: &SafetyLabelMap, tweet_id: u64| {
+            if v2 {
+                compute_verdict_v2(labels, tweet_id, require_ptos_review)
+            } else {
+                compute_verdict(labels, tweet_id, require_ptos_review)
+            }
+        };

@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "post_selection_hydrator:VideoEmbeddingHydrator",
+  "semantic_review": "读取VideoCarouselEmbeddingVersion并传给embedding fetch；版本影响去重输入，不代表文本图片通用分数。",
+  "files": [
+    {
+      "path": "home-mixer/candidate_hydrators/video_embedding_hydrator.rs",
+      "sha256": "a412bd7427699c4c47c29ec3ae1233d59f19dae4dd7f6b0479eae3d80cef08ca"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

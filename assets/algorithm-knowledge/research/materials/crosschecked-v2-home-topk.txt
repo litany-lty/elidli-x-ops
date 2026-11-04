@@ -1,0 +1,34 @@
+use crate::models::candidate::PostCandidate;
+use crate::models::query::ScoredPostsQuery;
+use crate::params::{self, VideoCarouselExtraCandidates};
+use crate::util::video_carousel::{self, CarouselScoring};
+use xai_candidate_pipeline::selector::{SelectResult, Selector};
+
+pub struct TopKScoreSelector;
+
+impl Selector<ScoredPostsQuery, PostCandidate> for TopKScoreSelector {
+    fn select(
+        &self,
+        query: &ScoredPostsQuery,
+        candidates: Vec<PostCandidate>,
+    ) -> SelectResult<PostCandidate> {
+        let mut selected = self.sort(candidates);
+        let mut non_selected =
+            selected.split_off(params::TOP_K_CANDIDATES_TO_SELECT.min(selected.len()));
+        if video_carousel::is_enabled(query) {
+            selected.extend(video_carousel::take_videos_by_carousel_score(
+                &mut non_selected,
+                query.params.get(VideoCarouselExtraCandidates),
+                &CarouselScoring::from_query(query),
+            ));
+        }
+        SelectResult {
+            selected,
+            non_selected,
+        }
+    }
+
+    fn score(&self, candidate: &PostCandidate) -> f64 {
+        candidate.score.unwrap_or(f64::NEG_INFINITY)
+    }
+

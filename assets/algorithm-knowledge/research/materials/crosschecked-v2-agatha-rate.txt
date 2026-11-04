@@ -1,0 +1,96 @@
+import graphstore.common.FlockBlocksJavaDataset
+import java.util.TimeZone
+import twadoop_config.configuration.log_categories.group.useng.RtpReportsScalaDataset
+
+object RateBasedLabels {
+  def computeScoresForInteractions(
+    interactionSizes: TypedPipe[(Long, Long)],
+    favSizes: TypedPipe[(Long, Long)],
+    smoothingParam: Double,
+    labelName: String
+  ): TypedPipe[UserLabel] = {
+    val interactionAndFavs = favSizes
+      .outerJoin(interactionSizes)
+      .mapValues {
+        case (favOpt, interactionOpt) => (interactionOpt.getOrElse(0L), favOpt.getOrElse(0L))
+      }
+      .forceToDisk
+
+    val interactionPerFavPrior = getPrior(capFeatureSum(interactionAndFavs.values))
+
+    interactionAndFavs
+      .cross(interactionPerFavPrior)
+      .map {
+        case ((userId, (interaction, favs)), prior) =>
+          val numerator = interaction + smoothingParam
+          val denominator = interaction + favs + (smoothingParam / prior)
+          UserLabel(
+            userId,
+            labelName,
+            interaction.toInt,
+            (interaction + favs).toInt,
+            Some(numerator / denominator))
+      }
+  }
+
+  def getUserLabels(dateRange: DateRange)(implicit tz: TimeZone): Execution[Seq[LabelledUsers]] = {
+    val smoothingParam = 0.1
+    val favSizes = getLabelSizes(readOutOfNetworkFavs(dateRange)).forceToDiskExecution
+
+    val blockSizes = getLabelSizes(getBlocks(dateRange)).forceToDiskExecution
+
+    val longerDateRange = DateRange(dateRange.end - Days(180), dateRange.end)
+    val reportSizes = getLabelSizes(getReports(longerDateRange)).forceToDiskExecution
+    val spamReportSizes = getLabelSizes(
+      getSpamReports(dateRange, legitOnly = true)).forceToDiskExecution
+    val allSpamReportSizes = getLabelSizes(
+      getSpamReports(dateRange, legitOnly = false)).forceToDiskExecution
+
+    Execution
+      .zip(
+        favSizes,
+        blockSizes,
+        reportSizes,
+        spamReportSizes,
+        allSpamReportSizes,
+      ).map {
+        case (favSizes, blockSizes, reportSizes, spamReportSizes, allSpamReportSizes) =>
+          val blockScores = computeScoresForInteractions(
+            blockSizes,
+            favSizes,
+            smoothingParam,
+            BlocksPerFav.labelName)
+          val reportScores = computeScoresForInteractions(
+            reportSizes,
+            favSizes,
+            smoothingParam,
+            ReportsPerFav.labelName)
+          val spamReportScores = computeScoresForInteractions(
+            spamReportSizes,
+            favSizes,
+            smoothingParam,
+            SpamReportsPerFav.labelName)
+          val allSpamReportScores = computeScoresForInteractions(
+            allSpamReportSizes,
+            favSizes,
+            smoothingParam,
+            AllSpamReportsPerFav.labelName)
+
+          Seq(
+            LabelledUsers(blockScores, BlocksPerFav.labelName, BlocksPerFavUserLabelScalaDataset),
+            LabelledUsers(
+              reportScores,
+              ReportsPerFav.labelName,
+              ReportsPerFavUserLabelScalaDataset),
+            LabelledUsers(
+              spamReportScores,
+              SpamReportsPerFav.labelName,
+              SpamReportsPerFavUserLabelScalaDataset),
+            LabelledUsers(
+              allSpamReportScores,
+              AllSpamReportsPerFav.labelName,
+              AllSpamReportsPerFavUserLabelScalaDataset),
+          )
+      }
+  }
+

@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "post_selection_filter:VideoCarouselFilter",
+  "semantic_review": "extra从主流分离，主流外候选参与轮播；品牌安全及作者/语义/embedding去重门槛决定候选，非媒体固定加分。",
+  "files": [
+    {
+      "path": "home-mixer/filters/video_carousel_filter.rs",
+      "sha256": "5edcf248da8727df2a5144ee7f315104db7306f380c8b919171f175718065e9f"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

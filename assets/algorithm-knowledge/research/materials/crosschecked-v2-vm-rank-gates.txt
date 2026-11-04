@@ -1,0 +1,63 @@
+pub async fn rank(req: RankRequest, ctx: RankContext) -> Result<Vec<RankedCandidate>, String> {
+    let params = resolve_params(&req, ctx.config.as_deref());
+    let compute_value_model =
+        req.compute_value_model || params.as_ref().is_some_and(|p| p.get(ComputeValueModel));
+    let dpp_enabled = dpp_enabled(&req, params.as_ref());
+
+    if let (Some(dpp), true) = (ctx.dpp.clone(), dpp_enabled) {
+        if req.value_model_id != "dpp" {
+            error!(
+                "DPP context provided but value_model_id='{}' is not 'dpp'",
+                req.value_model_id
+            );
+        }
+        let mut dpp = dpp;
+
+        match (&params, &req.dpp_params) {
+            (Some(p), _) => {
+                dpp.config.theta = p.get(DppTheta);
+                dpp.config.max_selected_rank = p.get(DppMaxSelectedRank) as usize;
+            }
+            (None, Some(overrides)) => apply_dpp_overrides(&mut dpp.config, overrides),
+            (None, None) => {}
+        }
+
+        let config = ctx.config.clone();
+        return tokio::task::spawn_blocking(move || {
+            let value_model = value_model::compute(
+                &req,
+                params.as_ref(),
+                config.as_deref().map(RankingConfig::author_rules),
+                compute_value_model,
+                &ctx.debias,
+            );
+            let served_pre_dpp = served_pre_dpp_scores(&req, value_model.as_ref());
+            let mut memo = EmbeddingMemo::default();
+            let served = dpp_model::rank_with_memo(&req, &served_pre_dpp, &dpp, &mut memo);
+            ranked_candidates(&req, served, value_model.as_ref())
+        })
+        .await
+        .map_err(|e| format!("DPP spawn_blocking failed: {e}"));
+    }
+
+    let value_model = value_model::compute(
+        &req,
+        params.as_ref(),
+        ctx.config.as_deref().map(RankingConfig::author_rules),
+        compute_value_model,
+        &ctx.debias,
+    );
+    let served = served_pre_dpp_scores(&req, value_model.as_ref())
+        .iter()
+        .map(|s| s.unwrap_or(0.0))
+        .collect();
+    Ok(ranked_candidates(&req, served, value_model.as_ref()))
+}
+
+fn dpp_enabled(req: &RankRequest, params: Option<&Params>) -> bool {
+    params.is_none_or(|p| p.get(DppEnabled) && (!req.topic_request || p.get(TopicDppEnabled)))
+}
+
+fn apply_dpp_overrides(config: &mut DppConfig, overrides: &DppParams) {
+    if overrides.theta != 0.0 {
+        config.theta = overrides.theta;

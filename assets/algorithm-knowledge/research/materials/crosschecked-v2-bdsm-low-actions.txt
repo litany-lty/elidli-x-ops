@@ -1,0 +1,20 @@
+            dec.sp_emitted = True
+            user_labels.append(
+                pick_challenge_label(uid_int, args.challenge_liveness_per_10k, metrics)
+            )
+    elif dec.age_gate_skip_reason == "age_unknown":
+        user_labels.append("enforcement_silenced_age_unknown")
+        if dec.enforcement_head and dec.enforcement_head not in user_labels:
+            user_labels.append(dec.enforcement_head)
+    elif dec.age_gate_skip_reason == "dwell_dropout":
+        user_labels.append("enforcement_skipped_dwell_dropout")
+        if dec.enforcement_head and dec.enforcement_head not in user_labels:
+            user_labels.append(dec.enforcement_head)
+    elif total_actions_gate < pol.min_actions_for_enforcement:
+        for _h, (_tau, _lam) in pol.thresholds.items():
+            if scores_by_name.get(_h, 0) >= _tau and legit <= _lam:
+                user_labels.append("enforcement_gated_low_actions")
+                break
+
+    return dec
+

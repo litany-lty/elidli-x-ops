@@ -1,0 +1,22 @@
+    let (dpp, preload_future) = if args.dpp_enabled {
+        let (store, preload_future) = embedding_store::init_store(args.embedding_dim)
+            .context("DPP requested but embedding store init failed")?;
+        let config = DppConfig {
+            top_k: args.dpp_top_k,
+            theta: args.dpp_theta,
+            max_selected_rank: args.dpp_max_selected_rank,
+            debug_viewer_id: args.dpp_debug_viewer_id,
+        };
+        info!(
+            "DPP enabled: top_k={}, theta={}, max_selected_rank={}, embedding_dim={}, debug_viewer_id={}",
+            config.top_k,
+            config.theta,
+            config.max_selected_rank,
+            args.embedding_dim,
+            config.debug_viewer_id,
+        );
+        (Some(DppContext { store, config }), Some(preload_future))
+    } else {
+        info!("DPP rescoring disabled");
+        (None, None)
+    };

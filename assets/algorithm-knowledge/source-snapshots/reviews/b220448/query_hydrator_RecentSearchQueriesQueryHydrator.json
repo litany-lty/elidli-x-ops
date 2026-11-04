@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "query_hydrator:RecentSearchQueriesQueryHydrator",
+  "semantic_review": "固定commit读取实现：开关或shadow traffic且user_id非零才启用；300ms请求超时，只保留早于请求时间、2048字节embedding的最近16条，清除查询文本。旧manifest hash落后于base，此次绑定真实新pin，不宣称本轮新增。",
+  "files": [
+    {
+      "path": "home-mixer/query_hydrators/recent_search_queries_query_hydrator.rs",
+      "sha256": "6d508eddf01d7d6aca7ad225c09e907f026fcf852c1e4a542e974f410f75aa84"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": null
+}

@@ -17,8 +17,8 @@ test('review: knowledge check rejects uncommitted source bytes at an otherwise c
   const head=git(root,['rev-parse','HEAD']),clean=inspectKnowledgeCheckoutV5({checkout_dir:root,repo:'fixture/source',prior_head:head,paths:['source.rs','removed.rs']});
   assert.equal(clean.status,'unchanged');
   const material=Buffer.from(JSON.stringify({candidate_commit:head,files:clean.files.map(({path,status,sha256})=>({path,status,sha256}))}));writeFileSync(join(root,'review.json'),material);
-  const prior={dependencies:[{dependency_id:'removed',path:'removed.rs',source_visibility:'public'}],facts:{}};
-  const candidate={dependencies:[{dependency_id:'score',path:'source.rs',source_visibility:'public',material_hash:clean.files[0].sha256,evidence_material_path:'review.json',evidence_content_hash:canonicalHash(null)}],facts:{},artifacts:{}};
+  const prior={catalog:{upstream:{repo:'fixture/source',commit:head}},dependencies:[{dependency_id:'removed',path:'removed.rs',source_visibility:'public'}],facts:{}};
+  const candidate={catalog:{upstream:{repo:'fixture/source',commit:head}},dependencies:[{dependency_id:'score',path:'source.rs',source_visibility:'public',material_hash:clean.files[0].sha256,evidence_material_path:'review.json',evidence_content_hash:canonicalHash(null)}],facts:{},artifacts:{}};
   candidate.dependencies[0].evidence_content_hash=createHash('sha256').update(material).digest('hex');
   assert.doesNotThrow(()=>verifyKnowledgeSourceMaterialsV5(prior,candidate,clean,root));
 
@@ -45,7 +45,7 @@ test('review: checked upstream bytes override unchanged candidate metadata for i
   assert.doesNotThrow(()=>validate('KnowledgeUpdateProposalV5',proposal));
   assert.deepEqual(proposal.dependency_diff.modified,['score']);
   assert.deepEqual(proposal.affected_rule_version_refs,['rule-score']);
-  assert.deepEqual(proposal.gaps,['score']);
+  assert.deepEqual(proposal.gaps,['repository:inventory_unverified','score']);
   assert.deepEqual(proposal.impact_limitations,[{dependency_id:'score',path:'score.rs',reason:'candidate_metadata_stale'}]);
   assert.deepEqual(proposal.source_bindings.map(({source_ref,file_sha256,material_hash})=>({source_ref,file_sha256,material_hash})),[{source_ref:'dependency:score',file_sha256:actualHash,material_hash:priorHash}]);
 });
@@ -58,7 +58,7 @@ test('review: unchecked registered paths block activation instead of asserting n
   const proposal=proposeKnowledgeUpdateV5(current,candidate,check);
   assert.deepEqual(proposal.impact_limitations,[{dependency_id:'score',path:'score.rs',reason:'not_checked_at_candidate_head'}]);
   assert.deepEqual(proposal.dependency_diff.potentially_modified,['score']);
-  assert.deepEqual(proposal.gaps,['score']);
+  assert.deepEqual(proposal.gaps,['repository:inventory_unverified','score']);
   const review={decision:'approved',purpose:'review_knowledge',subject_hash:proposal.proposal_hash,actual_result_hash:proposal.proposal_hash};
   assert.throws(()=>activateKnowledgeUpdateV5(current,candidate,proposal,{review_receipt:review,replay_results:[],check}),error=>error.code==='MISSING_EVIDENCE'&&error.path==='/gaps');
 });

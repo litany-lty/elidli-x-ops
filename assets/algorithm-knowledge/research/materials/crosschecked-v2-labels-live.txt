@@ -1,0 +1,49 @@
+use quanta::Clock;
+use quick_cache::sync::Cache;
+use rustc_hash::FxHashMap;
+use std::sync::Arc;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use tracing::info;
+use xai_visibility_filtering_proto as vf_pb;
+
+use super::metrics::{self, BatchStage, CacheResult, CacheTier, LabelMetrics};
+use super::remote::{LookupError, LookupResults, RemoteLabels};
+
+const TTL: Duration = Duration::from_secs(10);
+
+fn tweet_timestamp_ms(tweet_id: u64) -> u64 {
+    const SNOWFLAKE_EPOCH_MS: u64 = 1288834974657;
+    const SNOWFLAKE_TIMESTAMP_SHIFT: u32 = 22;
+    (tweet_id >> SNOWFLAKE_TIMESTAMP_SHIFT) + SNOWFLAKE_EPOCH_MS
+}
+
+fn is_future_dated(tweet_id: u64, now: SystemTime) -> bool {
+    UNIX_EPOCH
+        .checked_add(Duration::from_millis(tweet_timestamp_ms(tweet_id)))
+        .is_none_or(|created_at| created_at > now)
+}
+
+fn system_unix_ms() -> i64 {
+    let millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or(0);
+    i64::try_from(millis).unwrap_or(i64::MAX)
+}
+
+fn label_is_live(expires_at_msec: Option<i64>, now_ms: i64) -> bool {
+    match expires_at_msec {
+        Some(expires_at_msec) => expires_at_msec.wrapping_sub(now_ms) > 0,
+        None => true,
+    }
+}
+
+fn drop_expired_labels(map: &vf_pb::SafetyLabelMap, now_ms: i64) -> vf_pb::SafetyLabelMap {
+    vf_pb::SafetyLabelMap {
+        labels: map
+            .labels
+            .iter()
+            .filter(|(_, label)| label_is_live(label.expires_at_msec, now_ms))
+            .map(|(id, label)| (*id, label.clone()))
+            .collect(),
+    }

@@ -1,0 +1,146 @@
+def meetsAccountAgeMinimum(user: User, now: Time.T): Boolean = {
+  user.createdAtMsec < now.minus(minimumAccountAge).inMillis
+}
+
+def isSuspended(user: User): Boolean =
+  user.safety.map { s => s.suspended }.getOrElse(false)
+
+def monthMetaKey(monthBucket: Int): UthUserMonthKey = {
+  userId = metadataUserId,
+  monthBucket = monthBucket,
+}
+
+def monthDataReady(
+  monthBucket: Int,
+  monthMetaOpt: Option[UthUserMonthAggregate],
+  userMonthOpt: Option[UthUserMonthAggregate]
+): Boolean =
+  userMonthOpt.exists { um =>
+    monthObservationComplete(monthBucket, um.daysIncluded)
+  } || monthMetaOpt.exists { meta =>
+    monthObservationComplete(monthBucket, meta.daysIncluded)
+  }
+
+val fetchOp = Op.fetch[Key, View, Value] { ctx =>
+  val now = Time.now
+  val gizUserOpt = userWithQueryFields(ctx.key, Set(Account, Safety))
+  if (gizUserOpt.map { user => isSuspended(user) }.getOrElse(false)) {
+    Ok.missing
+  } else {
+  val ageOk =
+    gizUserOpt.map({ user =>
+      meetsAccountAgeMinimum(user, now)
+    }).getOrElse(false)
+
+  val primaryMonth = reportMonthBucket(now, params.underTheHoodReportMaxMonthBucket())
+  val includeTakedowns = params.underTheHoodReportTakedownsEnabled()
+  val appeals: AppealSwitches = {
+    enabled = params.underTheHoodReportAppealsEnabled(),
+    sensitiveMediaFromPost = params.sensitiveMediaAppealAuthorWarningEnabled(),
+  }
+  val postIdPolicy: PostIdPolicy = {
+    enabled = params.underTheHoodReportPostIdsEnabled(),
+    listAllWhenPostsAtMost = params.underTheHoodReportPostIdsAlwaysShowUpTo(),
+    listNoneWhenSharePctAbove = params.underTheHoodReportPostIdsMaxSharePct(),
+    maxPerLabel = params.underTheHoodReportPostIdsMaxPerLabel(),
+  }
+  val primaryUserKey: UthUserMonthKey = {
+    userId = ctx.key,
+    monthBucket = primaryMonth,
+  }
+  val primaryMeta =
+    #<visibility/under-the-hood/mh/userMonthAggregates>.fetch(monthMetaKey(primaryMonth), ()).v
+  val primaryUser =
+    #<visibility/under-the-hood/mh/userMonthAggregates>.fetch(primaryUserKey, ()).v
+
+  val usePrimary = monthDataReady(primaryMonth, primaryMeta, primaryUser)
+  val monthBucket =
+    if (usePrimary) { primaryMonth } else { monthBucketBefore(primaryMonth) }
+  val monthMetaOpt =
+    if (usePrimary) {
+      primaryMeta
+    } else {
+      #<visibility/under-the-hood/mh/userMonthAggregates>
+        .fetch(monthMetaKey(monthBucket), ()).v
+    }
+  val userMonthOpt =
+    if (usePrimary) {
+      primaryUser
+    } else {
+      val fallbackKey: UthUserMonthKey = {
+        userId = ctx.key,
+        monthBucket = monthBucket,
+      }
+      #<visibility/under-the-hood/mh/userMonthAggregates>.fetch(fallbackKey, ()).v
+    }
+
+  userMonthOpt match {
+    case None =>
+      monthMetaOpt match {
+        case None =>
+          Ok.missing
+        case Some(meta) =>
+          if (!monthObservationComplete(monthBucket, meta.daysIncluded)) {
+            Ok.missing
+          } else {
+            val reportInfo = {
+              reportPeriod = Some(reportPeriodLabel(monthBucket)),
+              eligibilityChecks = Some(Map(
+                postsCheckLabel -> false,
+                ageCheckLabel -> ageOk,
+              )),
+              note = Some(reportNote()),
+              postLabelAppeals = None : Option[Map[String, RichText]],
+              accountLabelAppeals = None : Option[Map[String, RichText]],
+              maxPostIdsPerLabel = None : Option[Int],
+            }
+            Ok.value(Some({
+              reportJson = None,
+              reportInfo = Some(reportInfo),
+            }))
+          }
+      }
+    case Some(userMonth) =>
+      val daysIncludedForTs = userMonth.daysIncluded
+      if (!monthObservationComplete(monthBucket, daysIncludedForTs)) {
+        Ok.missing
+      } else {
+        val postCount = userMonth.eligiblePostAgg
+          .map { days => sumDayCounts(Some(days)) }
+          .getOrElse(0L)
+        val hasEnoughPosts = postCount >= minimumEligiblePosts
+        val eligibilityChecks = Map(
+          postsCheckLabel -> hasEnoughPosts,
+          ageCheckLabel -> ageOk,
+        )
+        val showReport = ageOk && hasEnoughPosts
+        val reportInfo = {
+          reportPeriod = Some(reportPeriodLabel(monthBucket)),
+          eligibilityChecks = Some(eligibilityChecks),
+          note = Some(reportNote()),
+          postLabelAppeals =
+            if (showReport) { postLabelAppeals(userMonth, includeTakedowns, appeals) } else { None },
+          accountLabelAppeals = None : Option[Map[String, RichText]],
+          maxPostIdsPerLabel =
+            if (postIdPolicy.enabled) { Some(postIdPolicy.maxPerLabel) } else { None : Option[Int] },
+        }
+        val generatedAtMs = generatedAtMillis(daysIncludedForTs, now.inMillis)
+        val periodDays = daysInPeriod(monthBucket, daysIncludedForTs)
+        val reportJson =
+          if (showReport) {
+            Some(
+              buildReportJson(
+                userMonth,
+                monthBucket,
+                generatedAtMs,
+                periodDays,
+                includeTakedowns,
+                appeals,
+                postIdPolicy))
+          } else {
+            None
+          }
+        Ok.value(Some({
+          reportJson = reportJson,
+          reportInfo = Some(reportInfo),
+        }))

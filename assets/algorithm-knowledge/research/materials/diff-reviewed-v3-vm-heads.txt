@@ -1,0 +1,64 @@
+    }
+    let cached_weighted = !inputs.is_empty() && inputs.iter().all(|c| c.weighted_score.is_some());
+    let stage = if cached_weighted {
+        "cached_weighted"
+    } else {
+        "heads"
+    };
+    VALUE_MODEL_STAGE.with_label_values(&[stage]).inc();
+    if cached_weighted && !req.include_top_heads {
+        return Ok(ValueModelOutput {
+            weighted: raw.weighted,
+            scores: raw.scores,
+            debiased: false,
+            top_heads: None,
+        });
+    }
+
+    let recentered = debias::recenter(req, params, debias.user.as_deref(), &inputs);
+    let scored_inputs = recentered.as_deref().unwrap_or(&inputs);
+    let top_heads = req.include_top_heads.then(|| {
+        scored_inputs
+            .iter()
+            .map(|c| top_heads(&weights, c))
+            .collect()
+    });
+    if cached_weighted || recentered.is_none() {
+        return Ok(ValueModelOutput {
+            weighted: raw.weighted,
+            scores: raw.scores,
+            debiased: false,
+            top_heads,
+        });
+    }
+    let debiased = compute_value_scores(&weights, &ctx, scored_inputs);
+    Ok(ValueModelOutput {
+        weighted: debiased.weighted,
+        scores: debiased.scores,
+        debiased: true,
+        top_heads,
+    })
+}
+
+const TOP_HEADS: usize = 3;
+const MIN_HEAD_SHARE: f64 = 0.10;
+
+fn top_heads(
+    weights: &ValueModelWeights,
+    candidate: &CandidateScoringInputs,
+) -> Vec<HeadContribution> {
+    let mut terms = weighted_terms(weights, candidate);
+    let total: f64 = terms.iter().map(|(_, c)| c.abs()).sum();
+    terms.sort_by(|a, b| b.1.abs().total_cmp(&a.1.abs()));
+    terms
+        .iter()
+        .take(TOP_HEADS)
+        .map(|&(head, contribution)| HeadContribution {
+            head: head.to_string(),
+            contribution,
+            share: contribution.abs() / total,
+        })
+        .take_while(|h| h.share >= MIN_HEAD_SHARE)
+        .collect()
+}
+

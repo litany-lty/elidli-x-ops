@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "side_effect:PhoenixExperimentsSideEffect",
+  "semantic_review": "仅新增post_video分数记录，不改变选中候选或评分。",
+  "files": [
+    {
+      "path": "home-mixer/side_effects/phoenix_experiments_side_effect.rs",
+      "sha256": "de4147326e1cd71aff583adbfbf57a4afc09a705dbc6f568acdc1f2d3d3003fe"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

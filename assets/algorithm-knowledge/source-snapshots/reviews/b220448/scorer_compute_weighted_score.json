@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "scorer:compute_weighted_score",
+  "semantic_review": "融合头及评分调整依调用者weights；Home本地关闭作者多样性，远端VM按请求compute=true及可用配置决定重算。",
+  "files": [
+    {
+      "path": "xai-value-model/scoring.rs",
+      "sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

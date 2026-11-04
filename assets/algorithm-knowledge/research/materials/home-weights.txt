@@ -1,0 +1,146 @@
+// across the X network (e.g. negative feedback is overall rare).
+
+// Each weight multiplies the *predicted* probability of that
+// action (P(favorite), P(repost), …) or a continuous value e.g.
+// watch time -- the weights do not multiply raw engagement counts.
+// One common misinterpretation is that you can read these weight
+// ratios as count equivalences, e.g. the incorrect statement that
+// "one report cancels 468 likes" -- this is incorrect because the
+// weights apply to the predicted probabilities rather than raw counts.
+
+// And the baseline probability of a Report is more than 1000x lower
+// than a Like, so it’s weighted more to allow the prediction to affect
+// the final ranking at all.
+
+// Related to the above is a misunderstanding that bad actors engaging
+// in mass blocking/reporting will significantly suppress reach. There
+// are multiple things inhibiting this:
+// 1. It’s predicting your likelihood of the action, not summing up
+// raw weights on counts. Also, recommendations are personalized, so
+// reports from bad actors will primarily affect recommendations for
+// users who are similar to the bad actors, rather than having the same
+// effect on the post's ranking to everyone.
+// 2. For an account to count in the algorithms recommendation system,
+// it must take place on a post served in Home Timeline. Directly
+// navigating to a post (i.e., coordinating via groupchat) has no
+// ranking impact. And users cannot manufacture a post to show up in
+// their Timeline in any consistently reproducible way.
+param!(FavoriteWeight, f64, "rust_home_mixer_favorite_weight", 0.66);
+param!(ReplyWeight, f64, "rust_home_mixer_reply_weight", 5.0);
+param!(
+    BidirectionalFollowReplyWeightBoost,
+    f64,
+    "rust_home_mixer_bidirectional_follow_reply_weight_boost",
+    15.0
+);
+param!(
+    BidirectionalFollowDwellWeightBoost,
+    f64,
+    "rust_home_mixer_bidirectional_follow_dwell_weight_boost",
+    0.0
+);
+param!(RetweetWeight, f64, "rust_home_mixer_retweet_weight", 1.0);
+param!(
+    PhotoExpandWeight,
+    f64,
+    "rust_home_mixer_photo_expand_weight",
+    0.05
+);
+param!(
+    VideoOpenWeight,
+    f64,
+    "rust_home_mixer_video_open_weight",
+    0.02
+);
+param!(ClickWeight, f64, "rust_home_mixer_click_weight", 0.3);
+param!(OpenLinkWeight, f64, "rust_home_mixer_open_link_weight", 0.2);
+param!(
+    ProfileClickWeight,
+    f64,
+    "rust_home_mixer_profile_click_weight",
+    0.0
+);
+param!(VqvWeight, f64, "rust_home_mixer_vqv_weight", 0.0);
+param!(ShareWeight, f64, "rust_home_mixer_share_weight", 2.0);
+param!(
+    ShareViaDmWeight,
+    f64,
+    "rust_home_mixer_share_via_dm_weight",
+    5.0
+);
+param!(
+    ShareViaCopyLinkWeight,
+    f64,
+    "rust_home_mixer_share_via_copy_link_weight",
+    20.0
+);
+param!(DwellWeight, f64, "rust_home_mixer_dwell_weight", 0.05);
+param!(QuoteWeight, f64, "rust_home_mixer_quote_weight", 5.0);
+param!(
+    QuotedClickWeight,
+    f64,
+    "rust_home_mixer_quoted_click_weight",
+    0.05
+);
+param!(
+    QuotedVqvWeight,
+    f64,
+    "rust_home_mixer_quoted_vqv_weight",
+    0.0
+);
+param!(
+    FollowAuthorWeight,
+    f64,
+    "rust_home_mixer_follow_author_weight",
+    4.0
+);
+param!(
+    PostUnexploredWeight,
+    f64,
+    "rust_home_mixer_post_unexplored_weight",
+    0.015
+);
+param!(
+    PostVideoWeight,
+    f64,
+    "rust_home_mixer_post_video_weight",
+    0.0
+);
+param!(
+    ContDwellTimeWeight,
+    f64,
+    "rust_home_mixer_cont_dwell_time_weight",
+    0.006
+);
+param!(
+    ContClickDwellTimeWeight,
+    f64,
+    "rust_home_mixer_cont_click_dwell_time_weight",
+    0.4
+);
+
+param!(
+    NotInterestedWeight,
+    f64,
+    "rust_home_mixer_not_interested_weight",
+    -52.272
+);
+param!(
+    BlockAuthorWeight,
+    f64,
+    "rust_home_mixer_block_author_weight",
+    -31.2
+);
+param!(
+    MuteAuthorWeight,
+    f64,
+    "rust_home_mixer_mute_author_weight",
+    -58.8
+);
+param!(ReportWeight, f64, "rust_home_mixer_report_weight", -234.0);
+param!(
+    NotDwelledWeight,
+    f64,
+    "rust_home_mixer_not_dwelled_weight",
+    -0.02
+);

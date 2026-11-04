@@ -1,8 +1,11 @@
+import { previewKnowledgeRollbackV5, rollbackKnowledgeV5 } from './knowledge-rollback.mjs';
 import { canonicalHash, ContractError, validate } from './contracts.mjs';
 import { commitState, putImmutable } from './state.mjs';
 import { seedKnowledgeState } from './knowledge-state.mjs';
 import { knowledgeBundleFromState, loadKnowledgeCatalog, validateKnowledgeBundleIntegrity } from './knowledge.mjs';
-import { activateKnowledgeUpdateV5, inspectKnowledgeCheckoutV5, knowledgeReplayResultHashV5, proposeKnowledgeUpdateV5, verifyKnowledgeSourceMaterialsV5 } from './knowledge-updates.mjs';
+import { activateKnowledgeUpdateV5, inspectKnowledgeCheckoutV5, knowledgeDependencyPathsV5, knowledgeReplayResultHashV5, proposeKnowledgeUpdateV5, verifyKnowledgeSourceMaterialsV5 } from './knowledge-updates.mjs';
+
+import { loadAlgorithmResearch } from './knowledge-research.mjs';
 
 const fail = (code, path, message) => { throw new ContractError(code, path, message, false); };
 
@@ -38,11 +41,20 @@ function lastSuccessfulCheck(state) {
 export async function dispatchKnowledgeV5(request, dir, state) {
   const payload = validate('KnowledgeStepPayloadV5', request.payload);
   if (!state || state.schema_version !== 5) fail('MIGRATION_REQUIRED', '/state/schema_version', 'Knowledge V5 requires state 5');
+  if (payload.operation === 'rollback-preview') return { state, data: { rollback: previewKnowledgeRollbackV5(state, payload.target_catalog_ref) } };
+  if (payload.operation === 'research') {
+    const current = knowledgeBundleFromState(state), research = loadAlgorithmResearch();
+    return { state, data: { research, operational_catalog_ref: current.catalog.catalog_id, operational_commit: current.catalog.upstream.commit, operational_execution_scope: current.catalog.execution_scope ?? 'mechanism_and_editorial', production_mechanism_status: 'unknown', alignment: current.catalog.upstream.commit === research.upstream.commit ? 'same_commit' : 'research_newer_than_operational_catalog' } };
+  }
   let result;
   const next = await commitState(dir, request.expected_revision, async working => {
+    if (payload.operation === 'rollback') {
+      result = await rollbackKnowledgeV5(working, payload);
+      return working;
+    }
     const current = knowledgeBundleFromState(working);
     if (payload.operation === 'check') {
-      result = validate('KnowledgeCheckV5', inspectKnowledgeCheckoutV5({ checkout_dir: payload.checkout_dir, repo: current.catalog.upstream.repo, prior_head: current.catalog.upstream.commit, paths: payload.paths, clock: new Date() }));
+      result = validate('KnowledgeCheckV5', inspectKnowledgeCheckoutV5({ checkout_dir: payload.checkout_dir, repo: current.catalog.upstream.repo, prior_head: current.catalog.upstream.commit, paths: [...new Set([...payload.paths, ...current.dependencies.filter(dep => dep.source_visibility !== 'external_unpublished').flatMap(knowledgeDependencyPathsV5)])], clock: new Date() }));
       putImmutable(working.knowledge_events, result.check_id, result);
       return working;
     }
@@ -70,6 +82,12 @@ export async function dispatchKnowledgeV5(request, dir, state) {
     const reviewRefs = [payload.review_receipt_ref, ...replayResults.map(item => item.review_ref)];
     const { verifyHostReviewReceiptV5, loadActualReviewReceiptsV5 } = await import('./host-review-v5.mjs');
     const receipts = await loadActualReviewReceiptsV5(working, reviewRefs), clock = new Date();
+    if (saved.catalog.execution_scope === 'editorial_only') {
+      for (const ref of reviewRefs) {
+        const review = actualReceipt(receipts, ref);
+        if (!review?.reviewer?.trim() || !review?.generator_ref?.trim() || review.reviewer.trim() === review.generator_ref.trim()) fail('MISSING_EVIDENCE', '/review_receipt_ref', 'Editorial activation requires independent proposal and replay reviews');
+      }
+    }
     const proposalReview = actualReceipt(receipts, payload.review_receipt_ref);
     await verifyHostReviewReceiptV5(proposalReview, { clock: () => clock, expectedPurpose: 'review_knowledge', expectedSubjectRef: proposal.proposal_id, expectedSubjectContentHash: proposal.proposal_hash });
     if (proposalReview?.purpose !== 'review_knowledge' || proposalReview.subject_ref !== proposal.proposal_id || proposalReview.subject_hash !== proposal.proposal_hash || proposalReview.actual_result_hash !== proposal.proposal_hash || proposalReview.decision !== 'approved') fail('MISSING_EVIDENCE', '/review_receipt_ref', 'Exact approved knowledge proposal review is required');

@@ -1,0 +1,18 @@
+param!(
+    EnableNewUserSoftNsfwFilter,
+    bool,
+    "rust_home_mixer_enable_new_user_soft_nsfw_filter",
+    false
+);
+param!(
+    NewUserSoftNsfwFilterMaxAccountAgeSecs,
+    u64,
+    "rust_home_mixer_new_user_soft_nsfw_filter_max_account_age_secs",
+    604800
+);
+param!(
+    NewUserSoftNsfwFilterMaxScoringSeqLength,
+    u64,
+    "rust_home_mixer_new_user_soft_nsfw_filter_max_scoring_seq_length",
+    100
+);

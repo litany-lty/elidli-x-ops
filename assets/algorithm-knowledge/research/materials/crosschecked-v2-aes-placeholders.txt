@@ -1,0 +1,15 @@
+  - id: high_follower_count
+    # Prod uses a different follower count threshold; this is a mock value to reduce gaming.
+    when: cred.follower_count >= 12.34
+    then:
+      kind: skip
+      reason: high_follower_count
+
+  # Prod uses a different credibility score threshold; this is a mock value to reduce gaming.
+  - id: pagerank_skipped
+    when: >
+      cred.is_high
+      || cred.score >= 12.34
+    then:
+      kind: skip
+      reason: pagerank_skipped

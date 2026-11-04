@@ -1,0 +1,140 @@
+pub fn served_page_log_key(prediction_request_id: u64) -> String {
+    format!("{KEY_PREFIX}_{prediction_request_id}_page")
+}
+
+pub(crate) fn served_post_score_infos(
+    query: &ScoredPostsQuery,
+    candidates: &[PostCandidate],
+) -> HashMap<u64, ScoreInfo> {
+    let decode_applied = query.params.get(EnablePageDecodeRerank);
+    let decode_sampled = query.params.get(PageDecodeTemperature) > 0.0;
+    let exploration_applied = query.params.get(EnablePageRlExploration);
+    candidates
+        .iter()
+        .map(|candidate| {
+            let decoded = decode_applied && candidate.page_decode_slot.is_some();
+            let score_info = ScoreInfo {
+                weighted_score: candidate.weighted_score,
+                final_score: candidate.score,
+                reward_rerank_slot_prob: candidate
+                    .page_rl_exploration_prob
+                    .filter(|_| exploration_applied),
+                page_decode_slot_prob: candidate
+                    .page_decode_prob
+                    .filter(|_| decoded && decode_sampled),
+                page_decoded: decoded.then_some(true),
+                ..Default::default()
+            };
+            (candidate.tweet_id, score_info)
+        })
+        .collect()
+}
+
+fn original_tweet_id(post: &ScoredPost) -> u64 {
+    if post.retweeted_tweet_id != 0 {
+        post.retweeted_tweet_id
+    } else {
+        post.tweet_id
+    }
+}
+
+pub(crate) fn served_slates(
+    query: &ScoredPostsQuery,
+    served: &[FeedItem],
+) -> Vec<(u64, CandidateSet)> {
+    let score_infos = query.served_post_score_infos.get();
+    let mut slates: Vec<(u64, CandidateSet)> = Vec::new();
+    let posts = served
+        .iter()
+        .filter_map(|item| match &item.item {
+            Some(feed_item::Item::Post(post)) if post.prediction_request_id != 0 => Some(post),
+            _ => None,
+        })
+        .take(MAX_SERVED_SLATE_POSTS);
+    for post in posts {
+        let index = match slates.iter().position(|(prediction_request_id, _)| {
+            *prediction_request_id == post.prediction_request_id
+        }) {
+            Some(index) => index,
+            None => {
+                slates.push((
+                    post.prediction_request_id,
+                    CandidateSet {
+                        user_id: query.user_id,
+                        product_surface: product_surface(query) as i32,
+                        request_timestamp_ms: Some(query.request_time_ms),
+                        ..Default::default()
+                    },
+                ));
+                slates.len() - 1
+            }
+        };
+        let slate = &mut slates[index].1;
+        slate.candidates.push(TweetInfo {
+            tweet_id: original_tweet_id(post),
+            tweet_timeline_position: slate.candidates.len() as u32,
+            score_info: score_infos.and_then(|infos| infos.get(&post.tweet_id).cloned()),
+            ..Default::default()
+        });
+    }
+    slates
+}
+
+fn record_slate_write(outcome: &str) {
+    if let Some(receiver) = global_stats_receiver() {
+        receiver.incr(SLATE_WRITES_METRIC, &[("outcome", outcome)], 1);
+    }
+}
+
+pub struct ServedSlateCacheSideEffect {
+    phoenix_request_cache_redis_atla_client: Arc<dyn RedisClient>,
+    phoenix_request_cache_redis_pdxa_client: Arc<dyn RedisClient>,
+}
+
+impl ServedSlateCacheSideEffect {
+    pub fn new(
+        phoenix_request_cache_redis_atla_client: Arc<dyn RedisClient>,
+        phoenix_request_cache_redis_pdxa_client: Arc<dyn RedisClient>,
+    ) -> Self {
+        Self {
+            phoenix_request_cache_redis_atla_client,
+            phoenix_request_cache_redis_pdxa_client,
+        }
+    }
+}
+
+#[async_trait]
+impl SideEffect<ScoredPostsQuery, FeedItem> for ServedSlateCacheSideEffect {
+    fn enable(&self, query: Arc<ScoredPostsQuery>) -> bool {
+        is_prod() && query.params.get(EnablePageLogging)
+    }
+
+    async fn side_effect(
+        &self,
+        input: Arc<SideEffectInput<ScoredPostsQuery, FeedItem>>,
+    ) -> Result<(), String> {
+        let query = &input.query;
+        let slates = served_slates(query, &input.selected_candidates);
+        if slates.is_empty() {
+            record_slate_write("no_posts");
+            return Ok(());
+        }
+
+        let entries = slates
+            .iter()
+            .map(|(prediction_request_id, slate)| {
+                Ok((
+                    served_page_log_key(*prediction_request_id),
+                    encode_cache_value(slate)?,
+                ))
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        let result = append_to_both_dcs(
+            self.phoenix_request_cache_redis_atla_client.as_ref(),
+            self.phoenix_request_cache_redis_pdxa_client.as_ref(),
+            entries,
+            query.request_time_ms,
+            query.params.get(PageLogTtlSeconds),
+        )
+        .await;
+        record_slate_write(if result.is_ok() { "success" } else { "error" });

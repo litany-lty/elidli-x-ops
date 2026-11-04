@@ -4,6 +4,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { canonicalHash, ContractError } from './contracts.mjs';
 import { validateKnowledgeBundleIntegrity } from './knowledge.mjs';
+import { reviewedChangedPaths, validateKnowledgeChangeReview } from './knowledge-change-review.mjs';
+import { validateEditorialScope } from './knowledge-scope.mjs';
 
 const fail = (path, message, code = 'INVALID_INPUT') => { throw new ContractError(code, path, message); };
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -27,7 +29,21 @@ export function inspectKnowledgeCheckoutV5({ checkout_dir, repo, prior_head = nu
     const remoteResult = execFileSync('git', ['ls-remote', queryRemote, 'HEAD'], { cwd: checkout_dir, encoding: 'utf8', env: { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null' } }).trim();
     const remote_head = remoteResult.split(/\s+/u)[0] ?? null, remote_checked_at = nowIso(clock);
     if (!/^[a-f0-9]{40}$/.test(remote_head)) fail('/remote_head', 'Remote HEAD lookup did not return a full commit hash', 'MISSING_EVIDENCE');
-    const files = paths.map(path => {
+    // Discover changes across the entire repository, not just registered/requested paths.
+    // Disable rename heuristics: both the removed and added paths must remain visible.
+    let repository_diff = null;
+    if (prior_head !== null) {
+      if (!/^[a-f0-9]{40}$/u.test(prior_head)) fail('/prior_head', 'Baseline must be a full commit hash', 'MISSING_EVIDENCE');
+      const entries = execFileSync('git', ['diff', '--no-ext-diff', '--no-renames', '--name-status', '-z', prior_head, observed_head, '--'], { cwd: checkout_dir, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).split('\0');
+      entries.pop();
+      repository_diff = [];
+      for (let i = 0; i < entries.length; i += 2) {
+        if (!['A', 'D', 'M', 'T'].includes(entries[i]) || !entries[i + 1]) fail('/repository_diff', 'Unsupported Git change inventory', 'MISSING_EVIDENCE');
+        repository_diff.push({ path: entries[i + 1], change: entries[i] });
+      }
+      repository_diff.sort((a, b) => a.path.localeCompare(b.path));
+    }
+    const files = [...new Set([...paths, ...(repository_diff ?? []).map(item => item.path)])].map(path => {
       const absolute = resolve(checkout_dir, path), rel = relative(resolve(checkout_dir), absolute);
       if (isAbsolute(rel) || rel.startsWith('..')) fail('/paths', 'Knowledge check path escapes the checkout');
       const tree = execFileSync('git', ['ls-tree', observed_head, '--', rel], { cwd: checkout_dir, encoding: 'utf8' }).trim();
@@ -39,13 +55,16 @@ export function inspectKnowledgeCheckoutV5({ checkout_dir, repo, prior_head = nu
       return { path: rel, status: committed ? 'present' : 'deleted', sha256: committed ? sha256(committed) : null, git_blob_oid: git_blob_oid ?? null, commit: observed_head };
     });
     const mismatch = observed_head !== remote_head;
-    const base = { contract_version: 5, check_id: `knowledge-check-${canonicalHash({ repo, checked_at, observed_head, remote_head, files }).slice(0, 24)}`, repo, checked_at, checkout_dir: resolve(checkout_dir), source_binding_version: 'git-source-v1', remote_url: remote, remote_checked_at, prior_head, observed_head, remote_head, status: mismatch ? 'check_failed' : prior_head === remote_head ? 'unchanged' : 'changed', files, error: mismatch ? `CHECKOUT_NOT_REMOTE_HEAD: checkout=${observed_head} remote=${remote_head}` : null };
+    const base = { contract_version: 5, check_id: `knowledge-check-${canonicalHash({ repo, checked_at, prior_head, observed_head, remote_head, repository_diff, files }).slice(0, 24)}`, repo, checked_at, checkout_dir: resolve(checkout_dir), source_binding_version: 'git-source-v1', remote_url: remote, remote_checked_at, prior_head, observed_head, remote_head, repository_diff, inventory_scope: repository_diff === null ? 'baseline_missing' : 'full_repository', status: mismatch ? 'check_failed' : prior_head === remote_head ? 'unchanged' : 'changed', files, error: mismatch ? `CHECKOUT_NOT_REMOTE_HEAD: checkout=${observed_head} remote=${remote_head}` : null };
     return Object.freeze({ ...base, check_hash: canonicalHash(base) });
   } catch (error) {
     const base = { contract_version: 5, check_id: `knowledge-check-${canonicalHash({ repo, checked_at, prior_head, error: String(error.message) }).slice(0, 24)}`, repo, checked_at, remote_url: null, remote_checked_at: checked_at, prior_head, observed_head: null, remote_head: null, status: 'check_failed', files: [], error: String(error.message) };
     return Object.freeze({ ...base, check_hash: canonicalHash(base) });
   }
 }
+
+const callerPaths = dep => [...new Set((dep?.caller_refs ?? []).map(ref => ref.replace(/(?:::.*|:L\d+(?:-\d+)?)$/u, '')))];
+export const knowledgeDependencyPathsV5 = dep => [dep.path, ...callerPaths(dep)];
 
 const byId = (items, key) => new Map((items ?? []).map(item => [item[key], item]));
 export function dependencyDiffV5(currentDependencies, candidateDependencies) {
@@ -67,10 +86,22 @@ function checkedDependencyImpactV5(currentBundle, candidateBundle, check) {
   const priorDeps = byId(currentBundle.dependencies, 'dependency_id'), checked = new Map((check?.files ?? []).map(file => [file.path, file]));
   const modified = [], potentially_modified = [], limitations = [];
   if (check?.status !== 'changed' || check.observed_head === currentBundle.catalog?.upstream?.commit) return { modified, potentially_modified, limitations };
+  const reviewed = candidateBundle.catalog?.change_review ? reviewedChangedPaths(candidateBundle, check) : new Set();
   const historicalHeadMatches = Boolean(currentBundle.catalog?.upstream?.commit) && check.prior_head === currentBundle.catalog.upstream.commit;
   for (const dep of candidateBundle.dependencies) {
     const prior = priorDeps.get(dep.dependency_id);
-    if (!prior || canonicalHash(prior) !== canonicalHash(dep) || dep.source_visibility === 'external_unpublished') continue;
+    if (dep.source_visibility === 'external_unpublished') continue;
+    for (const path of [...new Set([...callerPaths(prior), ...callerPaths(dep)])].filter(path => path !== dep.path)) {
+      const changed = check.repository_diff?.some(item => item.path === path);
+      // Review removes uncertainty, not the change's impact or replay requirement.
+      if (changed && reviewed.has(path)) modified.push(dep.dependency_id);
+      const retiredCaller = checked.get(path)?.status === 'deleted' && reviewed.has(path) && !callerPaths(dep).includes(path);
+      if ((changed && !reviewed.has(path)) || (checked.get(path)?.status !== 'present' && !retiredCaller) || check.inventory_scope !== 'full_repository' || !historicalHeadMatches) {
+        potentially_modified.push(dep.dependency_id);
+        limitations.push({ dependency_id: dep.dependency_id, path, reason: changed ? 'caller_or_config_changed' : 'caller_or_config_unverified' });
+      }
+    }
+    if (!prior || canonicalHash(prior) !== canonicalHash(dep)) continue;
     const file = checked.get(dep.path);
     if (!file) {
       potentially_modified.push(dep.dependency_id);
@@ -98,11 +129,28 @@ export function computeKnowledgeImpactV5(currentBundle, candidateBundle, check =
   if (sourceImpact.potentially_modified.length) dependency_diff.potentially_modified = sourceImpact.potentially_modified;
   const changed = new Set([...dependency_diff.added, ...dependency_diff.modified, ...(dependency_diff.potentially_modified ?? []), ...dependency_diff.removed, ...dependency_diff.moved.map(item => item.dependency_id)]);
   const allRules = new Set([...Object.keys(currentBundle.rules), ...Object.keys(candidateBundle.rules)]), affected = [];
+  const semanticRefs = new Set((candidateBundle.catalog?.change_review?.entries ?? []).flatMap(entry => entry.rule_refs));
+  const explicitlyAffected = (rule, bundle) => rule && (semanticRefs.has(rule.rule_id) || semanticRefs.has(rule.rule_version_id) || (rule.fact_version_refs ?? []).some(ref => semanticRefs.has(ref) || semanticRefs.has(bundle.facts?.[ref]?.rule_id)));
   for (const ref of allRules) {
     const prior = currentBundle.rules[ref], next = candidateBundle.rules[ref];
-    if (!prior || !next || canonicalHash(prior) !== canonicalHash(next) || [...(prior?.dependency_ids ?? []), ...(next?.dependency_ids ?? [])].some(id => changed.has(id))) affected.push(ref);
+    if (!prior || !next || canonicalHash(prior) !== canonicalHash(next) || explicitlyAffected(prior, currentBundle) || explicitlyAffected(next, candidateBundle) || [...(prior?.dependency_ids ?? []), ...(next?.dependency_ids ?? [])].some(id => changed.has(id))) affected.push(ref);
   }
-  return Object.freeze({ dependency_diff, affected_rule_version_refs: affected.sort(), impact_limitations: sourceImpact.limitations });
+  // Hashing a file is inspection, not a semantic review. Only explicitly revised,
+  // reviewed dependency source pins cover a changed path; callers remain review gaps.
+  const repository_diff = check?.repository_diff ?? null;
+  const inventory_scope = check?.inventory_scope === 'full_repository' && (!Array.isArray(repository_diff) || !currentBundle.catalog?.upstream?.commit || check.prior_head !== currentBundle.catalog.upstream.commit) ? 'not_checked' : check?.inventory_scope ?? 'not_checked';
+  const priorDeps = byId(currentBundle.dependencies, 'dependency_id');
+  const reviewedPaths = new Set(candidateBundle.dependencies.filter(dep =>
+    canonicalHash(priorDeps.get(dep.dependency_id) ?? null) !== canonicalHash(dep)
+    && ['reviewed', 'wired_reviewed'].includes(dep.wiring_status)
+    && dep.source_visibility === 'public'
+    && check?.files?.some(file => file.path === dep.path && file.status === 'present' && file.sha256 === dep.material_hash)
+  ).map(dep => dep.path));
+  if (candidateBundle.catalog?.change_review) for (const path of reviewedChangedPaths(candidateBundle, check)) reviewedPaths.add(path);
+  // A semantic blocker must win over a dependency's older reviewed status.
+  for (const entry of candidateBundle.catalog?.change_review?.entries ?? []) if (entry.operational_disposition === 'blocked') reviewedPaths.delete(entry.path);
+  const unreviewed_paths = (repository_diff ?? []).map(item => item.path).filter(path => !reviewedPaths.has(path)).sort();
+  return Object.freeze({ dependency_diff, affected_rule_version_refs: affected.sort(), impact_limitations: sourceImpact.limitations, repository_diff, unreviewed_paths, inventory_scope });
 }
 
 /** Bind new research to actually inspected Git blobs; inherited facts retain their original pin. */
@@ -118,14 +166,14 @@ export function knowledgeSourceBindingsV5(currentBundle, candidateBundle, check)
     bindings.push({ source_ref, path, commit: file.commit, status: file.status, git_blob_oid: file.git_blob_oid, file_sha256: file.sha256, material_hash });
   };
   const priorDeps = byId(currentBundle.dependencies, 'dependency_id');
-  const stale = new Set(checkedDependencyImpactV5(currentBundle, candidateBundle, check).limitations.filter(item => item.reason !== 'not_checked_at_candidate_head').map(item => item.dependency_id));
+  const stale = new Set(checkedDependencyImpactV5(currentBundle, candidateBundle, check).limitations.filter(item => ['candidate_metadata_stale', 'historical_head_unverified', 'historical_source_pin_missing'].includes(item.reason)).map(item => item.dependency_id));
   for (const dep of candidateBundle.dependencies) {
     const inherited = canonicalHash(priorDeps.get(dep.dependency_id) ?? null) === canonicalHash(dep);
     if ((inherited && !stale.has(dep.dependency_id)) || dep.source_visibility === 'external_unpublished') continue;
     if (!dep.material_hash && !inherited) fail('/source_bindings', 'A public dependency needs its actual upstream file hash', 'MISSING_EVIDENCE');
     bind(`dependency:${dep.dependency_id}`, dep.path, inherited ? null : dep.material_hash, inherited ? dep.material_hash : dep.evidence_content_hash);
     if (inherited) continue;
-    for (const path of [...new Set(dep.caller_refs ?? [])].filter(path => /\.(?:rs|py|go|java|scala|ts|js|md)$/u.test(path))) if (path !== dep.path) bind(`caller:${dep.dependency_id}:${path}`, path);
+    for (const path of callerPaths(dep)) if (path !== dep.path) bind(`caller:${dep.dependency_id}:${path}`, path);
   }
   for (const dep of currentBundle.dependencies) if (!candidateBundle.dependencies.some(item => item.dependency_id === dep.dependency_id) && dep.source_visibility !== 'external_unpublished') bind(`removed_dependency:${dep.dependency_id}`, dep.path);
   for (const [ref, fact] of Object.entries(candidateBundle.facts ?? {})) {
@@ -142,6 +190,18 @@ export function verifyKnowledgeSourceMaterialsV5(currentBundle, candidateBundle,
   knowledgeSourceBindingsV5(currentBundle, candidateBundle, check);
   if (check.source_binding_version !== 'git-source-v1' || !check.checkout_dir) fail('/check_ref', 'A fresh committed-source check is required', 'MISSING_EVIDENCE');
   const checked = new Map(check.files.map(file => [file.path, file]));
+  const review = validateKnowledgeChangeReview(candidateBundle.catalog.change_review, { base: currentBundle.catalog.upstream.commit, target: check.observed_head, check });
+  if (review) {
+    for (const entry of review.entries) {
+      const before = entry.change === 'A' ? null : execFileSync('git', ['show', `${review.base_commit}:${entry.path}`], { cwd: check.checkout_dir, maxBuffer: 32 * 1024 * 1024 });
+      const patch = execFileSync('git', ['diff', '--no-ext-diff', '--no-renames', review.base_commit, review.target_commit, '--', entry.path], { cwd: check.checkout_dir, maxBuffer: 32 * 1024 * 1024 });
+      if ((before && sha256(before)) !== entry.before_sha256 || sha256(patch) !== entry.patch_sha256) fail('/change_review', `Changed-path review differs from the actual diff: ${entry.path}`, 'RECEIPT_CONFLICT');
+      for (const ref of entry.evidence) {
+        const source = execFileSync('git', ['show', `${ref.commit}:${ref.path}`], { cwd: check.checkout_dir, maxBuffer: 32 * 1024 * 1024 }).toString('utf8');
+        if (ref.line_end > source.split(/\n/u).length - Number(source.endsWith('\n'))) fail('/change_review', `Review locator exceeds source: ${ref.path}`, 'MISSING_EVIDENCE');
+      }
+    }
+  }
   const sourceBytes = path => {
     const file = checked.get(path);
     if (!file || file.status !== 'present' || file.commit !== check.observed_head) fail('/source_material', `Source was not actually checked: ${path}`, 'MISSING_EVIDENCE');
@@ -184,7 +244,7 @@ export function proposeKnowledgeUpdateV5(currentBundle, savedCandidate, check) {
   if (check?.status !== 'changed' || check.observed_head !== check.remote_head || check.remote_head !== savedCandidate.catalog.upstream.commit) fail('/check', 'Changed check must bind candidate to actual remote HEAD', 'INVALID_EVIDENCE_REF');
   const source_bindings = knowledgeSourceBindingsV5(currentBundle, savedCandidate, check);
   const impact = computeKnowledgeImpactV5(currentBundle, savedCandidate, check);
-  const gaps = [...new Set([...savedCandidate.dependencies.filter(item => item.wiring_status === 'unreviewed' || item.source_visibility !== 'public').map(item => item.dependency_id), ...impact.impact_limitations.map(item => item.dependency_id)])].sort();
+  const gaps = [...new Set([...savedCandidate.dependencies.filter(item => item.wiring_status === 'unreviewed' || item.source_visibility !== 'public').map(item => item.dependency_id), ...impact.impact_limitations.map(item => item.dependency_id), ...impact.unreviewed_paths.map(path => `path:${path}`), ...(impact.inventory_scope === 'full_repository' ? [] : ['repository:inventory_unverified'])])].sort();
   const candidate_bundle_hash = canonicalHash({ catalog: savedCandidate.catalog, dependencies: savedCandidate.dependencies, rules: savedCandidate.rules });
   const base = { contract_version: 5, proposal_id: `knowledge-proposal-${canonicalHash({ current: currentBundle.catalog.catalog_content_hash, candidate: savedCandidate.catalog.catalog_content_hash, check: check.check_hash }).slice(0, 24)}`, prior_catalog_ref: currentBundle.catalog.catalog_id, candidate_catalog_ref: savedCandidate.catalog.catalog_id, candidate_catalog_hash: savedCandidate.catalog.catalog_content_hash, candidate_bundle_hash, check_ref: check.check_id, check_hash: check.check_hash, source_binding_version: 'git-source-v1', source_bindings, ...impact, gaps };
   return Object.freeze({ ...base, proposal_hash: canonicalHash(base) });
@@ -196,6 +256,7 @@ export function knowledgeReplayResultHashV5(result) {
 
 export function activateKnowledgeUpdateV5(currentBundle, savedCandidate, proposal, { review_receipt, replay_results, check, activated_at = new Date() }) {
   validateKnowledgeBundleIntegrity(savedCandidate);
+  if (savedCandidate.catalog.execution_scope === 'editorial_only') validateEditorialScope(savedCandidate, { requireExplicitRules: true });
   if (proposal.source_binding_version !== 'git-source-v1' || check?.check_hash !== proposal.check_hash || check.check_id !== proposal.check_ref || canonicalHash(knowledgeSourceBindingsV5(currentBundle, savedCandidate, check)) !== canonicalHash(proposal.source_bindings)) fail('/source_bindings', 'Activation requires current exact saved source bindings; re-check legacy candidates', 'MISSING_EVIDENCE');
   const pendingRules = Object.values(savedCandidate.rules).filter(rule => rule.review_status !== 'approved').map(rule => rule.rule_version_id);
   if (pendingRules.length) fail('/candidate_catalog/rules', `Candidate contains rules without approved status: ${pendingRules.join(', ')}`, 'MISSING_EVIDENCE');
@@ -203,15 +264,22 @@ export function activateKnowledgeUpdateV5(currentBundle, savedCandidate, proposa
   const candidateBundleHash = canonicalHash({ catalog: savedCandidate.catalog, dependencies: savedCandidate.dependencies, rules: savedCandidate.rules });
   const proposalBase = Object.fromEntries(Object.entries(proposal).filter(([key]) => key !== 'proposal_hash'));
   if (proposal.candidate_catalog_hash !== savedCandidate.catalog.catalog_content_hash || proposal.candidate_bundle_hash !== candidateBundleHash || proposal.proposal_hash !== canonicalHash(proposalBase)) fail('/proposal', 'Proposal is not the immutable saved candidate proposal', 'RECEIPT_CONFLICT');
-  if (canonicalHash(recomputed) !== canonicalHash({ dependency_diff: proposal.dependency_diff, affected_rule_version_refs: proposal.affected_rule_version_refs, impact_limitations: proposal.impact_limitations ?? [] })) fail('/proposal', 'Saved candidate impact changed; activation requires a new proposal', 'RECEIPT_CONFLICT');
+  if (canonicalHash(recomputed) !== canonicalHash({ dependency_diff: proposal.dependency_diff, affected_rule_version_refs: proposal.affected_rule_version_refs, impact_limitations: proposal.impact_limitations ?? [], repository_diff: proposal.repository_diff ?? null, unreviewed_paths: proposal.unreviewed_paths ?? [], inventory_scope: proposal.inventory_scope ?? 'not_checked' })) fail('/proposal', 'Saved candidate impact changed; activation requires a new proposal', 'RECEIPT_CONFLICT');
+  if (recomputed.inventory_scope !== 'full_repository' || recomputed.unreviewed_paths.length) fail('/gaps', 'Full repository inventory and review of changed paths are required for activation', 'MISSING_EVIDENCE');
   if (!review_receipt || review_receipt.decision !== 'approved' || review_receipt.purpose !== 'review_knowledge' || review_receipt.subject_hash !== proposal.proposal_hash || review_receipt.actual_result_hash !== proposal.proposal_hash) fail('/review_receipt', 'Actual independent review of exact proposal is required', 'MISSING_EVIDENCE');
+  if (savedCandidate.catalog.execution_scope === 'editorial_only' && (!review_receipt.reviewer?.trim() || !review_receipt.generator_ref?.trim() || review_receipt.reviewer.trim() === review_receipt.generator_ref.trim())) fail('/review_receipt', 'Editorial activation rejects self-review or missing independent identities', 'MISSING_EVIDENCE');
   const results = new Map((replay_results ?? []).map(result => [result.rule_version_ref, result]));
   for (const ref of recomputed.affected_rule_version_refs) {
     const result = results.get(ref), cases = result?.cases ?? [];
     if (!result || result.contract_version !== 5 || result.proposal_ref !== proposal.proposal_id || result.status !== 'passed' || result.subject_hash !== proposal.proposal_hash || result.replay_result_hash !== knowledgeReplayResultHashV5(result) || !result.review_ref || !['applicable', 'not_applicable', 'unknown'].every(expected => cases.some(item => item.expected === expected && item.actual === expected && item.status === 'passed'))) fail('/replay_results', `Affected rule lacks actual three-state replay evidence: ${ref}`, 'REQUESTED_OUTPUT_INCOMPLETE');
   }
   const changed = new Set([...recomputed.dependency_diff.added, ...recomputed.dependency_diff.modified, ...(recomputed.dependency_diff.potentially_modified ?? []), ...recomputed.dependency_diff.moved.map(item => item.dependency_id)]);
-  if (proposal.gaps.some(id => changed.has(id))) fail('/gaps', 'Affected unresolved dependencies cannot be activated', 'MISSING_EVIDENCE');
+  if (proposal.gaps.some(id => changed.has(id))) {
+    // A restricted editorial release retains every gap. It cannot use those
+    // dependencies as a mechanism basis at selection, application or delivery.
+    // The unrestricted path continues to require the original evidence gate.
+    if (savedCandidate.catalog.execution_scope !== 'editorial_only') fail('/gaps', 'Affected unresolved dependencies cannot be activated', 'MISSING_EVIDENCE');
+  }
   const event = { contract_version: 5, event_id: `knowledge-event-${canonicalHash({ proposal: proposal.proposal_hash, review: review_receipt.receipt_id }).slice(0, 24)}`, event_type: 'activated', catalog_ref: savedCandidate.catalog.catalog_id, prior_catalog_ref: currentBundle.catalog.catalog_id, checked_at: nowIso(activated_at), observed_head_commit: savedCandidate.catalog.upstream.commit, affected_rule_version_refs: recomputed.affected_rule_version_refs, gaps: proposal.gaps, review_receipt_ref: review_receipt.receipt_id, replay_result_refs: replay_results.map(item => item.replay_id) };
   return Object.freeze({ catalog: savedCandidate.catalog, event, impact: recomputed });
 }

@@ -1,0 +1,53 @@
+pub(crate) fn is_enabled(query: &ScoredPostsQuery) -> bool {
+    query.request_type == RequestType::ForYou
+        && query.params.get(EnableVideoCarousel)
+        && query.video_carousel_eligible
+        && !query.is_bottom_request
+}
+
+pub(crate) fn ranks_by_immersive_scores(query: &ScoredPostsQuery) -> bool {
+    query.request_type == RequestType::ForYou
+        && query.params.get(EnableVideoCarousel)
+        && CarouselScoring::from_query(query).needs_immersive_scores()
+        && !query.is_bottom_request
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct CarouselScoring {
+    video_open_weight: f64,
+    immersive_vqv_weight: f64,
+    open_times_immersive_dwell_weight: f64,
+    weighted_score_weight: f64,
+}
+
+impl CarouselScoring {
+    pub(crate) fn from_query(query: &ScoredPostsQuery) -> Self {
+        Self {
+            video_open_weight: query.params.get(VideoCarouselVideoOpenWeight),
+            immersive_vqv_weight: query.params.get(VideoCarouselImmersiveVqvWeight),
+            open_times_immersive_dwell_weight: query
+                .params
+                .get(VideoCarouselOpenTimesImmersiveDwellWeight),
+            weighted_score_weight: query.params.get(VideoCarouselWeightedScoreWeight),
+        }
+    }
+
+    pub(crate) fn score(&self, candidate: &PostCandidate) -> f64 {
+        self.video_open_weight * video_open_score(candidate)
+            + self.immersive_vqv_weight * immersive_vqv_score(candidate)
+            + self.open_times_immersive_dwell_weight
+                * video_open_score(candidate)
+                * immersive_dwell_time(candidate)
+            + self.weighted_score_weight * candidate.weighted_score.unwrap_or(0.0)
+    }
+
+    pub(crate) fn needs_immersive_scores(&self) -> bool {
+        self.immersive_vqv_weight != 0.0 || self.open_times_immersive_dwell_weight != 0.0
+    }
+
+    fn rank(&self, a: &PostCandidate, b: &PostCandidate) -> Ordering {
+        self.score(b)
+            .total_cmp(&self.score(a))
+            .then_with(|| video_open_score(b).total_cmp(&video_open_score(a)))
+    }
+}

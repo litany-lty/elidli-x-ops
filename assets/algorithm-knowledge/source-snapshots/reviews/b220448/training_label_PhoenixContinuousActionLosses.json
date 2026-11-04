@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "training_label:PhoenixContinuousActionLosses",
+  "semantic_review": "新增immersive_page_rl_cread配方用cread两项.1替代Tweedie/MAE；home_direct_packed将view loss=.5、time-gap=true/lr4、clip1.4、embedding WD5.6e-4/window37/SR及三类LR缩放.25；新增多项可选模型/dataset开关并更换H100 remat。 这是具体训练配方与mparams接线，不是Home价值融合系数；泛型开关默认false/0/1，home_direct_packed是明确局部覆盖且不扩散到GB300/nano。可建议补机制说明，但OP01–10无新确定性写法。",
+  "files": [
+    {
+      "path": "phoenix/xrex/configs/xrecsys.py",
+      "sha256": "2d36ba64ab7ec698ecb4f557f5ecb51573078884b69b98238299d53d08573635"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

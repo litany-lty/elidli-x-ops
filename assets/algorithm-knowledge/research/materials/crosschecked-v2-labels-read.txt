@@ -1,0 +1,33 @@
+    pub async fn get(
+        &self,
+        ids: &[u64],
+    ) -> FxHashMap<u64, Result<Arc<vf_pb::SafetyLabelMap>, LookupError>> {
+        let total = ids.len();
+        let mut results: FxHashMap<u64, Result<Arc<vf_pb::SafetyLabelMap>, LookupError>> =
+            FxHashMap::with_capacity_and_hasher(total, Default::default());
+
+        let (local_misses, expired) = self.get_local(ids, &mut results);
+        let batch_size = local_misses.len();
+
+        let remote_results = self.remote.get(&local_misses).await;
+        self.backfill_local(remote_results, &mut results);
+
+        self.emit_stats(total - batch_size, batch_size, expired);
+
+        let now_ms = (self.now_ms)();
+        let mut dropped = 0;
+        for labels in results.values_mut() {
+            let Ok(map) = labels else { continue };
+            if map
+                .labels
+                .values()
+                .any(|label| !label_is_live(label.expires_at_msec, now_ms))
+            {
+                let live = drop_expired_labels(map, now_ms);
+                dropped += map.labels.len() - live.labels.len();
+                *map = Arc::new(live);
+            }
+        }
+        metrics::record_expired_labels(&self.metrics, dropped);
+
+        results

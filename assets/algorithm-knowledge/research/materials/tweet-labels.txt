@@ -1,0 +1,84 @@
+        TweetHasLabel(SafetyLabelType::SOFT_NSFW)
+    ],
+    action: drop_post(DropAs::UnspecifiedReason),
+};
+
+pub(super) const DO_NOT_AMPLIFY_DROP_UNDESIRABLE: Rule = Rule {
+    id: RuleId::DoNotAmplify,
+    audience: NonAuthors,
+    when: all![TweetHasLabel(SafetyLabelType::DO_NOT_AMPLIFY)],
+    action: drop_post(DropAs::PossiblyUndesirable),
+};
+
+pub(super) const MALICIOUS_URL_DROP_UNDESIRABLE: Rule = Rule {
+    id: RuleId::MaliciousUrl,
+    audience: NonAuthors,
+    when: all![TweetHasLabel(SafetyLabelType::MALICIOUS_URL)],
+    action: drop_post(DropAs::PossiblyUndesirable),
+};
+
+pub(super) const SPAM_HIGH_RECALL_DROP_UNDESIRABLE: Rule = Rule {
+    id: RuleId::SpamHighRecall,
+    audience: NonAuthors,
+    when: all![TweetHasLabel(SafetyLabelType::SPAM_HIGH_RECALL)],
+    action: drop_post(DropAs::PossiblyUndesirable),
+};
+
+pub(super) const BRAZIL_ELECTION_LEGAL_DROP_UNDESIRABLE: Rule = Rule {
+    id: RuleId::BrazilElectionLegal,
+    audience: NonAuthors,
+    when: all![
+        TweetHasLabel(SafetyLabelType::BRAZIL_ELECTION_LEGAL),
+        RequestCountryIs("br")
+    ],
+    action: drop_post(DropAs::PossiblyUndesirable),
+};
+
+pub(super) const LOW_QUALITY_DROP_UNSPECIFIED: Rule = Rule {
+    id: RuleId::LowQuality,
+    audience: NonAuthors,
+    when: all![
+        TweetHasLabel(SafetyLabelType::LOW_QUALITY),
+        !TweetCreatedAfter(PUBLIC_INTEREST_LABELS_START)
+    ],
+    action: drop_post(DropAs::UnspecifiedReason),
+};
+
+pub(super) const DUPLICATE_CONTENT_DROP_UNSPECIFIED: Rule = Rule {
+    id: RuleId::DuplicateContent,
+    audience: NonAuthors,
+    when: all![TweetHasLabel(SafetyLabelType::DUPLICATE_CONTENT)],
+    action: drop_post(DropAs::UnspecifiedReason),
+};
+
+pub(super) const SMYTE_SPAM_TWEET_DROP_UNSPECIFIED: Rule = Rule {
+    id: RuleId::SmyteSpamTweet,
+    audience: NonAuthors,
+    when: all![TweetHasLabel(SafetyLabelType::SMYTE_SPAM_TWEET)],
+    action: drop_post(DropAs::UnspecifiedReason),
+};
+
+pub(super) const DUPLICATE_MENTION_UQF_DROP_UNSPECIFIED: Rule = Rule {
+    id: RuleId::DuplicateMentionUqf,
+    audience: NonFollowers,
+    when: all![
+        TweetHasLabel(SafetyLabelType::DUPLICATE_MENTION),
+        ViewerHasUqfEnabled
+    ],
+    action: drop_post(DropAs::UnspecifiedReason),
+};
+
+pub(super) const ABUSIVE_UQF_DROP_UNSPECIFIED: Rule = Rule {
+    id: RuleId::AbusiveUqf,
+    audience: NonFollowers,
+    when: all![TweetHasLabel(SafetyLabelType::ABUSIVE), ViewerHasUqfEnabled],
+    action: drop_post(DropAs::UnspecifiedReason),
+};
+
+pub(super) const UNTRUSTED_URL_UQF_DROP_UNSPECIFIED: Rule = Rule {
+    id: RuleId::UntrustedUrlUqf,
+    audience: NonFollowers,
+    when: all![
+        TweetHasLabel(SafetyLabelType::UNTRUSTED_URL),
+        ViewerHasUqfEnabled
+    ],

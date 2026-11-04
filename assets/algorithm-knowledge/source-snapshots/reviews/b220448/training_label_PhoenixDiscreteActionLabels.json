@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "training_label:PhoenixDiscreteActionLabels",
+  "semantic_review": "Rust proto新增PageDecodeParams.rewardHead、ScoreInfo.pageDecoded、广告late-window/leadgen动作、AdTargeting/ad_taxonomy_id、两个history aggregation类型；44号动作ReactWithVideo重命名PostVideo，wire编号不变。 Home调用者传reward_head并缓存decoded标志，Python proto同步；这是请求/日志/训练契约变更，不保证服务端消费rewardHead。广告目标字段不是organic受众限制；动作名迁移应同步旧解释。",
+  "files": [
+    {
+      "path": "phoenix/crates/serving/xai-recsys-proto/proto/recsys.proto",
+      "sha256": "81aa9fa308609271a31e0c055762587fa5febe49d9421cc4b61fab5d2cf6c33f"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

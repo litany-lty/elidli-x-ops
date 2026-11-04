@@ -1,0 +1,23 @@
+{
+  "contract_version": 2,
+  "rule_id": "SC02",
+  "rule_version_id": "fact-sc02-b220448766ab",
+  "repo": "xai-org/x-algorithm",
+  "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "path": "xai-value-model/scoring.rs",
+  "symbol": "compute_weighted_score",
+  "source_material_ref": "artifact-sc02-b220448",
+  "source_content_hash": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+  "checked_at": "2026-11-04T07:56:43.457Z",
+  "publicly_available_from": null,
+  "applicable_surface": "home_for_you_public_path",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证",
+    "当前事实只约束b220448公开源码中的该路径；生产命中和配置仍未知"
+  ],
+  "observed_behavior": "负反馈与未停留是预测项。Home本地和VM远端有不同参数来源，不能混成固定互动计分表；编辑建议须来自实际正文问题。",
+  "inference_boundary": "只陈述所列公开路径；不推算个人账号内部得分、曝光配额、隐藏标签或增长结果。",
+  "production_status": "unknown",
+  "supersedes": "fact-sc02-6258a1549ef8"
+}

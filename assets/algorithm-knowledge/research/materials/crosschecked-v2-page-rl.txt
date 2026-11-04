@@ -1,0 +1,141 @@
+fn sample_plackett_luce<R: Rng>(logits: &[f64], rng: &mut R) -> Vec<SlotPick> {
+    let mut remaining: Vec<usize> = (0..logits.len()).collect();
+    let mut picks = Vec::with_capacity(logits.len());
+
+    while !remaining.is_empty() {
+        let max_logit = remaining
+            .iter()
+            .map(|&i| logits[i])
+            .fold(f64::NEG_INFINITY, f64::max);
+        let weights: Vec<f64> = remaining
+            .iter()
+            .map(|&i| (logits[i] - max_logit).exp())
+            .collect();
+        let total: f64 = weights.iter().sum();
+
+        let mut draw = rng.random::<f64>() * total;
+        let mut chosen = remaining.len() - 1;
+        for (j, w) in weights.iter().enumerate() {
+            draw -= w;
+            if draw <= 0.0 {
+                chosen = j;
+                break;
+            }
+        }
+
+        picks.push(SlotPick {
+            pool_index: remaining[chosen],
+            prob: weights[chosen] / total,
+        });
+        remaining.remove(chosen);
+    }
+
+    picks
+}
+
+fn top_k_by_score(scores: &[Option<f64>], k: usize) -> Vec<usize> {
+    let cmp = |a: &usize, b: &usize| {
+        let sa = scores[*a].unwrap_or(f64::NEG_INFINITY);
+        let sb = scores[*b].unwrap_or(f64::NEG_INFINITY);
+        sb.partial_cmp(&sa)
+            .unwrap_or(Ordering::Equal)
+            .then(a.cmp(b))
+    };
+    let mut indices: Vec<usize> = (0..scores.len()).collect();
+    if indices.len() > k {
+        indices.select_nth_unstable_by(k, cmp);
+        indices.truncate(k);
+    }
+    indices.sort_unstable_by(cmp);
+    indices
+}
+
+pub(crate) fn explore_top_k<R: Rng>(
+    scores: &[Option<f64>],
+    top_k: usize,
+    temperature: f64,
+    rng: &mut R,
+) -> Option<ExploredPage> {
+    let pool = top_k_by_score(scores, top_k);
+    if pool.len() < 2 {
+        return None;
+    }
+
+    let tau = temperature.max(MIN_TEMPERATURE);
+    let logits: Vec<f64> = pool
+        .iter()
+        .map(|&i| scores[i].unwrap_or(0.0) / tau)
+        .collect();
+    let picks = sample_plackett_luce(&logits, rng);
+
+    let mut explored = ExploredPage {
+        scores: scores.to_vec(),
+        slot_probs: vec![None; scores.len()],
+    };
+    for (slot, pick) in picks.iter().enumerate() {
+        let candidate_index = pool[pick.pool_index];
+        explored.scores[candidate_index] = scores[pool[slot]];
+        explored.slot_probs[candidate_index] = Some(pick.prob);
+    }
+    Some(explored)
+}
+
+fn record_request(outcome: &str) {
+    if let Some(receiver) = global_stats_receiver() {
+        receiver.incr(REQUESTS_METRIC, &[("outcome", outcome)], 1);
+    }
+}
+
+#[async_trait]
+impl Scorer<ScoredPostsQuery, PostCandidate> for PageRlExplorationScorer {
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        query.params.get(EnablePageRlExploration)
+    }
+
+    async fn score(
+        &self,
+        query: &ScoredPostsQuery,
+        candidates: &[PostCandidate],
+    ) -> Vec<Result<PostCandidate, String>> {
+        let scores: Vec<Option<f64>> = candidates.iter().map(|c| c.score).collect();
+        let decoded = query.params.get(EnablePageDecodeRerank)
+            && candidates.iter().any(|c| c.page_decode_slot.is_some());
+        if decoded {
+            record_request("decoded");
+            return scores
+                .into_iter()
+                .map(|score| {
+                    Ok(PostCandidate {
+                        score,
+                        ..Default::default()
+                    })
+                })
+                .collect();
+        }
+        let explored = explore_top_k(
+            &scores,
+            query.params.get(PageRlExplorationTopK),
+            query.params.get(PageRlExplorationTemperature),
+            &mut rand::rng(),
+        );
+        let explored = match explored {
+            Some(explored) => {
+                record_request("sampled");
+                explored
+            }
+            None => {
+                record_request("pool_too_small");
+                ExploredPage {
+                    slot_probs: vec![None; scores.len()],
+                    scores,
+                }
+            }
+        };
+        explored
+            .scores
+            .into_iter()
+            .zip(explored.slot_probs)
+            .map(|(score, page_rl_exploration_prob)| {
+                Ok(PostCandidate {
+                    score,
+                    page_rl_exploration_prob,

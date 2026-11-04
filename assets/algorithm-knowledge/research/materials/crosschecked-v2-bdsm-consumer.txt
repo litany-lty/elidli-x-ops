@@ -1,0 +1,19 @@
+        total_actions_gate > 0 and _tweet_create_cnt / total_actions_gate >= 0.5
+    )
+
+    _unfollow_cnt = sum(
+        h["cnt"] for h in (user_action_hist or []) if h["action_type"] == "SERVER_PROFILE_UNFOLLOW"
+    )
+    _follow_cnt = sum(
+        h["cnt"] for h in (user_action_hist or []) if h["action_type"] == "SERVER_PROFILE_FOLLOW"
+    )
+    _unfollow_dominant = _unfollow_cnt > _follow_cnt
+
+    if total_actions_gate >= pol.min_actions_for_enforcement and not dec.tweet_create_dominant:
+        for _h, (_tau, _lam) in pol.thresholds.items():
+            if scores_by_name.get(_h, 0) >= _tau and legit <= _lam:
+                if _h == "FollowBot" and _unfollow_dominant:
+                    continue
+                dec.enforcement_met = True
+                dec.enforcement_head = _h
+                break

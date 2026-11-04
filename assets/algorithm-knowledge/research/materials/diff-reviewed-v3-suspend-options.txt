@@ -1,0 +1,75 @@
+#[derive(
+    Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub enum SuspensionPolicy {
+    #[default]
+    PlatformManipulation,
+    Cse,
+}
+
+impl SuspensionPolicy {
+    pub const ALL: [SuspensionPolicy; 2] = [
+        SuspensionPolicy::PlatformManipulation,
+        SuspensionPolicy::Cse,
+    ];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            SuspensionPolicy::PlatformManipulation => "PlatformManipulation",
+            SuspensionPolicy::Cse => "Cse",
+        }
+    }
+
+    fn is_default(&self) -> bool {
+        *self == SuspensionPolicy::default()
+    }
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum PageAction {
+        Suspend {
+        #[serde(default, skip_serializing_if = "is_false")]
+        permanent: bool,
+        #[serde(default, skip_serializing_if = "SuspensionPolicy::is_default")]
+        policy: SuspensionPolicy,
+    },
+        LivenessCheck {},
+        SpamHighRecall { lifetime: Lifetime },
+            PhoenixSkip { lifetime: Lifetime },
+        PostSpamHighRecall { lifetime: Lifetime },
+            HideReply { lifetime: Lifetime },
+        SuspendAuthor {},
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum ControlEntity {
+    User,
+    Post,
+}
+
+impl ControlEntity {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ControlEntity::User => "user",
+            ControlEntity::Post => "post",
+        }
+    }
+}
+
+impl PageAction {
+        pub const SUSPEND: PageAction = PageAction::Suspend {
+        permanent: false,
+        policy: SuspensionPolicy::PlatformManipulation,
+    };
+
+        pub fn uses_suspension_options(self) -> bool {
+        matches!(self, PageAction::Suspend { permanent, policy } if permanent || !policy.is_default())

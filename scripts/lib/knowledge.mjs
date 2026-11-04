@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { canonicalHash, ContractError } from './contracts.mjs';
+import { validateKnowledgeChangeReview } from './knowledge-change-review.mjs';
+import { ruleDependencyClosure, ruleExecutionScope, validateEditorialScope } from './knowledge-scope.mjs';
 export { buildSignalSetV5, SIGNAL_DEFINITIONS_V5 } from './signals.mjs';
 export { inspectKnowledgeCheckoutV5, dependencyDiffV5, computeKnowledgeImpactV5, proposeKnowledgeUpdateV5, knowledgeReplayResultHashV5, activateKnowledgeUpdateV5 } from './knowledge-updates.mjs';
 
@@ -65,10 +67,14 @@ export function catalogContentHash(catalog, dependencies = catalog.dependencies)
     coverage: catalog.coverage
   };
   if (catalog.content_hash_policy) content.content_hash_policy = catalog.content_hash_policy;
+  if (catalog.change_review) content.change_review = catalog.change_review;
+  if (catalog.execution_scope) content.execution_scope = catalog.execution_scope;
   return canonicalHash(content);
 }
 
 export function validateKnowledgeBundleIntegrity({ catalog, dependencies = catalog.dependencies, artifacts, facts, rules }) {
+  validateKnowledgeChangeReview(catalog.change_review, { target: catalog.upstream?.commit });
+  validateEditorialScope({ catalog, dependencies, artifacts, facts, rules, signal_registry: catalog.signal_registry });
   const dependencyIds = new Set(dependencies.map(dependency => dependency.dependency_id));
   if (dependencyIds.size !== dependencies.length) fail('/catalog/dependencies', 'Knowledge catalog contains duplicate dependency IDs', 'RECEIPT_CONFLICT');
   for (const ref of catalog.artifact_refs) if (!artifacts[ref]) fail('/catalog/artifact_refs', `Knowledge artifact is missing: ${ref}`, 'MISSING_EVIDENCE');
@@ -101,7 +107,22 @@ export function loadKnowledgeCatalog(packageDir = defaultPackageDir, { now = new
   const activeFacts = new Set(catalog.fact_version_refs), activeRules = new Set(catalog.rule_version_refs);
   const factItems = catalog.files.filter(entry => entry.kind === 'fact').map(entry => parsed.get(entry.path));
   const facts = Object.fromEntries(factItems.filter(item => activeFacts.has(item.rule_version_id)).map(item => [item.rule_version_id, Object.freeze(item)]));
-  const historicalFacts = Object.fromEntries(factItems.filter(item => !activeFacts.has(item.rule_version_id) && Object.values(facts).some(active => active.supersedes === item.rule_version_id)).map(item => [item.rule_version_id, Object.freeze(item)]));
+  const allFacts = new Map(factItems.map(item => [item.rule_version_id, item])), historicalFacts = {}, visiting = new Set(), visited = new Set();
+  // Preserve every predecessor, oldest first: a second update may supersede a
+  // time correction which itself supersedes an earlier immutable fact.
+  const visitFact = fact => {
+    if (visiting.has(fact.rule_version_id)) fail('/facts/supersedes', 'Knowledge fact history contains a cycle', 'MISSING_EVIDENCE');
+    if (visited.has(fact.rule_version_id)) return;
+    visiting.add(fact.rule_version_id);
+    if (fact.supersedes) {
+      const prior = allFacts.get(fact.supersedes);
+      if (!prior) fail('/facts/supersedes', `Historical fact is missing: ${fact.supersedes}`, 'MISSING_EVIDENCE');
+      visitFact(prior);
+      if (!activeFacts.has(prior.rule_version_id)) historicalFacts[prior.rule_version_id] = Object.freeze(prior);
+    }
+    visiting.delete(fact.rule_version_id); visited.add(fact.rule_version_id);
+  };
+  for (const fact of Object.values(facts)) visitFact(fact);
   const ruleItems = catalog.files.filter(entry => entry.kind === 'operational_rule').map(entry => parsed.get(entry.path));
   const rules = Object.fromEntries(ruleItems.filter(item => activeRules.has(item.rule_version_id)).map(item => [item.rule_version_id, Object.freeze(item)]));
   const historicalRules = Object.fromEntries(ruleItems.filter(item => !activeRules.has(item.rule_version_id) && Object.values(rules).some(active => active.rule_id === item.rule_id)).map(item => [item.rule_version_id, Object.freeze(item)]));
@@ -128,7 +149,25 @@ export function loadKnowledgeCatalog(packageDir = defaultPackageDir, { now = new
   if (temporal_readiness.status !== 'ready' && !allowFutureForErrata) fail(temporal_readiness.issues[0].path, 'Active knowledge contains evidence dated after the actual clock', 'MISSING_EVIDENCE');
   const historicalArtifacts = Object.fromEntries(Object.values(historicalFacts).map(fact => [fact.source_material_ref, artifacts[fact.source_material_ref]]).filter(([, artifact]) => artifact));
   const historicalCatalogs = Object.fromEntries(catalog.files.filter(entry => entry.kind === 'historical_catalog').map(entry => parsed.get(entry.path)).map(item => [item.catalog_id, Object.freeze(item)]));
-  const history = Object.freeze({ artifacts: Object.freeze(historicalArtifacts), facts: Object.freeze(historicalFacts), rules: Object.freeze(historicalRules), catalogs: Object.freeze(historicalCatalogs) });
+  // Only seed the connected activation ancestry, never unrelated packaged lifecycle records.
+  const historicalEvents = {}, visitedCatalogs = new Set([catalog.catalog_id]);
+  const packagedEvents = catalog.files.filter(entry => entry.kind === 'knowledge_event').map(entry => parsed.get(entry.path));
+  let priorRef = event.event_type === 'activated' ? event.prior_catalog_ref : null;
+  while (priorRef) {
+    if (visitedCatalogs.has(priorRef)) fail('/history/events', 'Knowledge activation ancestry contains a cycle', 'STATE_CONFLICT');
+    visitedCatalogs.add(priorRef);
+    const priorCatalog = historicalCatalogs[priorRef];
+    if (!priorCatalog) break; // Incomplete legacy archives are not proof of another activation.
+    const matches = packagedEvents.filter(item => item.event_type === 'activated' && item.catalog_ref === priorRef);
+    if (matches.length > 1) fail('/history/events', 'Historical catalog has ambiguous activation evidence', 'STATE_CONFLICT');
+    if (!matches.length) break;
+    const priorEvent = matches[0];
+    if (priorEvent.event_id === event.event_id || historicalEvents[priorEvent.event_id]) fail('/history/events', 'Historical activation reuses an event identity', 'STATE_CONFLICT');
+    if (priorEvent.observed_head_commit !== priorCatalog.upstream.commit) fail('/history/events', 'Historical activation and catalog commits differ', 'RECEIPT_CONFLICT');
+    historicalEvents[priorEvent.event_id] = Object.freeze(priorEvent);
+    priorRef = priorEvent.prior_catalog_ref;
+  }
+  const history = Object.freeze({ artifacts: Object.freeze(historicalArtifacts), facts: Object.freeze(historicalFacts), rules: Object.freeze(historicalRules), catalogs: Object.freeze(historicalCatalogs), events: Object.freeze(historicalEvents) });
   return Object.freeze({ catalog: Object.freeze(catalog), event: Object.freeze(event), artifacts: Object.freeze(artifacts), facts: Object.freeze(facts), rules: Object.freeze(rules), history, dependencies: Object.freeze(dependencyDoc.dependencies), signal_registry: Object.freeze(catalog.signal_registry), temporal_readiness });
 }
 
@@ -231,12 +270,16 @@ export function selectOperationalRules(input, bundle) {
   if (bundle.temporal_readiness?.status === 'not_ready') fail('/catalog/temporal_readiness', 'Active knowledge is not eligible because it contains future-dated evidence', 'MISSING_EVIDENCE');
   const explicit = new Set(input.explicit_rule_version_refs ?? []), selected = [], notSelected = [];
   for (const rule of Object.values(bundle.rules).sort((a, b) => a.rule_version_id.localeCompare(b.rule_version_id))) {
+    if (rule.review_status !== 'approved') { notSelected.push({ rule_version_ref: rule.rule_version_id, reason: 'rule_not_approved' }); continue; }
     if (explicit.size && !explicit.has(rule.rule_version_id)) { notSelected.push({ rule_version_ref: rule.rule_version_id, reason: 'excluded_by_explicit_constraint' }); continue; }
     if (!selectorMatches(rule, input)) { notSelected.push({ rule_version_ref: rule.rule_version_id, reason: 'scope_mismatch' }); continue; }
-    const mechanism = evaluatePredicate(rule.mechanism_predicate, input.signals, bundle.signal_registry);
+    const closure = ruleDependencyClosure(rule, bundle), scope = ruleExecutionScope(rule, bundle);
+    const mechanism = scope === 'editorial_only' || closure.unresolved_dependencies.length
+      ? { status: TRI.UNKNOWN, missing_signals: [] }
+      : evaluatePredicate(rule.mechanism_predicate, input.signals, bundle.signal_registry);
     const editorial = evaluatePredicate(rule.editorial_predicate, input.signals, bundle.signal_registry);
     if (mechanism.status === TRI.FALSE && editorial.status === TRI.FALSE) { notSelected.push({ rule_version_ref: rule.rule_version_id, reason: 'both_predicates_not_applicable' }); continue; }
-    selected.push({ rule_version_ref: rule.rule_version_id, fact_version_refs: [...rule.fact_version_refs], dependency_ids: [...rule.dependency_ids], mechanism_applicability: mechanism, editorial_applicability: editorial });
+    selected.push({ rule_version_ref: rule.rule_version_id, fact_version_refs: [...rule.fact_version_refs], dependency_ids: closure.dependency_ids, execution_scope: scope, unresolved_dependencies: closure.unresolved_dependencies, mechanism_applicability: mechanism, editorial_applicability: editorial });
   }
   return Object.freeze({
     selected,
@@ -342,7 +385,10 @@ export function validateRuleApplication(application, context, bundle) {
   const allowed = new Set(context.selections.map(item => item.rule_version_ref));
   if (allowed.size && application.rule_version_refs.length === 0) fail('/rule_version_refs', 'A selected rule context cannot be recorded as applied without an actual rule reference', 'REQUESTED_OUTPUT_INCOMPLETE');
   if (!allowed.size && (application.rule_version_refs.length || application.actions.length || !application.keep_unchanged_reason?.trim())) fail('/rule_version_refs', 'A context with no selected rules must record no rule/action and an explicit limitation', 'REQUESTED_OUTPUT_INCOMPLETE');
-  for (const ref of application.rule_version_refs) if (!allowed.has(ref) || !bundle.rules[ref]) fail('/rule_version_refs', `Application uses unselected rule: ${ref}`, 'INVALID_EVIDENCE_REF');
+  for (const ref of application.rule_version_refs) {
+    if (!allowed.has(ref) || bundle.rules[ref]?.review_status !== 'approved') fail('/rule_version_refs', `Application uses unselected or unapproved rule: ${ref}`, 'INVALID_EVIDENCE_REF');
+    if (ruleExecutionScope(bundle.rules[ref], bundle) === 'editorial_only') fail('/execution_scope', 'Editorial-only rules require the V5 basis-bound application flow', 'MISSING_EVIDENCE');
+  }
   const applied = new Set(application.rule_version_refs);
   for (const action of application.actions) if (!allowed.has(action.rule_version_ref) || !applied.has(action.rule_version_ref)) fail('/actions', `Action uses a rule not actually selected and applied: ${action.rule_version_ref}`, 'INVALID_EVIDENCE_REF');
   if (!application.checks.length) fail('/checks', 'A rule application must record actual checks', 'REQUESTED_OUTPUT_INCOMPLETE');
@@ -354,12 +400,19 @@ export function validateRuleApplication(application, context, bundle) {
 
 export function validateRuleApplicationV5(application, context, bundle) {
   if (application.contract_version !== 5 || context.contract_version !== 5) fail('/contract_version', 'RuleApplicationV5 requires V5 application and context', 'SCHEMA_VERSION');
+  if (context.catalog_ref !== bundle.catalog.catalog_id || context.catalog_content_hash !== bundle.catalog.catalog_content_hash) fail('/context_ref', 'Rule context belongs to a stale catalog; select again after activation or rollback', 'STALE_BUNDLE');
+  const refreshed = buildRuleContextV5(context, bundle);
+  if (refreshed.selected_rule_context_hash !== context.selected_rule_context_hash) fail('/context_ref', 'Rule context differs from current signals, selection or dependency closure', 'STALE_BUNDLE');
   if (application.context_ref !== context.context_id || application.selected_rule_context_hash !== context.selected_rule_context_hash || application.subject_ref !== context.subject_ref || application.actual_input_hash !== context.subject_hash) fail('/context_ref', 'Application is not bound to exact V5 context and subject', 'INVALID_EVIDENCE_REF');
   const selections = new Map(context.selections.map(item => [item.rule_version_ref, item])), checks = new Map(application.checks.map(item => [item.check_id, item])), applied = new Set(application.rule_version_refs);
   const supportingTypes = { public_mechanism: new Set(['mechanism']), editorial_inference: new Set(['semantic', 'deterministic']), personal_observation: new Set(['personal_observation']), user_preference: new Set(['preference']) };
+  for (const ref of application.rule_version_refs) if (!selections.has(ref) || bundle.rules[ref]?.review_status !== 'approved') fail('/rule_version_refs', 'Application requires selected, approved rules', 'MISSING_EVIDENCE');
   for (const [index, action] of application.actions.entries()) {
     const selected = selections.get(action.rule_version_ref);
     if (!selected || !bundle.rules[action.rule_version_ref] || !applied.has(action.rule_version_ref)) fail(`/actions/${index}/rule_version_ref`, 'Action uses a rule that was not selected and applied', 'INVALID_EVIDENCE_REF');
+    const rule = bundle.rules[action.rule_version_ref], scope = ruleExecutionScope(rule, bundle), closure = ruleDependencyClosure(rule, bundle);
+    if (scope === 'editorial_only' && action.basis_kind !== 'editorial_inference') fail(`/actions/${index}/basis_kind`, 'Editorial-only rules cannot claim a production mechanism or another unreviewed basis', 'MISSING_EVIDENCE');
+    if (action.basis_kind === 'public_mechanism' && closure.unresolved_dependencies.length) fail(`/actions/${index}/basis_kind`, 'Unresolved dependency closure cannot support a public mechanism action', 'MISSING_EVIDENCE');
     if (!['public_mechanism', 'editorial_inference', 'personal_observation', 'user_preference'].includes(action.basis_kind)) fail(`/actions/${index}/basis_kind`, 'Unsupported action basis');
     if (!action.supporting_check_refs.length || action.supporting_check_refs.some(ref => !checks.has(ref))) fail(`/actions/${index}/supporting_check_refs`, 'Every action must bind actual supporting checks', 'INVALID_EVIDENCE_REF');
     if (action.signal_refs.some(ref => !Object.hasOwn(context.signal_set.signals, ref))) fail(`/actions/${index}/signal_refs`, 'Action references an unavailable signal', 'INVALID_EVIDENCE_REF');
@@ -380,6 +433,7 @@ export function validateRuleApplicationV5(application, context, bundle) {
 }
 
 export function proposeKnowledgeUpdate(currentBundle, candidateBundle, { checked_at, head_commit }) {
+  if (candidateBundle.catalog.change_review) fail('/candidate_catalog/change_review', 'Changed-path review requires the V5 checked-source update flow', 'MISSING_EVIDENCE');
   if (!checked_at || !head_commit) fail('/update', 'Actual check time and upstream HEAD are required');
   if (candidateBundle.temporal_readiness?.status !== 'ready') fail('/candidate_catalog/temporal_readiness', 'Candidate catalog contains future-dated active evidence', 'MISSING_EVIDENCE');
   if (currentBundle.catalog.upstream.repo !== candidateBundle.catalog.upstream.repo) fail('/candidate_catalog/upstream/repo', 'Update must keep the same upstream repository');
@@ -411,6 +465,7 @@ export function proposeKnowledgeUpdate(currentBundle, candidateBundle, { checked
 }
 
 export function activateKnowledgeCatalog(currentBundle, proposal, { review_receipt, case_results }) {
+  if (proposal.candidate_catalog.change_review) fail('/candidate_catalog/change_review', 'Changed-path review requires the V5 checked-source update flow', 'MISSING_EVIDENCE');
   if (proposal.candidate_catalog.catalog_id === currentBundle.catalog.catalog_id) fail('/candidate_catalog', 'Activation must append a new immutable catalog version');
   if (proposal.candidate_temporal_readiness?.status !== 'ready') fail('/candidate_catalog/temporal_readiness', 'Future-dated candidate knowledge cannot be activated', 'MISSING_EVIDENCE');
   if (!review_receipt || review_receipt.subject_hash !== proposal.candidate_catalog.catalog_content_hash || review_receipt.decision !== 'approved') fail('/review_receipt', 'Independent approval of the exact candidate catalog is required', 'MISSING_EVIDENCE');

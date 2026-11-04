@@ -1,0 +1,200 @@
+use std::sync::Arc;
+
+use tracing::{error, info, warn};
+use xai_manhattan::{NativeManhattanClient, Tenant};
+
+use crate::facts::EntityType;
+
+pub(crate) const MH_LKEY: &str = "0";
+
+
+pub(crate) const CLASS_NONE: u8 = 0;
+pub(crate) const CLASS_LABEL: u8 = 1;
+pub(crate) const CLASS_CHALLENGE: u8 = 2;
+pub(crate) const CLASS_SUSPEND: u8 = 3;
+pub(crate) const CLASS_SUSPEND_PERMANENT: u8 = 4;
+
+pub(crate) fn is_duplicate(incoming_class: u8, held: &HeldMeta) -> bool {
+    incoming_class <= held.class
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum HeldKind {
+    Placeholder,
+    Outcome,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct HeldMeta {
+    pub class: u8,
+    pub kind: HeldKind,
+        pub nonce: Option<u64>,
+                    pub displaced: Option<(Vec<u8>, u64)>,
+}
+
+pub(crate) fn held_entry_meta(raw: &[u8]) -> HeldMeta {
+    let json_bytes = zstd::decode_all(raw).unwrap_or_else(|_| raw.to_vec());
+    let Ok(v) = serde_json::from_slice::<serde_json::Value>(&json_bytes) else {
+        return HeldMeta {
+            class: CLASS_SUSPEND_PERMANENT,
+            kind: HeldKind::Outcome,
+            nonce: None,
+            displaced: None,
+        };
+    };
+    let kind = if v.get("status").is_some() {
+        HeldKind::Outcome
+    } else {
+        HeldKind::Placeholder
+    };
+    let nonce = v.get("nonce").and_then(serde_json::Value::as_u64);
+    let displaced = match (
+        v.get("displaced").and_then(serde_json::Value::as_str),
+        v.get("displaced_exp").and_then(serde_json::Value::as_u64),
+    ) {
+        (Some(hex), Some(exp)) => hex_decode(hex).map(|bytes| (bytes, exp)),
+        _ => None,
+    };
+    let class = if let Some(c) = v.get("acted_class").and_then(serde_json::Value::as_u64) {
+        c.min(CLASS_SUSPEND_PERMANENT as u64) as u8
+    } else {
+        match v.get("status").and_then(serde_json::Value::as_str) {
+            Some("success") => CLASS_SUSPEND_PERMANENT,
+            Some(_) => CLASS_NONE,
+            None => CLASS_SUSPEND_PERMANENT,
+        }
+    };
+    HeldMeta {
+        class,
+        kind,
+        nonce,
+        displaced,
+    }
+}
+
+fn carried_class(meta: &HeldMeta, now_secs: u64) -> u8 {
+    if meta.kind != HeldKind::Placeholder {
+        return CLASS_NONE;
+    }
+    match (
+        displaced_remaining_secs(&meta.displaced, now_secs),
+        meta.displaced.as_ref(),
+    ) {
+        (Some(_), Some((bytes, _))) => held_entry_meta(bytes).class,
+        _ => CLASS_NONE,
+    }
+}
+
+fn fencing_class(meta: &HeldMeta, now_secs: u64) -> u8 {
+    match meta.kind {
+        HeldKind::Outcome => meta.class,
+        HeldKind::Placeholder => carried_class(meta, now_secs),
+    }
+}
+
+fn fences_write(
+    meta: &HeldMeta,
+    writer_class: u8,
+    writer_nonce: Option<u64>,
+    now_secs: u64,
+) -> bool {
+    match meta.kind {
+        HeldKind::Outcome => meta.class > writer_class,
+        HeldKind::Placeholder => {
+            (writer_nonce.is_none() || meta.nonce != writer_nonce)
+                && carried_class(meta, now_secs) > writer_class
+        }
+    }
+}
+
+fn now_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+}
+
+fn displaced_remaining_secs(displaced: &Option<(Vec<u8>, u64)>, now_secs: u64) -> Option<u64> {
+    match displaced {
+        Some((_, exp)) if *exp > now_secs => Some(exp - now_secs),
+        _ => None,
+    }
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    use std::fmt::Write;
+    bytes
+        .iter()
+        .fold(String::with_capacity(bytes.len() * 2), |mut out, b| {
+            let _ = write!(out, "{b:02x}");
+            out
+        })
+}
+
+fn hex_decode(s: &str) -> Option<Vec<u8>> {
+    if !s.len().is_multiple_of(2) {
+        return None;
+    }
+    (0..s.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(s.get(i..i + 2)?, 16).ok())
+        .collect()
+}
+
+fn claim_nonce() -> u64 {
+    static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos() as u64;
+    nanos
+        ^ ((std::process::id() as u64) << 32)
+        ^ SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
+enum SlotView {
+    Held(HeldMeta),
+    Empty,
+        Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DedupCheck {
+        New { claim_nonce: Option<u64> },
+                ClassBypass {
+        held_class: u8,
+        claim_nonce: Option<u64>,
+    },
+        Duplicate,
+}
+
+struct StoredEntry {
+    bytes: Vec<u8>,
+    expires_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[async_trait::async_trait]
+trait DedupStore: Send + Sync {
+    async fn get(&self, pkey: &str) -> anyhow::Result<Option<StoredEntry>>;
+    async fn put_with_ttl(&self, pkey: &str, value: Vec<u8>, ttl_nanos: i64) -> anyhow::Result<()>;
+    async fn delete(&self, pkey: &str) -> anyhow::Result<()>;
+}
+
+struct ManhattanDedupStore {
+    client: Arc<NativeManhattanClient>,
+    tenant: Tenant,
+}
+
+#[async_trait::async_trait]
+impl DedupStore for ManhattanDedupStore {
+    async fn get(&self, pkey: &str) -> anyhow::Result<Option<StoredEntry>> {
+        let item = self
+            .client
+            .get(self.tenant.clone(), [pkey], [MH_LKEY])
+            .await
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
+        Ok(item.map(|item| StoredEntry {
+            bytes: item.value().into_bytes(),
+            expires_at: item.expires_at(),
+        }))
+    }

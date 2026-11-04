@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "scorer:VMRanker",
+  "semantic_review": "Home保留本地备用分并构造远端请求；compute_value_model=true在RequestShape明确，服务可用性及配置仍约束输出。",
+  "files": [
+    {
+      "path": "home-mixer/scorers/vm_ranker.rs",
+      "sha256": "d78684ec39c7ac4f914d00e2271d7c88ce66495b2da6afeb9d7af7af88a69263"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "side_effect:ScoredStatsSideEffect",
+  "semantic_review": "移除PhoenixScorer引用与retrieval contribution统计中的ranker_cluster参数/标签；retrieval_cluster及实验桶标签保持。 降低指标维度，不改来源归因候选集合或模型选择，不能推导检索/排名权重变化。",
+  "files": [
+    {
+      "path": "home-mixer/side_effects/scored_stats_side_effect.rs",
+      "sha256": "fdb7fbc8877385f5ac346afa8e0976b184a1203de4defb6b980197301171f895"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

@@ -1,0 +1,103 @@
+param!(
+    VMRankerSendPacingInputs,
+    bool,
+    "rust_home_mixer_vm_ranker_send_pacing_inputs",
+    false
+);
+param!(
+    VMRankerSendHistoryTopics,
+    bool,
+    "rust_home_mixer_vm_ranker_send_history_topics",
+    false
+);
+param!(
+    HistoryTopicsEnabled,
+    bool,
+    "rust_home_mixer_history_topics_enabled",
+    false
+);
+param!(
+    HistoryTopicsWindowDays,
+    i64,
+    "rust_home_mixer_history_topics_window_days",
+    28
+);
+param!(
+    EnableSerendipityStatsExperimentBucket,
+    bool,
+    "rust_home_mixer_enable_serendipity_stats_experiment_bucket",
+    false
+);
+param!(
+    ColdStartImpressionThreshold,
+    u32,
+    "rust_home_mixer_cold_start_impression_threshold",
+    200
+);
+param!(
+    ColdStartSlotMin,
+    u32,
+    "rust_home_mixer_cold_start_slot_min",
+    15
+);
+param!(
+    ColdStartSlotMax,
+    u32,
+    "rust_home_mixer_cold_start_slot_max",
+    16
+);
+param!(
+    ColdStartFollowerCap,
+    i64,
+    "rust_home_mixer_cold_start_follower_cap",
+    50000
+);
+param!(
+    ColdStartMaxPostAgeSecs,
+    u64,
+    "rust_home_mixer_cold_start_max_post_age_secs",
+    7200
+);
+
+param!(
+    LowImpressionsMaxPositionRatio,
+    f64,
+    "rust_home_mixer_low_impressions_max_boost_position_ratio",
+    0.97
+);
+
+param!(
+    EnableViewerColdStart,
+    bool,
+    "rust_home_mixer_enable_viewer_cold_start_boost",
+    true
+);
+param!(
+    EnableColdStartThompsonSampling,
+    bool,
+    "rust_home_mixer_enable_cold_start_thompson_sampling",
+    true
+);
+param!(
+    ColdStartBetaAlpha0,
+    f64,
+    "rust_home_mixer_cold_start_beta_alpha0",
+    0.75
+);
+param!(
+    ColdStartBetaBeta0,
+    f64,
+    "rust_home_mixer_cold_start_beta_beta0",
+    49.25
+);
+param!(
+    ColdStartTsTopK,
+    u32,
+    "rust_home_mixer_cold_start_ts_top_k",
+    2
+);
+param!(
+    ColdStartImpressionScale,
+    f64,
+    "rust_home_mixer_cold_start_impression_scale",
+    1.0

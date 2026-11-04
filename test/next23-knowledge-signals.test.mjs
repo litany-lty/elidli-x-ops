@@ -4,7 +4,8 @@ import { canonicalHash, validate } from '../scripts/lib/contracts.mjs';
 import { applicationProposalHash, buildRuleContextV5, buildSignalSetV5, loadKnowledgeCatalog, SIGNAL_DEFINITIONS_V5, validateRuleApplicationV5 } from '../scripts/lib/knowledge.mjs';
 import { ruleContextCompatibleV5 } from '../scripts/lib/v5-dispatch.mjs';
 
-const T = '2026-10-27T05:00:00.000Z';
+// Installed-package scenarios run after the reviewed 2026-11-04 materials.
+const T = '2026-11-05T05:00:00.000Z';
 const H = value => canonicalHash(value);
 const subject = { ref: 'subject:draft:1', content_hash: H('为独立开发者解释缓存失效\n正文证据'), account_ref: 'account:fixture', texts: ['为独立开发者解释缓存失效', '正文证据'], format: 'short_post', post_type: 'original', surface: 'for_you', media: [], full_text: true, read_status: 'read', source_refs: ['draft:1'], observed_at: T };
 
@@ -49,11 +50,13 @@ test('RuleApplicationV5 permits editorial modify with unknown mechanism but reje
   const assessment = semantic('reader_benefit_clear', false, 'flag');
   const signal_set = buildSignalSetV5({ subject, cutoff: T, semantic_evidence: [assessment], actual_reviews: [review(assessment)] });
   const bundle = loadKnowledgeCatalog(undefined, { now: T });
-  const context = buildRuleContextV5({ run_id: 'run-v5', intent: 'draft', goal: { primary_goal: 'relevant_reach' }, use: 'operational_guidance', surface: 'for_you', post_type: 'original', subject_ref: subject.ref, subject_hash: subject.content_hash, cutoff: T, explicit_rule_version_refs: ['operational-op01-v3'], signal_set }, bundle);
+  const ruleRef = Object.values(bundle.rules).find(rule => rule.rule_id === 'OP01')?.rule_version_id;
+  assert.ok(ruleRef);
+  const context = buildRuleContextV5({ run_id: 'run-v5', intent: 'draft', goal: { primary_goal: 'relevant_reach' }, use: 'operational_guidance', surface: 'for_you', post_type: 'original', subject_ref: subject.ref, subject_hash: subject.content_hash, cutoff: T, explicit_rule_version_refs: [ruleRef], signal_set }, bundle);
   assert.equal(context.selections[0].mechanism_applicability.status, 'unknown');
   assert.equal(context.selections[0].editorial_applicability.status, 'applicable');
   assert.doesNotThrow(() => validate('RuleContextV5', context));
-  const application = { contract_version: 5, application_id: 'application-v5', context_ref: context.context_id, selected_rule_context_hash: context.selected_rule_context_hash, subject_ref: subject.ref, actual_input_hash: subject.content_hash, rule_version_refs: ['operational-op01-v3'], checks: [{ check_id: 'semantic-benefit', check_type: 'semantic', status: 'applicable', reviewed_input_hash: subject.content_hash, review_ref: assessment.review_receipt_ref, inspected_refs: [subject.ref], finding: '首句未说明读者收益' }], findings: ['首句未说明读者收益'], actions: [{ action_id: 'action-v5', rule_version_ref: 'operational-op01-v3', disposition: 'modify', text: '在首句说明读者收益', deliverable_refs: [subject.ref], basis_kind: 'editorial_inference', supporting_check_refs: ['semantic-benefit'], signal_refs: ['has_body', 'reader_benefit_clear'] }], keep_unchanged_reason: null, validation_plan: '复核首句是否清楚', deliverable_refs: [subject.ref], application_proposal_hash: '' };
+  const application = { contract_version: 5, application_id: 'application-v5', context_ref: context.context_id, selected_rule_context_hash: context.selected_rule_context_hash, subject_ref: subject.ref, actual_input_hash: subject.content_hash, rule_version_refs: [ruleRef], checks: [{ check_id: 'semantic-benefit', check_type: 'semantic', status: 'applicable', reviewed_input_hash: subject.content_hash, review_ref: assessment.review_receipt_ref, inspected_refs: [subject.ref], finding: '首句未说明读者收益' }], findings: ['首句未说明读者收益'], actions: [{ action_id: 'action-v5', rule_version_ref: ruleRef, disposition: 'modify', text: '在首句说明读者收益', deliverable_refs: [subject.ref], basis_kind: 'editorial_inference', supporting_check_refs: ['semantic-benefit'], signal_refs: ['has_body', 'reader_benefit_clear'] }], keep_unchanged_reason: null, validation_plan: '复核首句是否清楚', deliverable_refs: [subject.ref], application_proposal_hash: '' };
   application.application_proposal_hash = applicationProposalHash(application);
   assert.doesNotThrow(() => validate('RuleApplicationV5', application));
   assert.doesNotThrow(() => validateRuleApplicationV5(application, context, bundle));
@@ -66,8 +69,10 @@ test('RuleApplicationV5 permits editorial modify with unknown mechanism but reje
 });
 
 test('current rule compatibility ignores unrelated catalog changes but rejects selected dependency changes',()=>{
-  const set=buildSignalSetV5({subject,cutoff:T}),bundle=loadKnowledgeCatalog(undefined,{now:T}),context=buildRuleContextV5({run_id:'compat',intent:'draft',goal:{primary_goal:'relevant_reach'},use:'operational_guidance',surface:'for_you',post_type:'original',subject_ref:subject.ref,subject_hash:subject.content_hash,cutoff:T,explicit_rule_version_refs:['operational-op01-v3'],signal_set:set},bundle);
-  const unrelated=structuredClone(bundle),other=Object.keys(unrelated.rules).find(ref=>ref!=='operational-op01-v3');unrelated.catalog.catalog_id='catalog-unrelated';unrelated.catalog.catalog_content_hash='a'.repeat(64);unrelated.rules[other]={...unrelated.rules[other],derivation:`${unrelated.rules[other].derivation} unrelated`};
+  const set=buildSignalSetV5({subject,cutoff:T}),bundle=loadKnowledgeCatalog(undefined,{now:T}),ruleRef=Object.values(bundle.rules).find(rule=>rule.rule_id==='OP01')?.rule_version_id;
+  assert.ok(ruleRef);
+  const context=buildRuleContextV5({run_id:'compat',intent:'draft',goal:{primary_goal:'relevant_reach'},use:'operational_guidance',surface:'for_you',post_type:'original',subject_ref:subject.ref,subject_hash:subject.content_hash,cutoff:T,explicit_rule_version_refs:[ruleRef],signal_set:set},bundle);
+  const unrelated=structuredClone(bundle),other=Object.keys(unrelated.rules).find(ref=>ref!==ruleRef);unrelated.catalog.catalog_id='catalog-unrelated';unrelated.catalog.catalog_content_hash='a'.repeat(64);unrelated.rules[other]={...unrelated.rules[other],derivation:`${unrelated.rules[other].derivation} unrelated`};
   assert.equal(ruleContextCompatibleV5(context,unrelated),true);
   const related=structuredClone(unrelated),dep=Object.keys(context.selected_dependency_hashes)[0],index=related.dependencies.findIndex(item=>item.dependency_id===dep);related.dependencies[index]={...related.dependencies[index],review_note:`${related.dependencies[index].review_note} changed`};
   assert.equal(ruleContextCompatibleV5(context,related),false);

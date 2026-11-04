@@ -1,0 +1,1468 @@
+{
+  "version": 1,
+  "repo": "xai-org/x-algorithm",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "head_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "command": "git diff --name-status BASE HEAD",
+  "count": 242,
+  "entries": [
+    {
+      "status": "M",
+      "paths": [
+        "README.md"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/action_control.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/action_control_path_tests.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/action_control_rollback.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/backfill.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/backfill_path_tests.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/confidence_adversarial_tests.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/confidence_path_tests.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/decision.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/dedup_cache.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/facts.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/fixtures/replay_no_records.golden"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/gizmoduck.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/lib.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/service-lib/src/safety_audit_tests.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/types/src/action_control.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "abuse-enforcement-service/types/src/backfill.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "candidate-pipeline/candidate_pipeline.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "grox/config/config.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "grox/core/data_loaders/data_types.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "grox/core/data_loaders/post_mapper.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "grox/core/lm/convo.py"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "grox/core/lm/json_output.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "grox/libs/video_tools/image.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/ads/drops.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "home-mixer/ads/health_metrics.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "home-mixer/ads/least_movement_blender.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/ads/mod.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/ads/multi_risk_blender.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "home-mixer/ads/neighbours.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "home-mixer/ads/slot_spread_blender.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/ads/tests/blender_comparison_test.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "home-mixer/ads/tests/least_movement_blender_tests.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/ads/tests/mod.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "home-mixer/ads/tests/slot_spread_blender_tests.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/ads/util.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/candidate_hydrators/video_embedding_hydrator.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/candidate_pipeline/mod.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/candidate_pipeline/ranked_following_candidate_pipeline.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/clients/post_v8_search_embedding_client.rs"
+      ]
+    },
+    {
+      "status": "D",
+      "paths": [
+        "home-mixer/filters/brazil_2026_election_filter.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/filters/mod.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/filters/new_user_soft_nsfw_filter.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/filters/video_carousel_filter.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/models/candidate.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/models/query.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/params/config.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/params/param.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/query_hydrators/served_history_query_hydrator.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/scored_posts_server.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/scorers/immersive_video_scorer.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/scorers/mod.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "home-mixer/scorers/page_decode_rerank_scorer.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "home-mixer/scorers/page_rl_exploration_scorer.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/scorers/phoenix_scorer.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/scorers/value_model.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/scorers/vm_ranker.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/scorers/vm_ranker_request.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/selectors/blender_selector.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/selectors/top_k_score_selector.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/side_effects/ads_injection_logging_side_effect.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/side_effects/phoenix_experiments_side_effect.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/side_effects/phoenix_request_cache_side_effect.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/side_effects/redis_post_candidate_cache_side_effect.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/side_effects/reranking_kafka_side_effect.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/side_effects/scored_stats_side_effect.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/side_effects/video_carousel_candidates_kafka_side_effect.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/sources/thunder_source.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/util/under_the_hood.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "home-mixer/util/video_carousel.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/crates/common/xai-recsys/build.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/crates/common/xai-recsys/src/model_config.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/crates/common/xai-recsys/src/reply.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/crates/common/xai-recsys/src/util.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/crates/serving/xai-recsys-engine/src/copy_port_client.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/crates/serving/xai-recsys-engine/src/sid_client.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/crates/serving/xai-recsys-mm-server/src/mm_embedding_fetcher.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/crates/serving/xai-recsys-proto/proto/recsys.proto"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/crates/serving/xai-recsys-proto/src/lib.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/python/common/xai-configlib/src/xai_configlib/__init__.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/python/common/xai-proto/proto/recsys.proto"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/configs/data_feeds.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/configs/xrecsys.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/cuda/async_emb/async_emb.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/cuda/async_emb/src/async_emb_api.cc"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/cuda/async_emb/src/async_emb_kernel.cu"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/cuda/async_emb/src/async_emb_kernel.hpp"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/cuda/row_emb/row_emb.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/cuda/row_emb/src/row_emb_api.cc"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/cuda/row_emb/src/row_emb_comm.cc"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/cuda/row_emb/src/row_emb_kernel.cu"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/cuda/row_emb/src/row_emb_kernel.hpp"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/data/parquet_recsys.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/data/parquet_recsys_metadata.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/data/recsys/ads_head_masking.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/data/recsys/ads_late_window.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/data/recsys/constants.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/data/recsys/feature_config.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/data/recsys/recsys_batch.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/data/rust_parquet_recsys.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/data/streaming/kafkaloader.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/inference/model_runner.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/models/layers.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/models/recsys_attention.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/models/recsys_feature_prep.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/models/recsys_model.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/models/remat.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/models/scaling.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/models/transformer.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/optimizers/recsys/config.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/optimizers/recsys/rowwise_adagrad.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/testing.py"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "phoenix/xrex/train/follow_data_end.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/train/recsys_bundle_export.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/train/trainer.py"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "phoenix/xrex/train/trainer_recsys.py"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "safety-label-source/connect.rs"
+      ]
+    },
+    {
+      "status": "R095",
+      "paths": [
+        "visibility-filtering/safety_label_source/decode.rs",
+        "safety-label-source/decode.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "safety-label-source/lib.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "safety-label-source/metrics.rs"
+      ]
+    },
+    {
+      "status": "R094",
+      "paths": [
+        "visibility-filtering/safety_label_source/mh_client.rs",
+        "safety-label-source/mh_client.rs"
+      ]
+    },
+    {
+      "status": "R088",
+      "paths": [
+        "visibility-filtering/safety_label_source/remote.rs",
+        "safety-label-source/remote.rs"
+      ]
+    },
+    {
+      "status": "R083",
+      "paths": [
+        "visibility-filtering/safety_label_source/source.rs",
+        "safety-label-source/source.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "safety-label-source/testing.rs"
+      ]
+    },
+    {
+      "status": "R065",
+      "paths": [
+        "visibility-filtering/safety_label_source/warmer.rs",
+        "safety-label-source/warmer.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/jetfuel/gql/underTheHoodReport.gql"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/jetfuel/routes/_lib/load.ts"
+      ]
+    },
+    {
+      "status": "D",
+      "paths": [
+        "under-the-hood/jetfuel/routes/_lib/mock.ts"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/jetfuel/routes/_lib/report.ts"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/jetfuel/routes/index.tsx"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/jetfuel/routes/report.tsx"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/scalding/UnderTheHoodCommon.scala"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/scalding/UthDailyPostTakedownLabelsJob.scala"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/scalding/UthDailyPostsBackfillJob.scala"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/scalding/UthDailyPostsJob.scala"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/scalding/UthUserMonthMhPublisherJob.scala"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/strato/columns/underTheHoodReport.User.strato"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/strato/graphql/under_the_hood.thrift"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/strato/lib/params.strato"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/strato/lib/underTheHoodLabels.strato"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "under-the-hood/thrift/uth_serving.thrift"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering-client/evaluated.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering-client/notifications.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering-client/vf_client.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/bin/vf-gate.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "visibility-filtering/clients/label_warm_client.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/clients/mod.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/evaluate_tweets.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/explain.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/filter_notifications.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/filter_tweets.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/get_safety_labels.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/execute.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/fallback_cache.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/fetcher.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/hydrator.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/inventory.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/metrics.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/mod.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/plan.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/relation.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/sources.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/sources/fake_backends.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/sources/in_memory.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/store.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/store/conversation_root.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "visibility-filtering/hydration/store/edges.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/store/key_origin.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/store/quotes.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/store/resolve.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/hydration/tweet_source.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "visibility-filtering/ingress.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/lib.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "visibility-filtering/metrics/families.rs"
+      ]
+    },
+    {
+      "status": "R051",
+      "paths": [
+        "visibility-filtering/metrics.rs",
+        "visibility-filtering/metrics/mod.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/models/mod.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/models/verdict.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/models/viewer.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/params.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/params/client_switches.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/params/limited_actions_copy.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/params/limited_actions_policy.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/pinned.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/post_evaluator.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/post_evaluator/author.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "visibility-filtering/post_evaluator/notification.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/post_evaluator/retweet.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/quote.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/catalog.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/context.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/engine.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/expansion.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/fixtures.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/age_gating.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/age_verification.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/author_state.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/community.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/exclusive_content.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/interstitial.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/legacy_interstitial.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/mod.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/notifications.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/oon_media.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/oon_tweet_label.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/oon_user_label.rs"
+      ]
+    },
+    {
+      "status": "A",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/post_notifications.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/reaction_video.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/relationship.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/takedown.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/tweet_label.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/golden_corpus/tweet_state.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/levels.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/mod.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/rule_spec.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/rule_spec/conditions.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/rule_spec/features.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/rule_spec/features/compound.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/rule_spec/features/request.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/rule_spec/laws.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/safety_level.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/rules/tweet_rules.rs"
+      ]
+    },
+    {
+      "status": "D",
+      "paths": [
+        "visibility-filtering/safety_label_source/metrics.rs"
+      ]
+    },
+    {
+      "status": "D",
+      "paths": [
+        "visibility-filtering/safety_label_source/mod.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/scenario.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/server.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/server_deps.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/staging/reference/mod.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/staging/reference/tweetypie.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/staging/reference/tweetypie/quotes.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/treatment.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "visibility-filtering/verdict_gate.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "vm-ranker/params.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "vm-ranker/scoring/debias.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "vm-ranker/scoring/mod.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "vm-ranker/scoring/value_model.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "xai-value-model/lib.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "xai-value-model/phoenix_scores.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "xai-value-model/proto.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "xai-value-model/scoring.rs"
+      ]
+    },
+    {
+      "status": "M",
+      "paths": [
+        "xai-value-model/weights.rs"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+    #[arg(long, default_value_t = false)]
+    pub dpp_enabled: bool,
+
+    #[arg(long, default_value_t = 50)]
+    pub dpp_top_k: usize,
+
+    #[arg(long, default_value_t = 0.5)]
+    pub dpp_theta: f64,
+
+    #[arg(long, default_value_t = 100)]
+    pub dpp_max_selected_rank: usize,
+
+    #[arg(long, default_value_t = 1024)]
+    pub embedding_dim: usize,

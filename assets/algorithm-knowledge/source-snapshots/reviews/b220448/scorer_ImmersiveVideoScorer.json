@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "scorer:ImmersiveVideoScorer",
+  "semantic_review": "不再整体排除cached请求；只补轮播视频缺失immersive_scores，已有分保留。",
+  "files": [
+    {
+      "path": "home-mixer/scorers/immersive_video_scorer.rs",
+      "sha256": "d4725cb7365bfc9cce3b09ecc8e5f7ab0adbb270028b15aaed84382e030fc2af"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

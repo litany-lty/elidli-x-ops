@@ -1,0 +1,138 @@
+        let sources: Vec<Box<dyn Source<ScoredPostsQuery, PostCandidate>>> = vec![
+            thunder_source,
+            popular_posts_source,
+            tweet_mixer_source,
+            simclusters_source,
+            phoenix_source,
+            phoenix_topics_source,
+            phoenix_moe_source,
+            sid_source,
+            cached_posts_source,
+        ];
+
+        let hydrators: Vec<Box<dyn Hydrator<ScoredPostsQuery, PostCandidate>>> = vec![
+            Box::new(InNetworkCandidateHydrator),
+            Box::new(BidirectionalFollowHydrator {
+                socialgraph_client: socialgraph_client.clone(),
+            }),
+            Box::new(core_data_hydrator),
+            Box::new(PhoenixReplyAncestorsHydrator {
+                tes_client: tes_client.clone(),
+            }),
+            Box::new(
+                QuoteHydrator::new(
+                    tes_client.clone(),
+                    socialgraph_client.clone(),
+                    media_info_cache_client.clone(),
+                )
+                .await,
+            ),
+            Box::new(MediaInfoHydrator::new(media_info_cache_client.clone()).await),
+            Box::new(SubscriptionHydrator::new(tes_client.clone()).await),
+            Box::new(GizmoduckCandidateHydrator::new(gizmoduck_client).await),
+            Box::new(BlockedByHydrator::new(socialgraph_client).await),
+            Box::new(FilteredTopicsHydrator {
+                strato_client: strato_client.clone(),
+            }),
+            Box::new(LanguageCodeHydrator::new(tes_client.clone()).await),
+            Box::new(EngagementCountsHydrator::new(engagement_counts_client).await),
+            Box::new(PostEngagersHydrator::new(post_engagers_client)),
+            Box::new(SemanticIdHydrator::new(sid_client)),
+            Box::new(NewUserSoftNsfwLabelHydrator {
+                client: vf_safety_labels_client.clone(),
+            }),
+        ];
+
+        let author_rules = Arc::new(xai_feature_switches::AuthorRulesEvaluator::new(
+            feature_switches,
+        ));
+
+        let filters: Vec<Box<dyn Filter<ScoredPostsQuery, PostCandidate>>> = vec![
+            Box::new(DropDuplicatesFilter),
+            Box::new(ZeroFavCodivertFilter {
+                author_rules: author_rules.clone(),
+            }),
+            Box::new(CoreDataHydrationFilter),
+            Box::new(NewUserSoftNsfwFilter),
+            Box::new(AgeFilter::new(Duration::from_secs(params::MAX_POST_AGE))),
+            Box::new(SelfTweetFilter),
+            Box::new(OONRetweetReplyFilter),
+            Box::new(OONNsfwSimclustersFilter),
+            Box::new(RetweetDeduplicationFilter),
+            Box::new(IneligibleSubscriptionFilter),
+            Box::new(PreviouslySeenPostsFilter),
+            Box::new(PreviouslySeenPostsBackupFilter),
+            Box::new(PreviouslyServedPostsFilter),
+            Box::new(ViewerMutedKeywordFilter::new()),
+            Box::new(AuthorSocialgraphFilter),
+            Box::new(VideoFilter),
+            Box::new(TopicIdsFilter),
+            Box::new(NewUserMinEngagementFilter),
+            Box::new(InventoryHoldoutFilter),
+            Box::new(FavHoldoutFilter),
+            Box::new(FairShareRankingFilter),
+        ];
+
+        let phoenix_scorer = Box::new(PhoenixScorer {
+            dispatch: crate::util::egress::PredictionDispatch {
+                client: phoenix_client.clone(),
+                max_retries_key: "rust_home_mixer_phoenix_xds_max_retries",
+            },
+        });
+        let author_cold_start = crate::scorers::author_cold_start::AuthorColdStart { author_rules };
+
+        let xds_vm_ranker_client = super::build_vm_ranker_xds_client(vm_ranker_xds).await;
+        let vm_ranker = Box::new(VMRanker {
+            client: vm_ranker_client,
+            xds_client: xds_vm_ranker_client,
+            author_cold_start,
+        });
+        let immersive_video_scorer = Box::new(ImmersiveVideoScorer {
+            dispatch: crate::util::egress::PredictionDispatch {
+                client: phoenix_client.clone(),
+                max_retries_key: "rust_home_mixer_phoenix_xds_max_retries",
+            },
+        });
+        let scorers: Vec<Box<dyn Scorer<ScoredPostsQuery, PostCandidate>>> = vec![
+            phoenix_scorer,
+            immersive_video_scorer,
+            vm_ranker,
+            Box::new(PageDecodeRerankScorer),
+            Box::new(PageRlExplorationScorer),
+        ];
+
+        let selector = TopKScoreSelector;
+
+        let post_selection_hydrators: Vec<Box<dyn Hydrator<ScoredPostsQuery, PostCandidate>>> = vec![
+            Box::new(
+                VFCandidateHydrator::new(strato_vf_client.clone(), xai_vf_client.clone()).await,
+            ),
+            Box::new(AdsBrandSafetyVfHydrator {
+                client: vf_safety_labels_client,
+                author_client: Some(author_brand_safety_client),
+            }),
+            Box::new(TweetTypeMetricsHydrator::new()),
+            Box::new(FollowingRepliedUsersHydrator),
+            Box::new(MutualFollowJaccardHydrator {
+                strato_client: strato_client.clone(),
+            }),
+            Box::new(TopicFeedbackContextHydrator {
+                strato_client: strato_client.clone(),
+            }),
+            Box::new(AiTrendFeedbackContextHydrator {
+                strato_client: strato_client.clone(),
+            }),
+            Box::new(VideoMediaHydrator::new(tes_client.clone())),
+            Box::new(VideoEmbeddingHydrator::new(post_v8_search_embedding_client)),
+            Box::new(AncestorVideoHydrator {
+                media_info_cache_client,
+            }),
+        ];
+
+        let post_selection_filters: Vec<Box<dyn Filter<ScoredPostsQuery, PostCandidate>>> = vec![
+            Box::new(VFFilter),
+            Box::new(AncillaryVFFilter),
+            Box::new(AncestorVideoFilter),
+            Box::new(DedupConversationFilter),
+            Box::new(VideoCarouselFilter),
+        ];

@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "side_effect:RerankingKafkaSideEffect",
+  "semantic_review": "预测分map新增post_video项。 用于日志记录，非新候选加分；不能把日志字段当固定视频boost。",
+  "files": [
+    {
+      "path": "home-mixer/side_effects/reranking_kafka_side_effect.rs",
+      "sha256": "380deb0aeed9d037860a85ed8336e477341ae3a4c4695a8965e6b59b18a94b77"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

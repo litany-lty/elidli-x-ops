@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "scorer:PhoenixScorer",
+  "semantic_review": "开关控制page_decode请求并记录返回slot/prob供后续页面重排；原预测头不等于最终顺序。",
+  "files": [
+    {
+      "path": "home-mixer/scorers/phoenix_scorer.rs",
+      "sha256": "6c7ebe54c6ceef156a768434a789df8db18726efb16390d8acc74c3dadd65111"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

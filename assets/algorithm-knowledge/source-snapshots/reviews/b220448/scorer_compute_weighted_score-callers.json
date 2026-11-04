@@ -1,0 +1,39 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "dependency_id": "scorer:compute_weighted_score",
+  "semantic_review": "融合头及评分调整依调用者weights；Home本地关闭作者多样性，远端VM按请求compute=true及可用配置决定重算。",
+  "files": [
+    {
+      "path": "xai-value-model/scoring.rs",
+      "sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce"
+    },
+    {
+      "path": "home-mixer/params/param.rs",
+      "sha256": "3dc29c907ad756dbefe23b670fb71084848eb7687f8a8a1c5b771cb8ae61cc53"
+    },
+    {
+      "path": "vm-ranker/params.rs",
+      "sha256": "6c950916fced6af4ad6518ef8e058ca7d78d7d899ec3af9de176adaed2cd9fe9"
+    },
+    {
+      "path": "vm-ranker/scoring/debias.rs",
+      "sha256": "03f579728ecb90405afb77d1f639e23e0b61a3c54536f28e533746ce30d718c3"
+    },
+    {
+      "path": "vm-ranker/scoring/value_model.rs",
+      "sha256": "d10f4f287de60c63c563e601b63a22f3f5a039af309c925263668b50968b391c"
+    },
+    {
+      "path": "home-mixer/scorers/value_model.rs",
+      "sha256": "7a46788bd84b7dbf62d67032261e7c35d41b5a9cf82cadd2f7c6148d2739460c"
+    },
+    {
+      "path": "home-mixer/scorers/vm_ranker_request.rs",
+      "sha256": "8c9e3ae50796789989e964c7d506753d96f4487fea5df4f0aa44716b4da64ff7"
+    },
+    {
+      "path": "vm-ranker/scoring/mod.rs",
+      "sha256": "a401e627560b592d6e146511ab57e70eda035062624c0f99d7e3037a1555941a"
+    }
+  ]
+}

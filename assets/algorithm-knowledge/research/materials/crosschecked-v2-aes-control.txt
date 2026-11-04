@@ -1,0 +1,513 @@
+#[tracing::instrument(skip_all, fields(dry_run, uas))]
+async fn run_enforcement_inner(
+    ctx: &EnforcementCtx,
+    score: &abuse_proto::ScoreResult,
+    source_topic: &str,
+    control: &mut action_control::Resolved,
+    held_class: u8,
+    pinned_global_dry_run: bool,
+    extra: &mut BTreeMap<String, String>,
+    run: Option<(&backfill::BackfillRunRecord, i64)>,
+) -> Result<abuse_proto::DecisionOutcome> {
+    let user_id = score.user_id;
+    let (entity_type, entity_id) = Facts::resolve_target(score);
+    let global_dry_run = pinned_global_dry_run || ctx.dynamic_config.is_dry_run();
+    let mut dry_run = global_dry_run || control.record_only();
+    if dry_run && let Some(source) = control.dry_run_source(global_dry_run) {
+        extra.insert("dry_run_source".into(), source.into());
+    }
+    let span = tracing::Span::current();
+    span.record("dry_run", dry_run);
+
+    let gated_user_id = match entity_type {
+        EntityType::User => entity_id,
+        EntityType::Post => user_id,
+    };
+    let unfetched = || Facts {
+        entity_type,
+        entity_id,
+        user_id: gated_user_id,
+        topic: source_topic.to_owned(),
+        score: ScoreFacts::from_score(score),
+        entity: match entity_type {
+            EntityType::User => EntityFacts::User(UserFacts::default()),
+            EntityType::Post => EntityFacts::Post(PostFacts {
+                author_id: user_id,
+                ..Default::default()
+            }),
+        },
+        uas: None,
+    };
+    if test_user::is_test_user_id(gated_user_id) {
+        info!(
+            user_id = gated_user_id,
+            "test user (id bitmask/range); skipping enforcement"
+        );
+        return Ok(skip_outcome(
+            "test_user_skipped".into(),
+            dry_run,
+            &unfetched(),
+            score,
+        ));
+    }
+
+    if control.rules_unread() && control.page_actions.is_empty() {
+        record_seen_pair(&ctx.off_switch, &ctx.dynamic_config, score, source_topic);
+        record_seen_bands(ctx, score, entity_type, None, control.factory);
+        extra.insert(
+            "matched_rule_id".into(),
+            action_control::PAGE_RULE_ID.into(),
+        );
+        return Ok(skip_outcome(
+            action_control::STATUS_NO_ACTIONS.into(),
+            dry_run,
+            &unfetched(),
+            score,
+        ));
+    }
+
+    let mut facts = match entity_type {
+        EntityType::User => {
+            let user_id = entity_id;
+            let allowlist = fetch_user_allowlist(ctx.allowlist.as_ref(), user_id).await;
+            if allowlist.is_allowlisted {
+                let partial = Facts {
+                    entity_type,
+                    entity_id,
+                    user_id,
+                    topic: source_topic.to_owned(),
+                    score: ScoreFacts::from_score(score),
+                    entity: EntityFacts::User(UserFacts {
+                        allowlist,
+                        ..Default::default()
+                    }),
+                    uas: None,
+                };
+                return Ok(skip_outcome(
+                    "user_in_allowlist".into(),
+                    dry_run,
+                    &partial,
+                    score,
+                ));
+            }
+
+            let (user_res, cred_res) = tokio::join!(
+                fetch_user(&ctx.gd, user_id),
+                fetch_cred(&ctx.cred_clients, user_id),
+            );
+
+            Facts {
+                entity_type,
+                entity_id,
+                user_id,
+                topic: source_topic.to_owned(),
+                score: ScoreFacts::from_score(score),
+                entity: EntityFacts::User(UserFacts {
+                    allowlist,
+                    user: user_res?,
+                    cred: cred_res?,
+                }),
+                uas: None,
+            }
+        }
+        EntityType::Post => {
+            let author_id = user_id;
+            let (post_allowlist, author_allowlist) = tokio::join!(
+                fetch_entity_allowlist(ctx.allowlist.as_ref(), EntityType::Post, entity_id),
+                fetch_user_allowlist(ctx.allowlist.as_ref(), author_id),
+            );
+            if post_allowlist.is_allowlisted || author_allowlist.is_allowlisted {
+                let reason = if post_allowlist.is_allowlisted {
+                    "post_in_allowlist"
+                } else {
+                    "user_in_allowlist"
+                };
+                let partial = Facts {
+                    entity_type,
+                    entity_id,
+                    user_id: author_id,
+                    topic: source_topic.to_owned(),
+                    score: ScoreFacts::from_score(score),
+                    entity: EntityFacts::Post(PostFacts {
+                        allowlist: post_allowlist,
+                        present: false,
+                        author_id,
+                        labels: Vec::new(),
+                        author: UserFacts {
+                            allowlist: author_allowlist,
+                            ..Default::default()
+                        },
+                    }),
+                    uas: None,
+                };
+                return Ok(skip_outcome(reason.into(), dry_run, &partial, score));
+            }
+
+            let (user_res, cred_res) = tokio::join!(
+                fetch_user(&ctx.gd, author_id),
+                fetch_cred(&ctx.cred_clients, author_id),
+            );
+
+            Facts {
+                entity_type,
+                entity_id,
+                user_id: author_id,
+                topic: source_topic.to_owned(),
+                score: ScoreFacts::from_score(score),
+                entity: EntityFacts::Post(PostFacts {
+                    allowlist: post_allowlist,
+                    present: false,
+                    author_id,
+                    labels: Vec::new(),
+                    author: UserFacts {
+                        allowlist: author_allowlist,
+                        user: user_res?,
+                        cred: cred_res?,
+                    },
+                }),
+                uas: None,
+            }
+        }
+    };
+
+    record_seen_pair(&ctx.off_switch, &ctx.dynamic_config, score, &facts.topic);
+    let compiled_rules = || {
+        ctx.rules_cache.resolve(
+            facts.entity_type,
+            ctx.dynamic_config
+                .enforcement_rules_yaml(facts.entity_type)
+                .as_ref(),
+        )
+    };
+    let rules_decision = if control.page_driven() && !control.rules_unread() {
+        match crate::rules::decide_with_id(&compiled_rules(), &facts) {
+            Ok(d) => Some(d),
+            Err(e) => {
+                warn!(
+                    user_id,
+                    topic = %facts.topic,
+                    error = %e,
+                    "action control: rules eval errored on a page decision",
+                );
+                None
+            }
+        }
+    } else {
+        None
+    };
+    let (decision, rule_id) = if control.page_driven() {
+        if let Some((rules_would, id)) = &rules_decision {
+            extra.insert("rules_would_rule_id".into(), id.clone());
+            if let Decision::Act(specs) = rules_would {
+                extra.insert(
+                    "rules_would_action_specs".into(),
+                    action_control::action_specs_json(specs),
+                );
+            }
+        }
+        if control.recording() && !dry_run {
+            dry_run = true;
+            extra.insert(
+                "dry_run_source".into(),
+                control
+                    .dry_run_source(global_dry_run)
+                    .unwrap_or("page")
+                    .into(),
+            );
+        }
+        match safety_checks::first_page_stop(facts.entity_type, &facts, control.author_skips) {
+            Ok(Some(check)) => (Decision::Skip(check.reason.to_owned()), check.id.to_owned()),
+            Ok(None) if control.page_actions.is_empty() => (
+                Decision::Skip(action_control::STATUS_NO_ACTIONS.to_owned()),
+                action_control::PAGE_RULE_ID.to_owned(),
+            ),
+            Ok(None) => (
+                Decision::Act(action_control::page_specs(&control.page_actions)),
+                action_control::PAGE_RULE_ID.to_owned(),
+            ),
+            Err(e) => {
+                warn!(
+                    user_id,
+                    topic = %facts.topic,
+                    error = %e,
+                    "action control: safety check eval errored — skipping",
+                );
+                extra.insert("matched_rule_id".into(), "safety_checks".into());
+                return Ok(skip_outcome(
+                    "rule_eval_error".into(),
+                    dry_run,
+                    &facts,
+                    score,
+                ));
+            }
+        }
+    } else {
+        match crate::rules::decide_with_id(&compiled_rules(), &facts) {
+            Ok(d) => d,
+            Err(e) => {
+                warn!(
+                    user_id,
+                    topic = %facts.topic,
+                    error = %e,
+                    "rule pipeline eval errored — skipping; investigate the rule file",
+                );
+                return Ok(skip_outcome(
+                    "rule_eval_error".into(),
+                    dry_run,
+                    &facts,
+                    score,
+                ));
+            }
+        }
+    };
+    let own = (decision.clone(), rule_id.clone());
+    let seen_rules = match &rules_decision {
+        Some(r) => Some(r),
+        None if !control.page_driven() => Some(&own),
+        None => None,
+    };
+    if control.rules_unread() {
+        record_seen_bands(ctx, score, facts.entity_type, None, control.factory);
+    } else if let Some(rules) = seen_rules {
+        record_seen_bands(ctx, score, facts.entity_type, Some(rules), false);
+    }
+    extra.insert("matched_rule_id".into(), rule_id);
+
+    match decision {
+        Decision::Skip(reason) => Ok(skip_outcome(reason, dry_run, &facts, score)),
+        Decision::Act(mut specs) => {
+            if control.page_driven()
+                && facts.entity_type == EntityType::User
+                && let Some(label) = action_control::label_only(&control.page_actions)
+                && facts.user().labels.iter().any(|l| l == label)
+            {
+                let reason = if label == gizmoduck_labels::CLIENT_EVENT_PHOENIX_SKIP {
+                    "already_phoenix_skip_labeled"
+                } else {
+                    "already_spam_high_recall_labeled"
+                };
+                return Ok(skip_outcome(reason.into(), dry_run, &facts, score));
+            }
+            if control.page_driven() {
+                let account = facts.user();
+                let upgrades = control.page_actions.iter().any(|a| {
+                    matches!(
+                        a,
+                        action_control::PageAction::Suspend {
+                            permanent: true,
+                            ..
+                        }
+                    )
+                });
+                let skip = if account.suspended && !upgrades {
+                    Some(ALREADY_SUSPENDED)
+                } else if account.deactivated {
+                    Some("already_deactivated")
+                } else {
+                    None
+                };
+                if let Some(reason) = skip {
+                    return Ok(skip_outcome(reason.into(), dry_run, &facts, score));
+                }
+            }
+
+            let stripped = strip_redundant_suspends(&mut specs, facts.user());
+            let mut already_suspended_stripped = None;
+            if !stripped.is_empty() {
+                let names: Vec<&'static str> = stripped
+                    .iter()
+                    .map(|spec| {
+                        EnforcementAction::from_spec(
+                            spec,
+                            facts.entity_id,
+                            facts.user_id,
+                            Vec::new(),
+                        )
+                        .name()
+                    })
+                    .collect();
+                let names = serde_json::to_string(&names).unwrap_or_else(|_| "[]".into());
+                if dry_run {
+                    info!(
+                        user_id = facts.user_id,
+                        actions = %names,
+                        "dry run; would call suspendUser, but the account is already suspended"
+                    );
+                }
+                if specs.is_empty() {
+                    info!(
+                        user_id = facts.user_id,
+                        "suspend target already suspended; skipping decision"
+                    );
+                    let mut outcome =
+                        skip_outcome(ALREADY_SUSPENDED.into(), dry_run, &facts, score);
+                    outcome
+                        .info
+                        .insert(ALREADY_SUSPENDED_STRIPPED.into(), names);
+                    return Ok(outcome);
+                }
+                info!(
+                    user_id = facts.user_id,
+                    stripped = %names,
+                    "suspend target already suspended; dropping the suspend, keeping the other actions"
+                );
+                already_suspended_stripped = Some(names);
+            }
+
+            // Overturn-hold gate: skip a suspend, or strip a label, that a
+            // human reviewer overturned on appeal while that hold is still active.
+            let mut hold_gate_info = BTreeMap::new();
+            let live_gate_cfg = ctx.dynamic_config.overturn_hold_gate();
+            let (gate_cfg, run_unchecked) =
+                match run.map(|_| backfill::run_gate_cfg(&live_gate_cfg)) {
+                    None => (live_gate_cfg, false),
+                    Some(Some(cfg)) => (cfg, false),
+                    Some(None) => (live_gate_cfg, true),
+                };
+            let gated = gated_actions(&specs, &gate_cfg);
+            if run_unchecked && !gated.is_empty() {
+                return Ok(hold_gate_skip_outcome(
+                    overturn_hold::STATUS_HOLD_LOOKUP_FAILED,
+                    BTreeMap::from([(
+                        "overturn_hold_probe_error".to_owned(),
+                        "gate_off".to_owned(),
+                    )]),
+                    dry_run,
+                    &facts,
+                    score,
+                ));
+            }
+            if !gated.is_empty() {
+                let mut gate = ctx
+                    .hold_gate
+                    .evaluate(&gate_cfg, facts.user_id, source_topic, &gated)
+                    .await;
+                if let Some(status) = gate.skip_status {
+                    return Ok(hold_gate_skip_outcome(
+                        status, gate.info, dry_run, &facts, score,
+                    ));
+                }
+                if !gate.strip_labels.is_empty() {
+                    strip_held_labels(&mut specs, &gate.strip_labels);
+                    if specs.is_empty() {
+                        gate.mark_label_collapse();
+                        info!(
+                            user_id = facts.user_id,
+                            topic = source_topic,
+                            labels_stripped = %gate.info
+                                .get("overturn_hold_labels_stripped")
+                                .map(String::as_str)
+                                .unwrap_or(""),
+                            "overturn-hold gate (enforce): every action was a held label; skipping decision"
+                        );
+                        return Ok(hold_gate_skip_outcome(
+                            overturn_hold::STATUS_HOLD_OVERTURNED,
+                            gate.info,
+                            dry_run,
+                            &facts,
+                            score,
+                        ));
+                    }
+                }
+                hold_gate_info = gate.info;
+            }
+
+            let chosen_class = specs
+                .iter()
+                .map(decision::ActionSpec::dedup_action_class)
+                .max()
+                .unwrap_or(dedup_cache::CLASS_NONE);
+            if !dry_run && chosen_class <= held_class {
+                info!(
+                    user_id = facts.user_id,
+                    held_class, chosen_class, "dedup: chosen actions do not outrank the held entry"
+                );
+                let mut info = std::mem::take(&mut hold_gate_info);
+                info.insert("dedup_held_class".into(), held_class.to_string());
+                info.insert(
+                    "action_specs".into(),
+                    action_control::action_specs_json(&specs),
+                );
+                return Ok(hold_gate_skip_outcome(
+                    "dedup_skipped",
+                    info,
+                    dry_run,
+                    &facts,
+                    score,
+                ));
+            }
+
+            if let Some(outcome) = final_checks(
+                &ctx.off_switch,
+                &ctx.head_guard,
+                &ctx.dynamic_config,
+                &specs,
+                &facts,
+                score,
+                source_topic,
+                dry_run,
+                &mut hold_gate_info,
+                run.map(|(r, nonce)| (ctx.backfill.as_ref(), r, nonce)),
+            )
+            .await?
+            {
+                return Ok(outcome);
+            }
+
+            let user_id = facts.user_id;
+            let entity_id = facts.entity_id;
+
+            facts.uas = fetch_uas(&ctx.uas_strato, user_id).await;
+            if let Some(uas) = &facts.uas {
+                span.record("uas", tracing::field::display(uas));
+            }
+
+            info!(
+                "processing score_result: model={}, status={}",
+                score.model_version, score.score_status,
+            );
+
+            let mut additional_info_map = facts.to_additional_info_map();
+            let ais_notes: Vec<String> = additional_info_map
+                .iter()
+                .map(|(k, v)| format!("{k}: {v}"))
+                .collect();
+            let acted_class = specs
+                .iter()
+                .map(decision::ActionSpec::dedup_action_class)
+                .max()
+                .unwrap_or(dedup_cache::CLASS_NONE);
+            let actions: Vec<EnforcementAction> = specs
+                .iter()
+                .map(|spec| {
+                    EnforcementAction::from_spec(spec, entity_id, user_id, ais_notes.clone())
+                })
+                .collect();
+            let uas_action_dims: Vec<(&'static str, String)> = actions
+                .iter()
+                .map(|a| (a.name(), a.metric_label()))
+                .collect();
+
+            additional_info_map.insert(
+                "action_kinds".into(),
+                serde_json::to_string(&uas_action_dims.iter().map(|(a, _)| *a).collect::<Vec<_>>())
+                    .unwrap_or_else(|_| "[]".into()),
+            );
+            additional_info_map.extend(hold_gate_info);
+            if let Some(names) = already_suspended_stripped {
+                additional_info_map.insert(ALREADY_SUSPENDED_STRIPPED.into(), names);
+            }
+            additional_info_map.insert(
+                "action_specs".into(),
+                action_control::action_specs_json(&specs),
+            );
+
+            enforce_actions(
+                &ctx.ais_client,
+                dry_run,
+                Some(score),
+                source_topic,
+                facts.entity_type,
+                actions,
+            )
+            .await?;

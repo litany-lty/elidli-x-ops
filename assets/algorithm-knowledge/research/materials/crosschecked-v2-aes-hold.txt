@@ -1,0 +1,50 @@
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum GateMode {
+        #[default]
+    Off,
+        Shadow,
+        Enforce,
+}
+
+impl GateMode {
+            pub fn as_str(self) -> &'static str {
+        match self {
+            GateMode::Off => "off",
+            GateMode::Shadow => "shadow",
+            GateMode::Enforce => "enforce",
+        }
+    }
+
+            fn parse(raw: &str) -> Option<Self> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "off" => Some(GateMode::Off),
+            "shadow" => Some(GateMode::Shadow),
+            "enforce" => Some(GateMode::Enforce),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum OnProbeError {
+        #[default]
+    Allow,
+            Skip,
+}
+
+impl OnProbeError {
+            pub fn as_str(self) -> &'static str {
+        match self {
+            OnProbeError::Allow => "allow",
+            OnProbeError::Skip => "skip",
+        }
+    }
+
+    fn parse(raw: &str) -> Option<Self> {
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "allow" => Some(OnProbeError::Allow),
+            "skip" => Some(OnProbeError::Skip),
+            _ => None,
+        }
+    }
+}

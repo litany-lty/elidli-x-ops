@@ -39,6 +39,10 @@ description: >
 
 找素材时优先 `inspiration-step`（当前修订 2.3.0-rc.4）：从真实历史提取主题、实体、未回答问题和续篇，明确历史如何影响查询；用户本次主题优先。新闻子任务先预留父预算，重启复用原ticket。候选经assess后，必须用返回的精确材料完成真实review_novelty审核再finalize；依据更正后重评相关角度，保留来源与预算。可交付官方原图、用户图片或可靠数据图，不以生成示意图冒充新闻原件。
 
+用户询问算法更新、降权、增流或账号评分时，先读取 [2026-11-04 三类算法规则](references/algorithm-rules-2026-11-04.md)，或调用 contract5 `knowledge-step` 的 `research` 只读操作。该研究固定到 `b220448766ab4ee4c83d58a67d51f0cb5bda86c2`，默认编辑操作目录已更新为 `x-algorithm-b220448-editorial-v1`，仅允许 `editorial_inference` 依据，生产机制适用性一律保持 unknown。38条研究规则不等于38项生产机制已启用；既有账号状态须检查实际激活目录，不会自动迁移。详见[启用范围与回退](references/algorithm-editorial-release-2026-11-04.md)。默认关闭、调用条件、未审路径和生产未知必须随结论保留。尤其不能把预测权重当互动次数积分、新观看者保护当新作者处罚，或把删除单一过滤器当取消全部法律限制。
+
+交叉核查详版见 [完整规则与交叉审查](references/algorithm-full-review-2026-11-04.md)。解释机制时按调用者、实际请求字段、接收方条件、消费者核对，读取研究包 `runtime_bindings`，不要只引用参数默认值。Home已显式请求VM价值重算，缺失的following count又使新观看者OON条件不能按参数表直接成立；VF的Downrank/Avoid标签不等于Home过滤器进行了数值扣分；DPP需同时满足部署初始化与请求条件。完整目录盘点不能替代未完成的逐文件语义审查。
+
 ## 共用执行合同
 
 运行 CLI 时使用唯一入口：

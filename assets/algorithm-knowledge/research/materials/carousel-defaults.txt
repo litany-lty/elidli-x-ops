@@ -1,0 +1,12 @@
+param!(
+    EnableVideoCarouselHighRiskFilter,
+    bool,
+    "rust_home_mixer_enable_video_carousel_high_risk_filter",
+    true
+);
+param!(
+    EnableVideoCarouselMediumRiskFilter,
+    bool,
+    "rust_home_mixer_enable_video_carousel_medium_risk_filter",
+    false
+);

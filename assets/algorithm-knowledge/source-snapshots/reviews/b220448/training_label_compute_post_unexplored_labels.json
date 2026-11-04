@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "training_label:compute_post_unexplored_labels",
+  "semantic_review": "批次读取增加late labels、early counterpart处理、广告计数log2桶及与人工负样本不兼容校验；非reply模式计算最早自身候选请求时间和不晚于请求的最新历史时间并填充int64。 供Python模型特征准备和可选广告侧输入消费；零值区分不了缺失与零计数，时间gap不能误解为帖子年龄或作者发帖频率。训练和Rust输入都排除reply槽位，但空/异常输入行为不能凭静态审查宣称完全一致。",
+  "files": [
+    {
+      "path": "phoenix/xrex/data/recsys/recsys_batch.py",
+      "sha256": "9102d2825e12493a5d6e61b11514253abc84a62dfebe20ed112a6df120577ac8"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

@@ -1,0 +1,21 @@
+	return rows;
+};
+
+export default page("logged_in.under_the_hood.report", T, async (ctx) => {
+	const fs = await ctx.switches();
+	const mock: Mock | undefined = canMock(ctx) ? ctx.mock : undefined;
+	const state = fs.isTrue("rweb_under_the_hood_report_enabled") ? await loadReport(ctx, mock) : { status: "pilot" as const };
+	const content =
+		state.status === "ok" && state.report ? (
+			body(state.report, {
+				download: state.rawJson ? downloadUrl(ctx) : undefined,
+				note: state.note,
+				showPostIds: fs.isTrue("rweb_under_the_hood_report_post_ids_enabled"),
+				appeals: state.appeals,
+			})
+		) : (
+			<Body t={state.status === "pilot" ? pilotCopy : copy.unavailable} />
+		);
+	return (
+		<Screen title={copy.title} page="under_the_hood_report">
+			{content}

@@ -9,11 +9,13 @@ import {initializeState,commitState,loadState} from '../scripts/lib/state.mjs';
 import {applicationProposalHash} from '../scripts/lib/knowledge.mjs';
 import {guidanceOutputContentHashV5,guidanceReviewSubjectHashV5} from '../scripts/lib/guidance.mjs';
 import {createHash} from 'node:crypto';
+import {seedLegacyKnowledgeState} from './helpers/legacy-knowledge-fixture.mjs';
 const T='2026-10-27T06:00:00Z',account={handle:'fixture_explicit_edit',profile_url:'https://x.com/fixture_explicit_edit',user_id:'42',identity_basis:'user_provided'};
 async function call(dir,command,payload,ok=true){const state=await loadState(dir),id=crypto.randomUUID(),input=join(dir,`${id}.in.json`),output=join(dir,`${id}.out.json`);await writeFile(input,JSON.stringify({schema_version:1,run_id:null,expected_revision:state.revision,payload}));const child=spawnSync(process.execPath,[resolve('scripts/x-ops.mjs'),command,'--input',input,'--output',output,'--state-dir',dir],{encoding:'utf8'}),envelope=JSON.parse(child.stdout);if(ok)assert.equal(child.status,0,JSON.stringify(envelope.errors));else assert.notEqual(child.status,0);return envelope;}
 
 test('explicit preference supports a double-unknown rule only with the exact saved current request',async()=>{
- const dir=await mkdtemp(join(tmpdir(),'xops-explicit-edit-'));await commitState(dir,0,()=>initializeState(createDefaultConfig(account)));
+ // This historical preference contract predates the installed editorial-only release.
+ const dir=await mkdtemp(join(tmpdir(),'xops-explicit-edit-'));await commitState(dir,0,()=>seedLegacyKnowledgeState(initializeState(createDefaultConfig(account))));
  const path=join(dir,'posts.json');await writeFile(path,JSON.stringify({posts:[{id:'9',text:'先说清结论，再给出一个例子。',created_at:'2026-10-26T00:00:00Z'}]}));
  const base={contract_version:2,material_path:path,material_kind:'archive_posts',source_ref:'request-posts',declared_context:{account_identity_ref:'x-user:42',measurement_context:{observed_at:null,source_timezone:null,basis:'archive',definition_context:'explicit-edit'}}};
  const preview=await call(dir,'data-import',{...base,operation:'preview'});await call(dir,'data-import',{...base,operation:'commit',preview_hash:preview.data.import_preview.preview_hash});

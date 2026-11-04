@@ -1,0 +1,8 @@
+object RateBasedJobConfig extends BuildJobConfig {
+  override val historyDuration: Duration = Days(30)
+  override val labelManager: LabelManager = AgathaLabelManager
+  override val labelNames: Set[String] = Set(
+    ReportsPerFav.labelName,
+    AllSpamReportsPerFav.labelName,
+    SpamReportsPerFav.labelName,
+  )

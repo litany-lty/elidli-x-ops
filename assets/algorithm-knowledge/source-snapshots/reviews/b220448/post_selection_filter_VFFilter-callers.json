@@ -1,0 +1,19 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "dependency_id": "post_selection_filter:VFFilter",
+  "semantic_review": "Home后置VFFilter保留Allow、Interstitial、Avoid、Downrank及缺失action；移除Drop、Tombstone、NotEvaluated。该消费者没有为Downrank或Avoid施加数值乘子，不能由动作名推出固定降权。",
+  "files": [
+    {
+      "path": "home-mixer/filters/vf_filter.rs",
+      "sha256": "33f42784645515722f4a38555d61f18757a9d8f38e2a1db0f3b89257c20e63f4"
+    },
+    {
+      "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+      "sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22"
+    },
+    {
+      "path": "home-mixer/candidate_hydrators/vf_candidate_hydrator.rs",
+      "sha256": "5a37ed35e1eed07551041778f5b36aceee5749f9699f5c6287e3341d0d7ab309"
+    }
+  ]
+}

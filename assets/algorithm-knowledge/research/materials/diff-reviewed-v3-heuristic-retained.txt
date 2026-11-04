@@ -1,0 +1,89 @@
+pub(crate) const MEDIUM_RISK_LABELS: &[SafetyLabelType] = &[
+    SafetyLabelType::NSFA_HIGH_PRECISION,
+    SafetyLabelType::NSFA_KEYWORDS_HIGH_PRECISION,
+    SafetyLabelType::NSFW_REPORTED_HEURISTICS,
+    SafetyLabelType::GORE_AND_VIOLENCE_REPORTED_HEURISTICS,
+    SafetyLabelType::NSFW_CARD_IMAGE,
+    SafetyLabelType::DO_NOT_AMPLIFY,
+    SafetyLabelType::MALICIOUS_URL,
+    SafetyLabelType::NSFA_COMMUNITY_NOTE,
+    SafetyLabelType::GROK_NSFA,
+    SafetyLabelType::NSFW_TEXT,
+];
+
+pub(crate) const LOW_RISK_LABELS: &[SafetyLabelType] = &[
+    SafetyLabelType::NSFA_LIMITED_INVENTORY,
+    SafetyLabelType::GROK_NSFA_LIMITED,
+    SafetyLabelType::NSFA_HIGH_RECALL,
+];
+
+const PTOS_CUTOFF_TWEET_ID: u64 = 2_054_275_414_225_846_272;
+
+pub fn compute_verdict(
+    labels: &HashMap<SafetyLabelType, SafetyLabel>,
+    tweet_id: u64,
+    require_ptos_review: bool,
+) -> BrandSafetyVerdict {
+    if HIGH_RISK_LABELS.iter().any(|l| labels.contains_key(l)) {
+        return BrandSafetyVerdict::HighRisk;
+    }
+
+    if MEDIUM_RISK_LABELS.iter().any(|l| labels.contains_key(l)) {
+        return BrandSafetyVerdict::MediumRisk;
+    }
+
+    let scored_by_grok = labels.contains_key(&SafetyLabelType::GROK_SFA)
+        || labels.contains_key(&SafetyLabelType::GROK_NSFA_LIMITED);
+    if !scored_by_grok {
+        return BrandSafetyVerdict::MediumRisk;
+    }
+
+    if require_ptos_review && fails_ptos_review(labels, tweet_id) {
+        return BrandSafetyVerdict::MediumRisk;
+    }
+
+    if LOW_RISK_LABELS.iter().any(|l| labels.contains_key(l)) {
+        return BrandSafetyVerdict::LowRisk;
+    }
+
+    BrandSafetyVerdict::Safe
+}
+
+pub(crate) const MEDIUM_RISK_LABELS_V2: &[SafetyLabelType] = &[
+    SafetyLabelType::NSFA_KEYWORDS_HIGH_PRECISION,
+    SafetyLabelType::NSFW_REPORTED_HEURISTICS,
+    SafetyLabelType::GORE_AND_VIOLENCE_REPORTED_HEURISTICS,
+    SafetyLabelType::NSFW_CARD_IMAGE,
+    SafetyLabelType::DO_NOT_AMPLIFY,
+    SafetyLabelType::MALICIOUS_URL,
+    SafetyLabelType::NSFA_COMMUNITY_NOTE,
+    SafetyLabelType::GROK_NSFA_V2,
+    SafetyLabelType::GROK_NSFA_EXPANDED_V2,
+    SafetyLabelType::NSFW_TEXT,
+];
+
+pub(crate) const LOW_RISK_LABELS_V2: &[SafetyLabelType] = &[
+    SafetyLabelType::GROK_NSFA_LIMITED_V2,
+    SafetyLabelType::NSFA_HIGH_RECALL,
+];
+
+const V2_WRITTEN_LABELS: &[SafetyLabelType] = &[
+    SafetyLabelType::GROK_SFA_V2,
+    SafetyLabelType::GROK_NSFA_V2,
+    SafetyLabelType::GROK_NSFA_LIMITED_V2,
+    SafetyLabelType::GROK_NSFA_EXPANDED_V2,
+];
+
+pub(crate) fn compute_verdict_v2(
+    labels: &HashMap<SafetyLabelType, SafetyLabel>,
+    tweet_id: u64,
+    require_ptos_review: bool,
+) -> BrandSafetyVerdict {
+    if !V2_WRITTEN_LABELS.iter().any(|l| labels.contains_key(l)) {
+        return compute_verdict(labels, tweet_id, require_ptos_review);
+    }
+    if HIGH_RISK_LABELS.iter().any(|l| labels.contains_key(l)) {
+        return BrandSafetyVerdict::HighRisk;
+    }
+    if MEDIUM_RISK_LABELS_V2.iter().any(|l| labels.contains_key(l)) {
+        return BrandSafetyVerdict::MediumRisk;

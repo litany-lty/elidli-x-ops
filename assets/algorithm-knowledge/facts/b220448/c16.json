@@ -1,0 +1,23 @@
+{
+  "contract_version": 2,
+  "rule_id": "C16",
+  "rule_version_id": "fact-c16-b220448766ab",
+  "repo": "xai-org/x-algorithm",
+  "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "path": "home-mixer/selectors/top_k_score_selector.rs",
+  "symbol": "TopKScoreSelector::select",
+  "source_material_ref": "artifact-c16-b220448",
+  "source_content_hash": "34706498fa63cb3f0923ca17eae7355c9c3ca1ded177f2ea4eaf05563a74c50c",
+  "checked_at": "2026-11-04T07:56:43.457Z",
+  "publicly_available_from": null,
+  "applicable_surface": "home_for_you",
+  "preconditions": [
+    "固定公开提交中的所列路径与符号",
+    "具体线上配置、观看者和候选条件仍须另证",
+    "当前事实只约束b220448公开源码中的该路径；生产命中和配置仍未知"
+  ],
+  "observed_behavior": "TopK先按score保留固定候选数，再在轮播启用时按独立轮播分追加有限视频候选。后置VideoCarouselFilter将extra从主流分离，结合主流以外候选、品牌安全和去重条件构建轮播；不是所有媒体统一加分或最终展示承诺。",
+  "inference_boundary": "这不表示所有视频或图片获得固定加分；实际开关、候选分数和观看者请求仍未知。 前版预置未来UTC时间错误，本次校正实际审查时间，机制解释未变。",
+  "production_status": "unknown",
+  "supersedes": "fact-c16-6258a1549ef8-timefix1"
+}

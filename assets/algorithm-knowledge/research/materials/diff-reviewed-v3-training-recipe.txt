@@ -1,0 +1,32 @@
+    "home_direct_packed": _make_cfg(
+        {
+            **_home_direct_packed_base(),
+            **_H100_OVERRIDES,
+            "seqpack_candidate_packing": True,
+            "seqpack_candidate_count": [32, 128],
+            "num_candidate_only_layers": 2,
+            "candidate_only_attn_impl": "cutedsl_ranker_candidate_only_attn",
+            "fp8_gemms": Fp8Gemms.ALL,
+            "metrics_ndcg_shared_sorts": True,
+            "view_loss_weight": 0.5,
+            "feature_prep": replace(
+                _home_direct_packed_base()["feature_prep"],
+                enable_time_gap=True,
+                time_gap_lr_scale=4.0,
+            ),
+            "optim_config": replace(_H100_OVERRIDES["optim_config"], clip_by_global_norm=1.4),
+            "emb_optim_config": RecsysEmbeddingOptimConfig(
+                rowwise_adagrad=replace(
+                    _H100_OVERRIDES["emb_optim_config"].rowwise_adagrad,
+                    weight_decay=5.6e-4,
+                    weight_decay_exempt_window=37,
+                    stochastic_rounding=True,
+                ),
+            ),
+            "scale_config": ScaleConfig(
+                transformer_matrix_lr_scale=0.25, head_lr_scale=0.25, hidden_proj_lr_scale=0.25
+            ),
+        },
+        user_vocab_size=100_000_000,
+        item_vocab_size=100_000_000,
+        author_vocab_size=30_000_000,

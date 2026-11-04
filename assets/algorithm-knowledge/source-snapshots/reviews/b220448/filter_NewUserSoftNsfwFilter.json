@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "filter:NewUserSoftNsfwFilter",
+  "semantic_review": "加入scoring sequence长度门槛；配套公开params默认7天、长度100、开关false。仍是观看者年龄不是作者年龄。",
+  "files": [
+    {
+      "path": "home-mixer/filters/new_user_soft_nsfw_filter.rs",
+      "sha256": "2967760ba589dff52a6bf6448936a11aa06fdfe7c86173e2a023d7c5aee99672"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

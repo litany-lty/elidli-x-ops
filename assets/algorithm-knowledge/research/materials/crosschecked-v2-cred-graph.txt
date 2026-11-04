@@ -1,0 +1,107 @@
+  }
+
+  private[user_cred_v2] def getPageRankGraph(
+    validUserInfoPipe: TypedPipe[ValidUserInfo],
+    edgePipe: TypedPipe[Edge],
+  ): TypedPipe[UserNode] = {
+    val allUserPipe = validUserInfoPipe.map(u => (u.id, u.isNearZero)).group
+
+    val activeUserPipe = validUserInfoPipe.filter(!_.isNearZero).map(u => (u.id, true)).group
+
+    val flippedEdgePipe = edgePipe.map(_.asTuple.swap)
+
+    val validEdgePipe = flippedEdgePipe
+      .join(allUserPipe)
+      .map { case (destinationId, (sourceId, _)) => (sourceId, destinationId) }
+      .join(activeUserPipe)
+      .map { case (sourceId, (destinationId, _)) => Edge(sourceId, destinationId) }
+
+    val validNeighbourListPipe = validEdgePipe
+      .groupBy(_.sourceId)
+      .mapValues(_.destinationId)
+      .toList
+
+    allUserPipe
+      .leftJoin(validNeighbourListPipe)
+      .map {
+        case (sourceId, (isNearZero, destinationIds)) =>
+          UserNode(
+            id = sourceId,
+            neighbourIds = destinationIds.getOrElse(List.empty),
+            isNearZero = isNearZero,
+          )
+      }
+  }
+
+  private[user_cred_v2] def doPageRank(
+    userNodePipe: TypedPipe[UserNode],
+    inputUserMassPipe: TypedPipe[UserMass],
+    teleportWeightsPipe: TypedPipe[UserMass],
+    alpha: Double,
+  ): Execution[(TypedPipe[UserMass], Double)] = {
+    val groupedUserMassPipe = inputUserMassPipe.groupBy(_.id)
+
+    val joinedUserPipe = userNodePipe
+      .groupBy(_.id)
+      .join(groupedUserMassPipe)
+
+    val normalMassPipe = joinedUserPipe
+      .flatMap {
+        case (_, (userNode, userMass)) =>
+          if (userNode.neighbourIds.nonEmpty) {
+            val length = userNode.neighbourIds.length
+            val distributeMass = userMass.mass / length
+            userNode.neighbourIds.map(id => UserMass(id, distributeMass))
+          } else {
+            Seq.empty
+          }
+      }
+      .groupBy(_.id)
+      .mapValues(_.mass)
+      .sum
+      .map { case (id, mass) => UserMass(id, mass) }
+
+    val totalMissingMassPipe = normalMassPipe
+      .map(_.mass)
+      .sum
+      .map(distributedMass => 1.0 - distributedMass)
+
+    val jumpMassPipe = userNodePipe
+      .map(u => (u.id, ()))
+      .group
+      .leftJoin(teleportWeightsPipe.groupBy(_.id))
+      .toTypedPipe
+      .cross(totalMissingMassPipe)
+      .map {
+        case (((id, (_, teleportOpt)), missingMass)) =>
+          val p = teleportOpt.map(_.mass).getOrElse(0.0)
+          UserMass(id, p * alpha + p * missingMass * (1.0 - alpha))
+      }
+
+    val completeMassPipe = jumpMassPipe
+      .groupBy(_.id)
+      .leftJoin(normalMassPipe.groupBy(_.id))
+      .map {
+        case (id, (jumpMass, Some(normalMass))) =>
+          UserMass(id, normalMass.mass * (1 - alpha) + jumpMass.mass)
+        case (id, (jumpMass, _)) =>
+          UserMass(id, jumpMass.mass)
+      }
+      .forceToDiskExecution
+
+    val diff = completeMassPipe.flatMap { outputUserMassPipe =>
+      inputUserMassPipe
+        .groupBy(_.id)
+        .join(outputUserMassPipe.groupBy(_.id))
+        .map {
+          case (_, (inputMass, outputMass)) =>
+            scala.math.abs(outputMass.mass - inputMass.mass)
+        }
+        .sum
+        .toOptionExecution
+        .map(_.getOrElse(0D))
+    }
+
+    Execution.zip(completeMassPipe, diff)
+  }
+

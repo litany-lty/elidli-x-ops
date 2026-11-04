@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "source:ThunderSource",
+  "semantic_review": "移除ThunderClusterId与decider解析，改为无cluster参数的get_random_channel；召回请求路由变化，服务内部与实际响应未知。",
+  "files": [
+    {
+      "path": "home-mixer/sources/thunder_source.rs",
+      "sha256": "0b72776ca67e385ec809fcb5618ebc7cc6c9c68fdc712547913d4b40c7dbe767"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

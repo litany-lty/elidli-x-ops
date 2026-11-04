@@ -1,0 +1,14 @@
+{
+  "candidate_commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+  "base_commit": "2f252142b9284e692ac72851768c8072d045f0d5",
+  "dependency_id": "action_consumer:LimitedActionsPolicies",
+  "semantic_review": "treatment新增Deleted和NotFound的EvaluateTweets输出，以及notification post-not-found分类；不能视为仅logging。精确限制动作仍来自外部policy。",
+  "files": [
+    {
+      "path": "visibility-filtering/treatment.rs",
+      "sha256": "842f2d9b171db1ad7029af942a0acb7cdd7d68e2b9e3f60522b578af08fbef82"
+    }
+  ],
+  "review_status": "bounded_source_review",
+  "change_review_ref": "3340492991377100a5228445cf2511425f32b6a916b138bcaf7efc7a2bab217e"
+}

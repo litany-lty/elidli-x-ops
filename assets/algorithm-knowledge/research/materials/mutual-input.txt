@@ -1,0 +1,17 @@
+impl CandidateScoringInputs {
+    pub fn bidirectional_boost_eligible(&self) -> bool {
+        !self.is_reply && !self.is_retweet && self.is_mutual_follow_author
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct QueryScoringContext {
+    pub effective_oon_weight: f64,
+}
+
+impl Default for QueryScoringContext {
+    fn default() -> Self {
+        Self {
+            effective_oon_weight: 1.0,
+        }
+    }
