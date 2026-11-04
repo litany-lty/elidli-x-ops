@@ -1,0 +1,155 @@
+const NEW_USER_MIN_FOLLOWING: u32 = 5;
+const FALLBACK_WARN_INTERVAL_MS: u64 = 10_000;
+const SCORE_METRICS_SAMPLE_RATE: f64 = 0.01;
+
+static LAST_FALLBACK_WARN_MS: AtomicU64 = AtomicU64::new(0);
+
+pub struct ValueModelOutput {
+    pub weighted: Vec<f64>,
+    pub scores: Vec<f64>,
+    pub debiased: bool,
+    pub top_heads: Option<Vec<Vec<HeadContribution>>>,
+}
+
+struct Fallback {
+    reason: &'static str,
+    detail: String,
+}
+
+impl Fallback {
+    fn new(reason: &'static str, detail: impl Into<String>) -> Self {
+        Self {
+            reason,
+            detail: detail.into(),
+        }
+    }
+}
+
+pub fn compute(
+    req: &RankRequest,
+    params: Option<&Params>,
+    author_rules: Option<&AuthorRulesEvaluator>,
+    compute_value_model: bool,
+    debias: &DebiasModels,
+) -> Option<ValueModelOutput> {
+    if !compute_value_model {
+        record_request("passthrough", false);
+        return None;
+    }
+    match compute_or_fallback(req, params, author_rules, debias) {
+        Ok(output) => {
+            record_request("value_model", output.debiased);
+            Some(output)
+        }
+        Err(fallback) => {
+            record_request("fallback", false);
+            record_fallback(&fallback, req.viewer_id);
+            None
+        }
+    }
+}
+
+pub fn weights_from_params(params: &Params, viewer_id: u64) -> ValueModelWeights {
+    ValueModelWeights {
+        favorite: params.get(FavoriteWeight),
+        reply: params.get(ReplyWeight),
+        retweet: params.get(RetweetWeight),
+        photo_expand: params.get(PhotoExpandWeight),
+        video_open: params.get(VideoOpenWeight),
+        click: params.get(ClickWeight),
+        open_link: params.get(OpenLinkWeight),
+        profile_click: params.get(ProfileClickWeight),
+        vqv: params.get(VqvWeight),
+        share: params.get(ShareWeight),
+        share_via_dm: params.get(ShareViaDmWeight),
+        share_via_copy_link: params.get(ShareViaCopyLinkWeight),
+        dwell: params.get(DwellWeight),
+        quote: params.get(QuoteWeight),
+        quoted_click: params.get(QuotedClickWeight),
+        quoted_vqv: params.get(QuotedVqvWeight),
+        follow_author: params.get(FollowAuthorWeight),
+        post_unexplored: params.get(PostUnexploredWeight),
+        post_unexplored_include_out_of_network: params.get(PostUnexploredIncludeOutOfNetwork),
+        post_video: params.get(PostVideoWeight),
+        not_interested: params.get(NotInterestedWeight),
+        block_author: params.get(BlockAuthorWeight),
+        mute_author: params.get(MuteAuthorWeight),
+        report: params.get(ReportWeight),
+        not_dwelled: params.get(NotDwelledWeight),
+        cont_dwell_time: params.get(ContDwellTimeWeight),
+        cont_click_dwell_time: params.get(ContClickDwellTimeWeight),
+        video_continuation: params.get(VideoContinuationWeight),
+        user_video_continuation: params.get(UserVideoContinuationWeight),
+        profile_visit_secs: params.get(ProfileVisitSecsWeight),
+        min_video_duration_ms: params.get(MinVideoDurationMs),
+        enable_quoted_vqv_duration_check: params.get(EnableQuotedVqvDurationCheck),
+        bidirectional_follow_reply_weight_boost: params.get(BidirectionalFollowReplyWeightBoost),
+        bidirectional_follow_dwell_weight_boost: params.get(BidirectionalFollowDwellWeightBoost),
+        enable_author_diversity: params.get(EnableAuthorDiversity),
+        author_diversity_decay: params.get(AuthorDiversityDecay),
+        author_diversity_floor: params.get(AuthorDiversityFloor),
+        oon_rescore_in_network_replies_retweets: params
+            .get(EnableOonRescoreForInNetworkRepliesRetweets),
+        multiplier_pre_offset: params.get(MultiplierPreOffset),
+    }
+    .perturbed(
+        params.get(WeightPerturbationSigma),
+        &params.get(WeightPerturbationSalt),
+        viewer_id,
+    )
+}
+
+pub fn scoring_context(req: &RankRequest, params: &Params) -> QueryScoringContext {
+    if req.topic_request {
+        return QueryScoringContext {
+            effective_oon_weight: params.get(TopicOonWeightFactor),
+        };
+    }
+    let now_ms = req
+        .viewer
+        .as_ref()
+        .map_or_else(|| now_ms() as i64, |v| v.now_ms);
+    let account_age_secs = snowflake_creation_ms(req.viewer_id)
+        .map(|created| now_ms - created)
+        .filter(|&age| age >= 0)
+        .map(|age| (age / 1000) as u64);
+    let is_eligible_new_user = account_age_secs
+        .is_some_and(|age| age < params.get(NewUserAgeThresholdSecs))
+        && req.viewer_following_count >= NEW_USER_MIN_FOLLOWING;
+    QueryScoringContext {
+        effective_oon_weight: if is_eligible_new_user {
+            params.get(NewUserOonWeightFactor)
+        } else {
+            params.get(OonWeightFactor)
+        },
+    }
+}
+
+pub fn candidate_inputs(
+    req: &RankRequest,
+    weights: &ValueModelWeights,
+) -> Vec<CandidateScoringInputs> {
+    req.candidates
+        .iter()
+        .map(|c| CandidateScoringInputs::from_rank_candidate(c, weights.min_video_duration_ms))
+        .collect()
+}
+
+fn compute_or_fallback(
+    req: &RankRequest,
+    params: Option<&Params>,
+    author_rules: Option<&AuthorRulesEvaluator>,
+    debias: &DebiasModels,
+) -> Result<ValueModelOutput, Fallback> {
+    let params = params.ok_or_else(|| Fallback::new("no_config", ""))?;
+    let weights = weights_from_params(params, req.viewer_id);
+    let ctx = scoring_context(req, params);
+    let mut inputs = candidate_inputs(req, &weights);
+    if weights.user_video_continuation != 0.0 {
+        set_user_video_continuation(&mut inputs);
+    }
+    if let Some(author_rules) = author_rules {
+        set_author_exploration_bonuses(author_rules, &mut inputs);
+    }
+
+    let raw = compute_value_scores(&weights, &ctx, &inputs);

@@ -1,0 +1,48 @@
+pub(super) const SUSPENDED_AUTHOR_DROP: UserRule = Rule {
+    id: RuleId::SuspendedAuthor,
+    audience: NonAuthors,
+    when: all![AuthorIsSuspended],
+    action: drop_post(DropAs::AuthorIsSuspended),
+};
+
+pub(super) const DEACTIVATED_AUTHOR_DROP: UserRule = Rule {
+    id: RuleId::DeactivatedAuthor,
+    audience: NonAuthors,
+    when: all![AuthorIsDeactivated],
+    action: drop_post(DropAs::AuthorIsDeactivated),
+};
+
+pub(super) const ERASED_AUTHOR_DROP_INACTIVE: UserRule = Rule {
+    id: RuleId::ErasedAuthor,
+    audience: NonAuthors,
+    when: all![AuthorIsErased],
+    action: drop_post(DropAs::AuthorAccountIsInactive),
+};
+
+pub(super) const OFFBOARDED_AUTHOR_DROP_INACTIVE: UserRule = Rule {
+    id: RuleId::OffboardedAuthor,
+    audience: NonAuthors,
+    when: all![AuthorIsOffboarded],
+    action: drop_post(DropAs::AuthorAccountIsInactive),
+};
+
+pub(super) const PROTECTED_AUTHOR_DROP: UserRule = Rule {
+    id: RuleId::ProtectedAuthor,
+    audience: NonFollowers,
+    when: all![AuthorIsProtected],
+    action: drop_post(DropAs::AuthorIsProtected),
+};
+
+pub(super) const VIEWER_BLOCKS_AUTHOR_DROP: UserRule = Rule {
+    id: RuleId::ViewerBlocksAuthor,
+    audience: Everyone,
+    when: all![!ViewerLoggedOut, ViewerBlocksAuthor],
+    action: drop_post(DropAs::ViewerBlocksAuthor),
+};
+
+pub(super) const VIEWER_MUTES_AUTHOR_DROP: UserRule = Rule {
+    id: RuleId::ViewerMutesAuthor,
+    audience: Everyone,
+    when: all![!ViewerLoggedOut, ViewerMutesAuthor],
+    action: drop_post(DropAs::ViewerMutesAuthor),
+};

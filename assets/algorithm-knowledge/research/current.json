@@ -1,0 +1,1232 @@
+{
+  "version": 1,
+  "status": "source_reviewed_not_operationally_activated",
+  "checked_at": "2026-11-04T06:35:06.884Z",
+  "upstream": {
+    "repo": "xai-org/x-algorithm",
+    "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2"
+  },
+  "operational_baseline": {
+    "catalog_ref": "x-algorithm-2f252142-signals-candidate-v5",
+    "commit": "2f252142b9284e692ac72851768c8072d045f0d5"
+  },
+  "coverage": {
+    "scope": "targeted_source_review",
+    "repository_diff_count": 242,
+    "reviewed_paths": [
+      "home-mixer/params/param.rs",
+      "vm-ranker/params.rs",
+      "xai-value-model/scoring.rs",
+      "xai-value-model/inputs.rs",
+      "xai-value-model/weights.rs",
+      "home-mixer/scorers/value_model.rs",
+      "home-mixer/scorers/vm_ranker.rs",
+      "vm-ranker/scoring/value_model.rs",
+      "home-mixer/filters/author_socialgraph_filter.rs",
+      "home-mixer/filters/previously_seen_posts_filter.rs",
+      "home-mixer/filters/age_filter.rs",
+      "home-mixer/params/config.rs",
+      "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+      "home-mixer/filters/new_user_soft_nsfw_filter.rs",
+      "home-mixer/filters/video_carousel_filter.rs",
+      "home-mixer/scorers/author_cold_start.rs",
+      "home-mixer/scorers/page_decode_rerank_scorer.rs",
+      "visibility-filtering/rules/author_rules.rs",
+      "visibility-filtering/rules/levels.rs",
+      "visibility-filtering/rules/tweet_rules.rs",
+      "home-mixer/scorers/vm_ranker_debias_payload.rs"
+    ],
+    "reviewed_ranges": [
+      {
+        "source_id": "home-weights",
+        "path": "home-mixer/params/param.rs",
+        "line_start": 375,
+        "line_end": 520
+      },
+      {
+        "source_id": "home-gates",
+        "path": "home-mixer/params/param.rs",
+        "line_start": 295,
+        "line_end": 365
+      },
+      {
+        "source_id": "home-cold-defaults",
+        "path": "home-mixer/params/param.rs",
+        "line_start": 565,
+        "line_end": 667
+      },
+      {
+        "source_id": "soft-defaults",
+        "path": "home-mixer/params/param.rs",
+        "line_start": 868,
+        "line_end": 885
+      },
+      {
+        "source_id": "carousel-defaults",
+        "path": "home-mixer/params/param.rs",
+        "line_start": 1245,
+        "line_end": 1256
+      },
+      {
+        "source_id": "vm-defaults",
+        "path": "vm-ranker/params.rs",
+        "line_start": 1,
+        "line_end": 258
+      },
+      {
+        "source_id": "score-fusion",
+        "path": "xai-value-model/scoring.rs",
+        "line_start": 28,
+        "line_end": 213
+      },
+      {
+        "source_id": "score-adjustments",
+        "path": "xai-value-model/scoring.rs",
+        "line_start": 257,
+        "line_end": 409
+      },
+      {
+        "source_id": "mutual-input",
+        "path": "xai-value-model/inputs.rs",
+        "line_start": 19,
+        "line_end": 35
+      },
+      {
+        "source_id": "mutual-weights",
+        "path": "xai-value-model/weights.rs",
+        "line_start": 84,
+        "line_end": 100
+      },
+      {
+        "source_id": "home-value",
+        "path": "home-mixer/scorers/value_model.rs",
+        "line_start": 8,
+        "line_end": 88
+      },
+      {
+        "source_id": "home-vm",
+        "path": "home-mixer/scorers/vm_ranker.rs",
+        "line_start": 59,
+        "line_end": 140
+      },
+      {
+        "source_id": "vm-value",
+        "path": "vm-ranker/scoring/value_model.rs",
+        "line_start": 21,
+        "line_end": 175
+      },
+      {
+        "source_id": "socialgraph",
+        "path": "home-mixer/filters/author_socialgraph_filter.rs",
+        "line_start": 15,
+        "line_end": 58
+      },
+      {
+        "source_id": "seen",
+        "path": "home-mixer/filters/previously_seen_posts_filter.rs",
+        "line_start": 16,
+        "line_end": 33
+      },
+      {
+        "source_id": "age",
+        "path": "home-mixer/filters/age_filter.rs",
+        "line_start": 7,
+        "line_end": 34
+      },
+      {
+        "source_id": "max-age",
+        "path": "home-mixer/params/config.rs",
+        "line_start": 35,
+        "line_end": 42
+      },
+      {
+        "source_id": "pipeline",
+        "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+        "line_start": 421,
+        "line_end": 476
+      },
+      {
+        "source_id": "soft-filter",
+        "path": "home-mixer/filters/new_user_soft_nsfw_filter.rs",
+        "line_start": 13,
+        "line_end": 55
+      },
+      {
+        "source_id": "carousel-filter",
+        "path": "home-mixer/filters/video_carousel_filter.rs",
+        "line_start": 14,
+        "line_end": 49
+      },
+      {
+        "source_id": "cold-eligibility",
+        "path": "home-mixer/scorers/author_cold_start.rs",
+        "line_start": 188,
+        "line_end": 333
+      },
+      {
+        "source_id": "cold-gates",
+        "path": "home-mixer/scorers/author_cold_start.rs",
+        "line_start": 378,
+        "line_end": 418
+      },
+      {
+        "source_id": "page-decode",
+        "path": "home-mixer/scorers/page_decode_rerank_scorer.rs",
+        "line_start": 81,
+        "line_end": 138
+      },
+      {
+        "source_id": "author-state",
+        "path": "visibility-filtering/rules/author_rules.rs",
+        "line_start": 7,
+        "line_end": 54
+      },
+      {
+        "source_id": "author-labels",
+        "path": "visibility-filtering/rules/author_rules.rs",
+        "line_start": 183,
+        "line_end": 236
+      },
+      {
+        "source_id": "level-bindings",
+        "path": "visibility-filtering/rules/levels.rs",
+        "line_start": 1,
+        "line_end": 270
+      },
+      {
+        "source_id": "tweet-labels",
+        "path": "visibility-filtering/rules/tweet_rules.rs",
+        "line_start": 925,
+        "line_end": 1008
+      },
+      {
+        "source_id": "pacing",
+        "path": "home-mixer/scorers/vm_ranker_debias_payload.rs",
+        "line_start": 33,
+        "line_end": 48
+      }
+    ],
+    "unreviewed_changed_paths": [
+      "README.md",
+      "abuse-enforcement-service/service-lib/src/action_control.rs",
+      "abuse-enforcement-service/service-lib/src/action_control_path_tests.rs",
+      "abuse-enforcement-service/service-lib/src/action_control_rollback.rs",
+      "abuse-enforcement-service/service-lib/src/backfill.rs",
+      "abuse-enforcement-service/service-lib/src/backfill_path_tests.rs",
+      "abuse-enforcement-service/service-lib/src/confidence_adversarial_tests.rs",
+      "abuse-enforcement-service/service-lib/src/confidence_path_tests.rs",
+      "abuse-enforcement-service/service-lib/src/decision.rs",
+      "abuse-enforcement-service/service-lib/src/dedup_cache.rs",
+      "abuse-enforcement-service/service-lib/src/facts.rs",
+      "abuse-enforcement-service/service-lib/src/fixtures/replay_no_records.golden",
+      "abuse-enforcement-service/service-lib/src/gizmoduck.rs",
+      "abuse-enforcement-service/service-lib/src/lib.rs",
+      "abuse-enforcement-service/service-lib/src/safety_audit_tests.rs",
+      "abuse-enforcement-service/types/src/action_control.rs",
+      "abuse-enforcement-service/types/src/backfill.rs",
+      "candidate-pipeline/candidate_pipeline.rs",
+      "grox/config/config.py",
+      "grox/core/data_loaders/data_types.py",
+      "grox/core/data_loaders/post_mapper.py",
+      "grox/core/lm/convo.py",
+      "grox/core/lm/json_output.py",
+      "grox/libs/video_tools/image.py",
+      "home-mixer/ads/drops.rs",
+      "home-mixer/ads/health_metrics.rs",
+      "home-mixer/ads/least_movement_blender.rs",
+      "home-mixer/ads/mod.rs",
+      "home-mixer/ads/multi_risk_blender.rs",
+      "home-mixer/ads/neighbours.rs",
+      "home-mixer/ads/slot_spread_blender.rs",
+      "home-mixer/ads/tests/blender_comparison_test.rs",
+      "home-mixer/ads/tests/least_movement_blender_tests.rs",
+      "home-mixer/ads/tests/mod.rs",
+      "home-mixer/ads/tests/slot_spread_blender_tests.rs",
+      "home-mixer/ads/util.rs",
+      "home-mixer/candidate_hydrators/video_embedding_hydrator.rs",
+      "home-mixer/candidate_pipeline/for_you_candidate_pipeline.rs",
+      "home-mixer/candidate_pipeline/mod.rs",
+      "home-mixer/candidate_pipeline/ranked_following_candidate_pipeline.rs",
+      "home-mixer/clients/post_v8_search_embedding_client.rs",
+      "home-mixer/filters/brazil_2026_election_filter.rs",
+      "home-mixer/filters/mod.rs",
+      "home-mixer/models/candidate.rs",
+      "home-mixer/models/query.rs",
+      "home-mixer/query_hydrators/served_history_query_hydrator.rs",
+      "home-mixer/scored_posts_server.rs",
+      "home-mixer/scorers/immersive_video_scorer.rs",
+      "home-mixer/scorers/mod.rs",
+      "home-mixer/scorers/page_rl_exploration_scorer.rs",
+      "home-mixer/scorers/phoenix_scorer.rs",
+      "home-mixer/scorers/vm_ranker_request.rs",
+      "home-mixer/selectors/blender_selector.rs",
+      "home-mixer/selectors/top_k_score_selector.rs",
+      "home-mixer/side_effects/ads_injection_logging_side_effect.rs",
+      "home-mixer/side_effects/phoenix_experiments_side_effect.rs",
+      "home-mixer/side_effects/phoenix_request_cache_side_effect.rs",
+      "home-mixer/side_effects/redis_post_candidate_cache_side_effect.rs",
+      "home-mixer/side_effects/reranking_kafka_side_effect.rs",
+      "home-mixer/side_effects/scored_stats_side_effect.rs",
+      "home-mixer/side_effects/video_carousel_candidates_kafka_side_effect.rs",
+      "home-mixer/sources/thunder_source.rs",
+      "home-mixer/util/under_the_hood.rs",
+      "home-mixer/util/video_carousel.rs",
+      "phoenix/crates/common/xai-recsys/build.rs",
+      "phoenix/crates/common/xai-recsys/src/model_config.rs",
+      "phoenix/crates/common/xai-recsys/src/reply.rs",
+      "phoenix/crates/common/xai-recsys/src/util.rs",
+      "phoenix/crates/serving/xai-recsys-engine/src/copy_port_client.rs",
+      "phoenix/crates/serving/xai-recsys-engine/src/sid_client.rs",
+      "phoenix/crates/serving/xai-recsys-mm-server/src/mm_embedding_fetcher.rs",
+      "phoenix/crates/serving/xai-recsys-proto/proto/recsys.proto",
+      "phoenix/crates/serving/xai-recsys-proto/src/lib.rs",
+      "phoenix/python/common/xai-configlib/src/xai_configlib/__init__.py",
+      "phoenix/python/common/xai-proto/proto/recsys.proto",
+      "phoenix/xrex/configs/data_feeds.py",
+      "phoenix/xrex/configs/xrecsys.py",
+      "phoenix/xrex/cuda/async_emb/async_emb.py",
+      "phoenix/xrex/cuda/async_emb/src/async_emb_api.cc",
+      "phoenix/xrex/cuda/async_emb/src/async_emb_kernel.cu",
+      "phoenix/xrex/cuda/async_emb/src/async_emb_kernel.hpp",
+      "phoenix/xrex/cuda/row_emb/row_emb.py",
+      "phoenix/xrex/cuda/row_emb/src/row_emb_api.cc",
+      "phoenix/xrex/cuda/row_emb/src/row_emb_comm.cc",
+      "phoenix/xrex/cuda/row_emb/src/row_emb_kernel.cu",
+      "phoenix/xrex/cuda/row_emb/src/row_emb_kernel.hpp",
+      "phoenix/xrex/data/parquet_recsys.py",
+      "phoenix/xrex/data/parquet_recsys_metadata.py",
+      "phoenix/xrex/data/recsys/ads_head_masking.py",
+      "phoenix/xrex/data/recsys/ads_late_window.py",
+      "phoenix/xrex/data/recsys/constants.py",
+      "phoenix/xrex/data/recsys/feature_config.py",
+      "phoenix/xrex/data/recsys/recsys_batch.py",
+      "phoenix/xrex/data/rust_parquet_recsys.py",
+      "phoenix/xrex/data/streaming/kafkaloader.py",
+      "phoenix/xrex/inference/model_runner.py",
+      "phoenix/xrex/models/layers.py",
+      "phoenix/xrex/models/recsys_attention.py",
+      "phoenix/xrex/models/recsys_feature_prep.py",
+      "phoenix/xrex/models/recsys_model.py",
+      "phoenix/xrex/models/remat.py",
+      "phoenix/xrex/models/scaling.py",
+      "phoenix/xrex/models/transformer.py",
+      "phoenix/xrex/optimizers/recsys/config.py",
+      "phoenix/xrex/optimizers/recsys/rowwise_adagrad.py",
+      "phoenix/xrex/testing.py",
+      "phoenix/xrex/train/follow_data_end.py",
+      "phoenix/xrex/train/recsys_bundle_export.py",
+      "phoenix/xrex/train/trainer.py",
+      "phoenix/xrex/train/trainer_recsys.py",
+      "safety-label-source/connect.rs",
+      "visibility-filtering/safety_label_source/decode.rs",
+      "safety-label-source/decode.rs",
+      "safety-label-source/lib.rs",
+      "safety-label-source/metrics.rs",
+      "visibility-filtering/safety_label_source/mh_client.rs",
+      "safety-label-source/mh_client.rs",
+      "visibility-filtering/safety_label_source/remote.rs",
+      "safety-label-source/remote.rs",
+      "visibility-filtering/safety_label_source/source.rs",
+      "safety-label-source/source.rs",
+      "safety-label-source/testing.rs",
+      "visibility-filtering/safety_label_source/warmer.rs",
+      "safety-label-source/warmer.rs",
+      "under-the-hood/jetfuel/gql/underTheHoodReport.gql",
+      "under-the-hood/jetfuel/routes/_lib/load.ts",
+      "under-the-hood/jetfuel/routes/_lib/mock.ts",
+      "under-the-hood/jetfuel/routes/_lib/report.ts",
+      "under-the-hood/jetfuel/routes/index.tsx",
+      "under-the-hood/jetfuel/routes/report.tsx",
+      "under-the-hood/scalding/UnderTheHoodCommon.scala",
+      "under-the-hood/scalding/UthDailyPostTakedownLabelsJob.scala",
+      "under-the-hood/scalding/UthDailyPostsBackfillJob.scala",
+      "under-the-hood/scalding/UthDailyPostsJob.scala",
+      "under-the-hood/scalding/UthUserMonthMhPublisherJob.scala",
+      "under-the-hood/strato/columns/underTheHoodReport.User.strato",
+      "under-the-hood/strato/graphql/under_the_hood.thrift",
+      "under-the-hood/strato/lib/params.strato",
+      "under-the-hood/strato/lib/underTheHoodLabels.strato",
+      "under-the-hood/thrift/uth_serving.thrift",
+      "visibility-filtering-client/evaluated.rs",
+      "visibility-filtering-client/notifications.rs",
+      "visibility-filtering-client/vf_client.rs",
+      "visibility-filtering/bin/vf-gate.rs",
+      "visibility-filtering/clients/label_warm_client.rs",
+      "visibility-filtering/clients/mod.rs",
+      "visibility-filtering/evaluate_tweets.rs",
+      "visibility-filtering/explain.rs",
+      "visibility-filtering/filter_notifications.rs",
+      "visibility-filtering/filter_tweets.rs",
+      "visibility-filtering/get_safety_labels.rs",
+      "visibility-filtering/hydration/execute.rs",
+      "visibility-filtering/hydration/fallback_cache.rs",
+      "visibility-filtering/hydration/fetcher.rs",
+      "visibility-filtering/hydration/hydrator.rs",
+      "visibility-filtering/hydration/inventory.rs",
+      "visibility-filtering/hydration/metrics.rs",
+      "visibility-filtering/hydration/mod.rs",
+      "visibility-filtering/hydration/plan.rs",
+      "visibility-filtering/hydration/relation.rs",
+      "visibility-filtering/hydration/sources.rs",
+      "visibility-filtering/hydration/sources/fake_backends.rs",
+      "visibility-filtering/hydration/sources/in_memory.rs",
+      "visibility-filtering/hydration/store.rs",
+      "visibility-filtering/hydration/store/conversation_root.rs",
+      "visibility-filtering/hydration/store/edges.rs",
+      "visibility-filtering/hydration/store/key_origin.rs",
+      "visibility-filtering/hydration/store/quotes.rs",
+      "visibility-filtering/hydration/store/resolve.rs",
+      "visibility-filtering/hydration/tweet_source.rs",
+      "visibility-filtering/ingress.rs",
+      "visibility-filtering/lib.rs",
+      "visibility-filtering/metrics/families.rs",
+      "visibility-filtering/metrics.rs",
+      "visibility-filtering/metrics/mod.rs",
+      "visibility-filtering/models/mod.rs",
+      "visibility-filtering/models/verdict.rs",
+      "visibility-filtering/models/viewer.rs",
+      "visibility-filtering/params.rs",
+      "visibility-filtering/params/client_switches.rs",
+      "visibility-filtering/params/limited_actions_copy.rs",
+      "visibility-filtering/params/limited_actions_policy.rs",
+      "visibility-filtering/pinned.rs",
+      "visibility-filtering/post_evaluator.rs",
+      "visibility-filtering/post_evaluator/author.rs",
+      "visibility-filtering/post_evaluator/notification.rs",
+      "visibility-filtering/post_evaluator/retweet.rs",
+      "visibility-filtering/quote.rs",
+      "visibility-filtering/rules/catalog.rs",
+      "visibility-filtering/rules/context.rs",
+      "visibility-filtering/rules/engine.rs",
+      "visibility-filtering/rules/expansion.rs",
+      "visibility-filtering/rules/fixtures.rs",
+      "visibility-filtering/rules/golden_corpus/age_gating.rs",
+      "visibility-filtering/rules/golden_corpus/age_verification.rs",
+      "visibility-filtering/rules/golden_corpus/author_state.rs",
+      "visibility-filtering/rules/golden_corpus/community.rs",
+      "visibility-filtering/rules/golden_corpus/exclusive_content.rs",
+      "visibility-filtering/rules/golden_corpus/interstitial.rs",
+      "visibility-filtering/rules/golden_corpus/legacy_interstitial.rs",
+      "visibility-filtering/rules/golden_corpus/mod.rs",
+      "visibility-filtering/rules/golden_corpus/notifications.rs",
+      "visibility-filtering/rules/golden_corpus/oon_media.rs",
+      "visibility-filtering/rules/golden_corpus/oon_tweet_label.rs",
+      "visibility-filtering/rules/golden_corpus/oon_user_label.rs",
+      "visibility-filtering/rules/golden_corpus/post_notifications.rs",
+      "visibility-filtering/rules/golden_corpus/reaction_video.rs",
+      "visibility-filtering/rules/golden_corpus/relationship.rs",
+      "visibility-filtering/rules/golden_corpus/takedown.rs",
+      "visibility-filtering/rules/golden_corpus/tweet_label.rs",
+      "visibility-filtering/rules/golden_corpus/tweet_state.rs",
+      "visibility-filtering/rules/mod.rs",
+      "visibility-filtering/rules/rule_spec.rs",
+      "visibility-filtering/rules/rule_spec/conditions.rs",
+      "visibility-filtering/rules/rule_spec/features.rs",
+      "visibility-filtering/rules/rule_spec/features/compound.rs",
+      "visibility-filtering/rules/rule_spec/features/request.rs",
+      "visibility-filtering/rules/rule_spec/laws.rs",
+      "visibility-filtering/rules/safety_level.rs",
+      "visibility-filtering/safety_label_source/metrics.rs",
+      "visibility-filtering/safety_label_source/mod.rs",
+      "visibility-filtering/scenario.rs",
+      "visibility-filtering/server.rs",
+      "visibility-filtering/server_deps.rs",
+      "visibility-filtering/staging/reference/mod.rs",
+      "visibility-filtering/staging/reference/tweetypie.rs",
+      "visibility-filtering/staging/reference/tweetypie/quotes.rs",
+      "visibility-filtering/treatment.rs",
+      "visibility-filtering/verdict_gate.rs",
+      "vm-ranker/scoring/debias.rs",
+      "vm-ranker/scoring/mod.rs",
+      "xai-value-model/lib.rs",
+      "xai-value-model/phoenix_scores.rs",
+      "xai-value-model/proto.rs"
+    ],
+    "limitations": [
+      "reviewed_paths只代表选定符号和行范围已读，不代表整文件全面审查；未审路径不表示没有重要变化。",
+      "git diff清单覆盖全部242项，但只有所列代码范围和定向patch被解释；定向patch中的其余行也不表示逐行全面审查。",
+      "公开默认值不等于生产动态配置，未实测生产曝光。",
+      "Home本地默认与VM服务重算默认不同，不能拼成统一表；ComputeValueModel默认false不等于Home未计算价值分。",
+      "源代码中的概率权重不是互动次数换算；冷启动采样明确使用计数，与主融合不同。",
+      "研究未激活operational catalog、未更改既有catalog或执行完整回归。",
+      "不提供统一账号信用分、固定shadowban期限、保底曝光量或刷量方法。"
+    ]
+  },
+  "sources": [
+    {
+      "source_id": "home-weights",
+      "path": "home-mixer/params/param.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 375,
+      "line_end": 520,
+      "upstream_file_sha256": "3dc29c907ad756dbefe23b670fb71084848eb7687f8a8a1c5b771cb8ae61cc53",
+      "material_path": "research/materials/home-weights.txt",
+      "material_sha256": "c6558335c126e411fc746d355b46a41958d3c114040929c08cd9f96dc5606810",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/params/param.rs#L375-L520"
+    },
+    {
+      "source_id": "home-gates",
+      "path": "home-mixer/params/param.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 295,
+      "line_end": 365,
+      "upstream_file_sha256": "3dc29c907ad756dbefe23b670fb71084848eb7687f8a8a1c5b771cb8ae61cc53",
+      "material_path": "research/materials/home-gates.txt",
+      "material_sha256": "b905d775b93d630497cfe400806d03b72a331882183ea260e09d24d1b0b62f7d",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/params/param.rs#L295-L365"
+    },
+    {
+      "source_id": "home-cold-defaults",
+      "path": "home-mixer/params/param.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 565,
+      "line_end": 667,
+      "upstream_file_sha256": "3dc29c907ad756dbefe23b670fb71084848eb7687f8a8a1c5b771cb8ae61cc53",
+      "material_path": "research/materials/home-cold-defaults.txt",
+      "material_sha256": "b2a9531d6f395d05943e85b0201e6da977606ae992f865204496170fca1f0033",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/params/param.rs#L565-L667"
+    },
+    {
+      "source_id": "soft-defaults",
+      "path": "home-mixer/params/param.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 868,
+      "line_end": 885,
+      "upstream_file_sha256": "3dc29c907ad756dbefe23b670fb71084848eb7687f8a8a1c5b771cb8ae61cc53",
+      "material_path": "research/materials/soft-defaults.txt",
+      "material_sha256": "1bb1d79365a74833045a740355bec33b2748ac75f81e9bc80d3b0ff4151e2f1d",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/params/param.rs#L868-L885"
+    },
+    {
+      "source_id": "carousel-defaults",
+      "path": "home-mixer/params/param.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 1245,
+      "line_end": 1256,
+      "upstream_file_sha256": "3dc29c907ad756dbefe23b670fb71084848eb7687f8a8a1c5b771cb8ae61cc53",
+      "material_path": "research/materials/carousel-defaults.txt",
+      "material_sha256": "6fef04fa12c25c130f6ffa16fa8e8fcde037ad72f5d95b9959222e676a30ee39",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/params/param.rs#L1245-L1256"
+    },
+    {
+      "source_id": "vm-defaults",
+      "path": "vm-ranker/params.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 1,
+      "line_end": 258,
+      "upstream_file_sha256": "6c950916fced6af4ad6518ef8e058ca7d78d7d899ec3af9de176adaed2cd9fe9",
+      "material_path": "research/materials/vm-defaults.txt",
+      "material_sha256": "36afebeb77818971241e7462673d27b21b67b0b3b99fa4b20d86bce91e538b39",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/vm-ranker/params.rs#L1-L258"
+    },
+    {
+      "source_id": "score-fusion",
+      "path": "xai-value-model/scoring.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 28,
+      "line_end": 213,
+      "upstream_file_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+      "material_path": "research/materials/score-fusion.txt",
+      "material_sha256": "6c8875e29222569e69a977d590a586bdc5f797d780bd2a0380898ea84377e1a3",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/xai-value-model/scoring.rs#L28-L213"
+    },
+    {
+      "source_id": "score-adjustments",
+      "path": "xai-value-model/scoring.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 257,
+      "line_end": 409,
+      "upstream_file_sha256": "80bfc33c8416580cdeb2507181dafdc0f194db16fd388a328fa83311021ac4ce",
+      "material_path": "research/materials/score-adjustments.txt",
+      "material_sha256": "d81899c4817c378b98c989c91b6d720a82831079aa1cf3b6237edab9ecc75f96",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/xai-value-model/scoring.rs#L257-L409"
+    },
+    {
+      "source_id": "mutual-input",
+      "path": "xai-value-model/inputs.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 19,
+      "line_end": 35,
+      "upstream_file_sha256": "58cd9b864933dff0f071b744304bcbcbffab3585f6fe000bb4d7e197255b1570",
+      "material_path": "research/materials/mutual-input.txt",
+      "material_sha256": "cf6b0850f879f01c958787f3ce5a8df907ca635af7c3e9ca0c1ddda53fcd0ae0",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/xai-value-model/inputs.rs#L19-L35"
+    },
+    {
+      "source_id": "mutual-weights",
+      "path": "xai-value-model/weights.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 84,
+      "line_end": 100,
+      "upstream_file_sha256": "37f5206b25c7264f11630a6734e3791e7419490a3d9313f2d66961941c0d212a",
+      "material_path": "research/materials/mutual-weights.txt",
+      "material_sha256": "862ab2827b9f2095df8e61dde21662239702a03d281e2760ff3dadcf11a1108c",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/xai-value-model/weights.rs#L84-L100"
+    },
+    {
+      "source_id": "home-value",
+      "path": "home-mixer/scorers/value_model.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 8,
+      "line_end": 88,
+      "upstream_file_sha256": "7a46788bd84b7dbf62d67032261e7c35d41b5a9cf82cadd2f7c6148d2739460c",
+      "material_path": "research/materials/home-value.txt",
+      "material_sha256": "7f9dfb20d14434fbb99719df2d5b4d84655156bad2e6dbcd2ea39bcb37d1789a",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/scorers/value_model.rs#L8-L88"
+    },
+    {
+      "source_id": "home-vm",
+      "path": "home-mixer/scorers/vm_ranker.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 59,
+      "line_end": 140,
+      "upstream_file_sha256": "d78684ec39c7ac4f914d00e2271d7c88ce66495b2da6afeb9d7af7af88a69263",
+      "material_path": "research/materials/home-vm.txt",
+      "material_sha256": "aa67f340fc2024fd37692d530b3012068d622c1b95375d624b5b9971bf68955f",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/scorers/vm_ranker.rs#L59-L140"
+    },
+    {
+      "source_id": "vm-value",
+      "path": "vm-ranker/scoring/value_model.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 21,
+      "line_end": 175,
+      "upstream_file_sha256": "d10f4f287de60c63c563e601b63a22f3f5a039af309c925263668b50968b391c",
+      "material_path": "research/materials/vm-value.txt",
+      "material_sha256": "2615528f7510c1c3f46b82bd97940721ee9c5e158ae9615dde89a4a0919b2624",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/vm-ranker/scoring/value_model.rs#L21-L175"
+    },
+    {
+      "source_id": "socialgraph",
+      "path": "home-mixer/filters/author_socialgraph_filter.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 15,
+      "line_end": 58,
+      "upstream_file_sha256": "c0cac910b974522bb20b16c21e8ad2cb64306b4868ce367d2162ab1d25f0084a",
+      "material_path": "research/materials/socialgraph.txt",
+      "material_sha256": "6c906fe02583378993f1ace6a9aec35d41e0cdc9e13d204cd581ee86a08cfc1f",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/filters/author_socialgraph_filter.rs#L15-L58"
+    },
+    {
+      "source_id": "seen",
+      "path": "home-mixer/filters/previously_seen_posts_filter.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 16,
+      "line_end": 33,
+      "upstream_file_sha256": "f1f44a6ee8bf2cc412db8965b4f05abb1dff58efa2776f04921417d82a33db57",
+      "material_path": "research/materials/seen.txt",
+      "material_sha256": "8fd59d5a10fec107faa123c48cddd365aa86274a4f865e2b7776a9542be03abc",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/filters/previously_seen_posts_filter.rs#L16-L33"
+    },
+    {
+      "source_id": "age",
+      "path": "home-mixer/filters/age_filter.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 7,
+      "line_end": 34,
+      "upstream_file_sha256": "8b071a27cfcadbcc2cdeee6b9b2c58a4eafc55d5eedae37f02abd028f106739e",
+      "material_path": "research/materials/age.txt",
+      "material_sha256": "0c6ca83d74aaa88978bcf9430e5297085f88547c479ffdd12f31ac514b943f8a",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/filters/age_filter.rs#L7-L34"
+    },
+    {
+      "source_id": "max-age",
+      "path": "home-mixer/params/config.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 35,
+      "line_end": 42,
+      "upstream_file_sha256": "18662b70c9c644453f14f2d9c73901ae5f46bd8ac662238a985b1cb6be9e15e7",
+      "material_path": "research/materials/max-age.txt",
+      "material_sha256": "cd0d2e22d0f1857024f38c5a800d37da7d30f0d5980795a6dde3c17a200b49ac",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/params/config.rs#L35-L42"
+    },
+    {
+      "source_id": "pipeline",
+      "path": "home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 421,
+      "line_end": 476,
+      "upstream_file_sha256": "b41a645e477b9a547d05e9d760ed8827fd6ccfbf834d9ac5ac26458fa834bc22",
+      "material_path": "research/materials/pipeline.txt",
+      "material_sha256": "6e04ea9bf20d9b5d932be49c7819659e2e3dad7daf67704aa0bd6a0736d72c8f",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs#L421-L476"
+    },
+    {
+      "source_id": "soft-filter",
+      "path": "home-mixer/filters/new_user_soft_nsfw_filter.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 13,
+      "line_end": 55,
+      "upstream_file_sha256": "2967760ba589dff52a6bf6448936a11aa06fdfe7c86173e2a023d7c5aee99672",
+      "material_path": "research/materials/soft-filter.txt",
+      "material_sha256": "00b25f67e401c2506661cfc2b5ba54c4b04a2867bada70d7bb366a8c2f77d98d",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/filters/new_user_soft_nsfw_filter.rs#L13-L55"
+    },
+    {
+      "source_id": "carousel-filter",
+      "path": "home-mixer/filters/video_carousel_filter.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 14,
+      "line_end": 49,
+      "upstream_file_sha256": "5edcf248da8727df2a5144ee7f315104db7306f380c8b919171f175718065e9f",
+      "material_path": "research/materials/carousel-filter.txt",
+      "material_sha256": "9353e1f3c59d2be06768e9e388985747d9bc8453b9017600aec99f92b81303c3",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/filters/video_carousel_filter.rs#L14-L49"
+    },
+    {
+      "source_id": "cold-eligibility",
+      "path": "home-mixer/scorers/author_cold_start.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 188,
+      "line_end": 333,
+      "upstream_file_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+      "material_path": "research/materials/cold-eligibility.txt",
+      "material_sha256": "ef177d1434f2fd8f67f03de6b6c04a2b6b47a199281bc16e316d0f163c2f5970",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/scorers/author_cold_start.rs#L188-L333"
+    },
+    {
+      "source_id": "cold-gates",
+      "path": "home-mixer/scorers/author_cold_start.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 378,
+      "line_end": 418,
+      "upstream_file_sha256": "d20de57747b87ce25cac4daff1614266a9a620155ba68242c4c62518e2be3a69",
+      "material_path": "research/materials/cold-gates.txt",
+      "material_sha256": "4ee2eaa6591baa511b4f5f0be690b6339c72bcf7fdff544847321f3cfe765cce",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/scorers/author_cold_start.rs#L378-L418"
+    },
+    {
+      "source_id": "page-decode",
+      "path": "home-mixer/scorers/page_decode_rerank_scorer.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 81,
+      "line_end": 138,
+      "upstream_file_sha256": "117181ce024b77e7b989e0105690664b2fa97d1153faea01eb78702130a3bf09",
+      "material_path": "research/materials/page-decode.txt",
+      "material_sha256": "de5796f747a7c25e175d681ca7fa42322c473503b30a45d15e236da26920ed69",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/scorers/page_decode_rerank_scorer.rs#L81-L138"
+    },
+    {
+      "source_id": "author-state",
+      "path": "visibility-filtering/rules/author_rules.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 7,
+      "line_end": 54,
+      "upstream_file_sha256": "25d520c97e489a52227cf206669f05d6b659bfd6b9531d0f2de30fab50896b4d",
+      "material_path": "research/materials/author-state.txt",
+      "material_sha256": "59310597d44cac4cdb58ecce9aef3778fbafcb80f3f4306a79d353cb4d8da051",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/visibility-filtering/rules/author_rules.rs#L7-L54"
+    },
+    {
+      "source_id": "author-labels",
+      "path": "visibility-filtering/rules/author_rules.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 183,
+      "line_end": 236,
+      "upstream_file_sha256": "25d520c97e489a52227cf206669f05d6b659bfd6b9531d0f2de30fab50896b4d",
+      "material_path": "research/materials/author-labels.txt",
+      "material_sha256": "06fd39938f5a43b7fa5f6670be0b2e6eeeda573f240998ab658d6c5669897aff",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/visibility-filtering/rules/author_rules.rs#L183-L236"
+    },
+    {
+      "source_id": "level-bindings",
+      "path": "visibility-filtering/rules/levels.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 1,
+      "line_end": 270,
+      "upstream_file_sha256": "221105b62b0890f5644728a9ccc5597837bf4ce8e302562b59931f3ad7b404f8",
+      "material_path": "research/materials/level-bindings.txt",
+      "material_sha256": "4c9d274ee52ca293de0ab7c5d0aaf1913293040156164f8d8166183df13a83e0",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/visibility-filtering/rules/levels.rs#L1-L270"
+    },
+    {
+      "source_id": "tweet-labels",
+      "path": "visibility-filtering/rules/tweet_rules.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 925,
+      "line_end": 1008,
+      "upstream_file_sha256": "e093bc2eb27d288476e03240aea9a2a936ae5112cff77133c7ac3dd7670fa172",
+      "material_path": "research/materials/tweet-labels.txt",
+      "material_sha256": "5154514ae267820532360aeee3a2020ccad74cdf650aafbd8306307d3cd7c946",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/visibility-filtering/rules/tweet_rules.rs#L925-L1008"
+    },
+    {
+      "source_id": "pacing",
+      "path": "home-mixer/scorers/vm_ranker_debias_payload.rs",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 33,
+      "line_end": 48,
+      "upstream_file_sha256": "9d3652d741ec86d0988f5d10d5050bb3e1e4960a2701223c4acdd46032e53fb2",
+      "material_path": "research/materials/pacing.txt",
+      "material_sha256": "85657c8858876552cc0924a490d3cd53c59b6b490f808448461b7fc95c396a9a",
+      "url": "https://github.com/xai-org/x-algorithm/blob/b220448766ab4ee4c83d58a67d51f0cb5bda86c2/home-mixer/scorers/vm_ranker_debias_payload.rs#L33-L48"
+    },
+    {
+      "source_id": "diff-inventory",
+      "path": "git-diff/name-status",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 1,
+      "line_end": 1468,
+      "upstream_file_sha256": "2171167561fd8a4a094d456dba68cc05687962073e58547ecec9377ba6951f61",
+      "material_path": "research/diff-name-status.json",
+      "material_sha256": "2171167561fd8a4a094d456dba68cc05687962073e58547ecec9377ba6951f61",
+      "url": "https://github.com/xai-org/x-algorithm/compare/2f252142b9284e692ac72851768c8072d045f0d5...b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "material_kind": "derived_git_diff_inventory",
+      "hash_scope": "upstream_file_sha256 denotes this derived inventory, not an upstream repository file"
+    },
+    {
+      "source_id": "targeted-diff",
+      "path": "git-diff/targeted-changes",
+      "commit": "b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "line_start": 1,
+      "line_end": 963,
+      "upstream_file_sha256": "d035aaa1b7324115bb7387447461dd9d34f23d9c4b3af6658ced84f638e06c01",
+      "material_path": "research/materials/targeted-changes.patch",
+      "material_sha256": "d035aaa1b7324115bb7387447461dd9d34f23d9c4b3af6658ced84f638e06c01",
+      "url": "https://github.com/xai-org/x-algorithm/compare/2f252142b9284e692ac72851768c8072d045f0d5...b220448766ab4ee4c83d58a67d51f0cb5bda86c2",
+      "material_kind": "derived_git_diff_patch",
+      "hash_scope": "upstream_file_sha256 denotes this derived patch, not an upstream repository file"
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "research-01",
+      "category": "demotion",
+      "title": "预测负反馈降低候选分",
+      "code_behavior": "Home默认不感兴趣−52.272、屏蔽−31.2、静音−58.8、举报−234、未停留−0.02；与各预测量相乘。",
+      "operational_inference": "建议降低目标受众的不适与误导性预期，不通过系数换算互动次数。",
+      "preconditions": [
+        "候选进入价值模型计算",
+        "其余输入不变且对应预测项上升"
+      ],
+      "not_proven": [
+        "一次举报抵消固定点赞数",
+        "多人举报必然等比例压低全站曝光"
+      ],
+      "activation_status": "公开本地默认；线上动态配置与实际曝光效果未知",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "home-weights",
+        "score-fusion"
+      ]
+    },
+    {
+      "rule_id": "research-02",
+      "category": "demotion",
+      "title": "屏蔽和静音关系过滤",
+      "code_behavior": "观看者屏蔽/静音作者、作者屏蔽观看者，或命中引用/转推相关屏蔽关系时移除候选。",
+      "operational_inference": "建议把特定受众的不可见与全站降权分开排查。",
+      "preconditions": [
+        "当前请求的关系数据命中过滤条件"
+      ],
+      "not_proven": [
+        "一个人屏蔽意味着全站账号受罚"
+      ],
+      "activation_status": "公开本地默认；线上动态配置与实际曝光效果未知",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "socialgraph",
+        "pipeline"
+      ]
+    },
+    {
+      "rule_id": "research-03",
+      "category": "demotion",
+      "title": "已看内容去重",
+      "code_behavior": "关联帖子ID命中seen_ids或Bloom filter时移除。",
+      "operational_inference": "同一观看者的重复展示减少，不应直接视为账号限流。",
+      "preconditions": [
+        "观看者已看数据或Bloom判定命中"
+      ],
+      "not_proven": [
+        "重复曝光减少证明账号降权",
+        "Bloom判定绝无误判"
+      ],
+      "activation_status": "公开本地默认；线上动态配置与实际曝光效果未知",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "seen",
+        "pipeline"
+      ]
+    },
+    {
+      "rule_id": "research-04",
+      "category": "demotion",
+      "title": "候选年龄窗口",
+      "code_behavior": "该Phoenix pipeline将MAX_POST_AGE=48小时传入AgeFilter；年龄不可取得或超窗的候选移除。",
+      "operational_inference": "新鲜内容有进入该候选链的机会；旧内容另行分发不能由此判断。",
+      "preconditions": [
+        "该pipeline候选路径",
+        "帖子年龄超过48小时或解析失败"
+      ],
+      "not_proven": [
+        "旧帖全站失效",
+        "48小时是封禁或shadowban期限"
+      ],
+      "activation_status": "公开本地默认；线上动态配置与实际曝光效果未知",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "age",
+        "max-age",
+        "pipeline"
+      ]
+    },
+    {
+      "rule_id": "research-05",
+      "category": "demotion",
+      "title": "同作者候选多样性衰减",
+      "code_behavior": "VM默认开启作者多样性，decay=.5、floor=.25；按同作者在候选分序中已有数量计算1、.625、.4375等乘子。Home本地weights明确关闭此项。",
+      "operational_inference": "可避免密集重复挤占同一受众页面，但不是每天发帖次数规则。",
+      "preconditions": [
+        "进入启用该乘子的VM路径",
+        "同作者多个候选竞争"
+      ],
+      "not_proven": [
+        "每天固定发帖上限",
+        "所有请求默认执行该乘子"
+      ],
+      "activation_status": "VM条件路径；ComputeValueModel默认false，不能视为全部请求生效",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "vm-defaults",
+        "score-adjustments",
+        "home-value"
+      ]
+    },
+    {
+      "rule_id": "research-06",
+      "category": "demotion",
+      "title": "关系外候选的条件乘子",
+      "code_behavior": "VM普通OON默认.75、主题请求.5；关注内回复和转推也可适用，相关开关默认true。Home本地不应用此乘子。",
+      "operational_inference": "关注关系与请求场景会改变竞争条件，不能当作作者永久评分。",
+      "preconditions": [
+        "VM对应价值模型路径被启用",
+        "明确OON，或启用关注内回复转推重算"
+      ],
+      "not_proven": [
+        "所有陌生作者永久降权25%"
+      ],
+      "activation_status": "VM条件路径；ComputeValueModel默认false，不能视为全部请求生效",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "vm-defaults",
+        "score-adjustments",
+        "vm-value",
+        "home-value"
+      ]
+    },
+    {
+      "rule_id": "research-07",
+      "category": "demotion",
+      "title": "新观看者soft NSFW过滤范围调整【默认false】",
+      "code_behavior": "For You非主题请求中，观看者年龄小于7天且评分序列长度小于100时，可移除明确OON且soft_nsfw=true的内容；长度未知满足该子条件，max_length=0可关闭长度限制。",
+      "operational_inference": "涉及新观看者的推荐保护，不是新作者受罚。",
+      "preconditions": [
+        "EnableNewUserSoftNsfwFilter=true（默认false）",
+        "满足观看者年龄与序列条件",
+        "候选明确OON且有soft NSFW标签"
+      ],
+      "not_proven": [
+        "新作者7天限流",
+        "默认已全量启用"
+      ],
+      "activation_status": "default_false",
+      "change_since_baseline": "已有机制范围调整：年龄默认从86400秒到604800秒，新增序列长度条件；不是新发明。",
+      "source_refs": [
+        "soft-defaults",
+        "soft-filter",
+        "targeted-diff"
+      ]
+    },
+    {
+      "rule_id": "research-08",
+      "category": "demotion",
+      "title": "视频轮播MediumRisk过滤【新增，默认false】",
+      "code_behavior": "轮播选片新增MediumRisk开关默认false；HighRisk默认true。风险结论缺失时，任一风险过滤开关打开即不入选轮播。",
+      "operational_inference": "主时间线与视频轮播曝光应分开分析。",
+      "preconditions": [
+        "视频轮播功能启用",
+        "对应风险过滤开关启用"
+      ],
+      "not_proven": [
+        "MediumRisk全站默认限流",
+        "风险标签等于账号信用分"
+      ],
+      "activation_status": "medium_risk_default_false_high_risk_default_true",
+      "change_since_baseline": "新增MediumRisk过滤配置与分支。",
+      "source_refs": [
+        "carousel-defaults",
+        "carousel-filter",
+        "targeted-diff"
+      ]
+    },
+    {
+      "rule_id": "research-09",
+      "category": "distribution_opportunity",
+      "title": "提高目标受众真实兴趣匹配",
+      "code_behavior": "Home正项包括点赞.66、回复5、转推1、点击.3、打开链接.2、分享2、私信分享5、复制链接分享20、引用5、关注作者4；乘预测量。",
+      "operational_inference": "建议内容与目标受众兴趣匹配并提供真实分享价值。",
+      "preconditions": [
+        "进入Home本地融合路径",
+        "其他变量不变时正向预测量提高"
+      ],
+      "not_proven": [
+        "一次复制链接等于固定数量点赞",
+        "系数最高即最容易操纵"
+      ],
+      "activation_status": "公开本地默认；线上动态配置与实际曝光效果未知",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "home-weights",
+        "score-fusion"
+      ]
+    },
+    {
+      "rule_id": "research-10",
+      "category": "distribution_opportunity",
+      "title": "阅读与点击后停留价值",
+      "code_behavior": "Home默认dwell=.05、连续停留=.006、点击后停留=.4，各有独立项。",
+      "operational_inference": "建议开头承诺与正文承接一致，提升实际阅读价值。",
+      "preconditions": [
+        "模型给出相应预测概率或连续时间值"
+      ],
+      "not_proven": [
+        "任意拉长文字必然增流",
+        "所有停留字段单位与语义相同"
+      ],
+      "activation_status": "公开本地默认；线上动态配置与实际曝光效果未知",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "home-weights",
+        "score-fusion"
+      ]
+    },
+    {
+      "rule_id": "research-11",
+      "category": "distribution_opportunity",
+      "title": "互关原帖的回复预测加成",
+      "code_behavior": "非回复、非转推且观看者与作者互关时，回复预测权重默认由5加15。互关停留加成默认0。",
+      "operational_inference": "可重视真实关系中的内容交流。",
+      "preconditions": [
+        "互相关注",
+        "候选不是回复或转推"
+      ],
+      "not_proven": [
+        "整篇帖子分数固定乘4",
+        "互关加成适用于所有观看者"
+      ],
+      "activation_status": "公开本地默认；线上动态配置与实际曝光效果未知",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "home-weights",
+        "mutual-input",
+        "mutual-weights"
+      ]
+    },
+    {
+      "rule_id": "research-12",
+      "category": "distribution_opportunity",
+      "title": "关注内探索预测项",
+      "code_behavior": "Home post_unexplored权重=.015，本地明确不包括OON；该预测项被线性加入融合。",
+      "operational_inference": "关注内内容有独立探索价值项，但不把字段名当流量承诺。",
+      "preconditions": [
+        "候选in_network明确为true",
+        "对应预测值存在"
+      ],
+      "not_proven": [
+        "低曝光帖保证得到额外曝光"
+      ],
+      "activation_status": "公开本地默认；线上动态配置与实际曝光效果未知",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "home-weights",
+        "home-value",
+        "score-fusion"
+      ]
+    },
+    {
+      "rule_id": "research-13",
+      "category": "distribution_opportunity",
+      "title": "低曝光原帖的冷启动机会",
+      "code_behavior": "原帖非回复非转推；已知作者粉丝≤50000、帖子年龄≤7200秒、已知Home曝光<200、非零分候选中位置在前97%范围时可参与冷启动。主题请求跳过。",
+      "operational_inference": "符合条件的小作者原帖有探索通道，仍需经过资格和选择。",
+      "preconditions": [
+        "EnableViewerColdStart默认true",
+        "满足上述全部候选条件",
+        "实验分桶适配当前观看者"
+      ],
+      "not_proven": [
+        "每条保底200曝光",
+        "账号刚注册必有流量奖励"
+      ],
+      "activation_status": "公开本地默认；线上动态配置与实际曝光效果未知",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "cold-eligibility",
+        "cold-gates",
+        "home-cold-defaults"
+      ]
+    },
+    {
+      "rule_id": "research-14",
+      "category": "distribution_opportunity",
+      "title": "冷启动Thompson探索",
+      "code_behavior": "默认开启采样，alpha=.75、beta=49.25、topK=2；使用Home展示数与点赞数构造采样，再在前K中选现分最高者。",
+      "operational_inference": "探索阶段允许低样本候选竞争，不只按现分直接取第一。",
+      "preconditions": [
+        "冷启动资格成立",
+        "采样参数有效且开关开启"
+      ],
+      "not_proven": [
+        "可以用主价值模型系数换算这些互动计数",
+        "点赞保证抬升"
+      ],
+      "activation_status": "公开本地默认；线上动态配置与实际曝光效果未知",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "cold-eligibility",
+        "home-cold-defaults"
+      ]
+    },
+    {
+      "rule_id": "research-15",
+      "category": "distribution_opportunity",
+      "title": "单候选抬升而非最终位置保证",
+      "code_behavior": "默认目标索引区间[15,16)，选择一个合格候选把分数抬至至少目标分；Control/Treatment需匹配作者分桶，Holdout允许全部作者语料。",
+      "operational_inference": "把它理解为一次排序机会，而非最终排名承诺。",
+      "preconditions": [
+        "候选数量支持目标区间",
+        "存在合格候选",
+        "后续排序与过滤仍可改变结果"
+      ],
+      "not_proven": [
+        "最终必在第16位",
+        "所有低曝光帖都抬升"
+      ],
+      "activation_status": "公开本地默认；线上动态配置与实际曝光效果未知",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "cold-eligibility",
+        "cold-gates",
+        "home-cold-defaults"
+      ]
+    },
+    {
+      "rule_id": "research-16",
+      "category": "distribution_opportunity",
+      "title": "page decode页面重排【新增，默认false】",
+      "code_behavior": "有page_decode_slot的候选按slot置前，其余按原分序，重分配已有分数；无选中项时保持分数。默认pool=200、steps=64、temperature=0。",
+      "operational_inference": "未来或实验路径下，页面级选择可能覆盖简单单帖分序；无可验证创作者触发诀窍。",
+      "preconditions": [
+        "EnablePageDecodeRerank=true（默认false）",
+        "上游返回有效选中slot"
+      ],
+      "not_proven": [
+        "已经全量上线",
+        "某种固定写法能保证置顶"
+      ],
+      "activation_status": "default_false",
+      "change_since_baseline": "本轮新增页面解码重排能力。",
+      "source_refs": [
+        "page-decode",
+        "home-gates",
+        "targeted-diff"
+      ]
+    },
+    {
+      "rule_id": "research-17",
+      "category": "account_and_context",
+      "title": "账号状态与可见性受众",
+      "code_behavior": "封停、注销、擦除、停用作者的drop规则针对NonAuthors；保护账号针对NonFollowers。",
+      "operational_inference": "排查账号可见性时先区分真实状态、关注关系与观看者身份。",
+      "preconditions": [
+        "对应安全级别使用规则",
+        "账号状态匹配",
+        "观看者在规则受众范围内"
+      ],
+      "not_proven": [
+        "这些状态是一个连续账号信用分",
+        "保护账号全体用户均不可见"
+      ],
+      "activation_status": "surface_and_audience_dependent",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "author-state"
+      ]
+    },
+    {
+      "rule_id": "research-18",
+      "category": "account_and_context",
+      "title": "安全标签依surface和条件处理",
+      "code_behavior": "存在SpamHighRecall、Compromised、ReadOnly、ImpersonationHighPrecision的NonAuthors drop规则。通知级别可绑定低质、重复内容、UQF等规则；低质该条还要求帖子不晚于PUBLIC_INTEREST_LABELS_START。",
+      "operational_inference": "减少垃圾互动与误导内容属于合理建议，但先确认标签与适用surface。",
+      "preconditions": [
+        "确有标签",
+        "当前level绑定对应规则",
+        "附加日期与受众条件成立"
+      ],
+      "not_proven": [
+        "所有重复内容在Home统一扣分",
+        "通知过滤等同全站封禁"
+      ],
+      "activation_status": "surface_and_label_dependent",
+      "change_since_baseline": "本轮规则组织/覆盖有变化；本条仅审查所列定义与通知绑定，不宣称全面安全审计。",
+      "source_refs": [
+        "author-labels",
+        "level-bindings",
+        "tweet-labels"
+      ]
+    },
+    {
+      "rule_id": "research-19",
+      "category": "account_and_context",
+      "title": "Brazil特定名单过滤移除【removed】",
+      "code_behavior": "Home Brazil2026ElectionFilter文件及pipeline接入已删除；visibility仍保留BRAZIL_ELECTION_LEGAL标签且请求国家br时的drop规则，并在OON规则集合中引用。",
+      "operational_inference": "更新旧报告中的特定名单过滤描述，仍保留法律标签处理边界。",
+      "preconditions": [
+        "删除事实对应本次commit差异",
+        "仍存规则要求标签、国家与适用level"
+      ],
+      "not_proven": [
+        "全部巴西政治或法律限制取消",
+        "删除名单过滤等于所有相关账号增流"
+      ],
+      "activation_status": "specific_filter_removed_other_legal_label_rule_retained",
+      "change_since_baseline": "removed：仅特定2026名单过滤。",
+      "source_refs": [
+        "targeted-diff",
+        "diff-inventory",
+        "pipeline",
+        "tweet-labels",
+        "level-bindings"
+      ]
+    },
+    {
+      "rule_id": "research-20",
+      "category": "account_and_context",
+      "title": "pacing与新观看者OON不等于账号信用分",
+      "code_behavior": "pacing目前核查到的是view_count与author_followers_count请求输入，发送开关默认false；未在所查VM路径确认对应pacing分配公式。新观看者OON特殊因子=.00001，但年龄阈值默认0且要求观看者关注数≥5，默认资格不成立。",
+      "operational_inference": "保留为条件机制/未知项，不据字段名编造发帖额度或新作者处罚。",
+      "preconditions": [
+        "pacing输入发送需开关开启",
+        "新观看者特殊OON需要非零年龄阈值且满足年龄和关注数条件",
+        "VM相应路径启用"
+      ],
+      "not_proven": [
+        "固定每日发帖额度",
+        "新作者流量被压为十万分之一",
+        "统一账号信用总分",
+        "固定shadowban期限"
+      ],
+      "activation_status": "pacing_default_false_new_viewer_age_threshold_zero",
+      "change_since_baseline": "本次确认当前实现；不据此宣称为本轮新增机制。",
+      "source_refs": [
+        "pacing",
+        "home-cold-defaults",
+        "vm-defaults",
+        "vm-value"
+      ]
+    }
+  ],
+  "content_hash": "1864d7e20c701f93445396282c5ef35d8081cf1cefcc35d88ac5cdb17f84bc5f"
+}

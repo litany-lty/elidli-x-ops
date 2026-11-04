@@ -1,0 +1,963 @@
+diff --git a/home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs b/home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs
+index 8d6e354..9ddaa17 100644
+--- a/home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs
++++ b/home-mixer/candidate_pipeline/phoenix_candidate_pipeline.rs
+@@ -68,7 +68,6 @@ use crate::filters::age_filter::AgeFilter;
+ use crate::filters::ancestor_video_filter::AncestorVideoFilter;
+ use crate::filters::ancillary_vf_filter::AncillaryVFFilter;
+ use crate::filters::author_socialgraph_filter::AuthorSocialgraphFilter;
+-use crate::filters::brazil_2026_election_filter::Brazil2026ElectionFilter;
+ use crate::filters::core_data_hydration_filter::CoreDataHydrationFilter;
+ use crate::filters::dedup_conversation_filter::DedupConversationFilter;
+ use crate::filters::drop_duplicates_filter::DropDuplicatesFilter;
+@@ -115,6 +114,8 @@ use crate::query_hydrators::user_demographics_query_hydrator::UserDemographicsQu
+ use crate::query_hydrators::user_inferred_gender_query_hydrator::UserInferredGenderQueryHydrator;
+ use crate::query_hydrators::user_installed_apps_query_hydrator::UserInstalledAppsQueryHydrator;
+ use crate::scorers::immersive_video_scorer::ImmersiveVideoScorer;
++use crate::scorers::page_decode_rerank_scorer::PageDecodeRerankScorer;
++use crate::scorers::page_rl_exploration_scorer::PageRlExplorationScorer;
+ use crate::scorers::phoenix_scorer::PhoenixScorer;
+ use crate::scorers::vm_ranker::VMRanker;
+ use crate::selectors::TopKScoreSelector;
+@@ -434,16 +435,6 @@ impl PhoenixCandidatePipeline {
+             Box::new(PreviouslyServedPostsFilter),
+             Box::new(ViewerMutedKeywordFilter::new()),
+             Box::new(AuthorSocialgraphFilter),
+-            // Brazil 2026 election filter
+-
+-            // Application providers that use a recommendation system for users must exclude from the
+-            // results the channels and profiles reported to the Electoral Court under the terms of
+-            // § 1º of this article and, except in cases of paid boosting, the content posted on them.
+-
+-            // https://dadosabertos.tse.jus.br/dataset/candidatos-2026
+-
+-            // OmarAzizSenador deleted his account at the time this code was written.
+-            Box::new(Brazil2026ElectionFilter),
+             Box::new(VideoFilter),
+             Box::new(TopicIdsFilter),
+             Box::new(NewUserMinEngagementFilter),
+@@ -472,8 +463,13 @@ impl PhoenixCandidatePipeline {
+                 max_retries_key: "rust_home_mixer_phoenix_xds_max_retries",
+             },
+         });
+-        let scorers: Vec<Box<dyn Scorer<ScoredPostsQuery, PostCandidate>>> =
+-            vec![phoenix_scorer, immersive_video_scorer, vm_ranker];
++        let scorers: Vec<Box<dyn Scorer<ScoredPostsQuery, PostCandidate>>> = vec![
++            phoenix_scorer,
++            immersive_video_scorer,
++            vm_ranker,
++            Box::new(PageDecodeRerankScorer),
++            Box::new(PageRlExplorationScorer),
++        ];
+ 
+         let selector = TopKScoreSelector;
+ 
+@@ -560,8 +556,6 @@ impl PhoenixCandidatePipeline {
+         vf_safety_labels_client: Arc<dyn TweetSafetyLabelClient>,
+     ) -> PhoenixCandidatePipeline {
+         let local_cache_eds = format!("");
+-        let atla_phoenix_cache_eds = "";
+-        let pdxa_phoenix_cache_eds = "";
+ 
+         let (
+             flock_socialgraph_client,
+@@ -578,8 +572,7 @@ impl PhoenixCandidatePipeline {
+             gizmoduck_client,
+             strato_vf_client,
+             redis_client,
+-            phoenix_request_cache_redis_atla_client,
+-            phoenix_request_cache_redis_pdxa_client,
++            (phoenix_request_cache_redis_atla_client, phoenix_request_cache_redis_pdxa_client),
+             phoenix_kafka_client,
+             logged_scored_candidates_kafka_client,
+             reranking_kafka_client,
+@@ -707,24 +700,7 @@ impl PhoenixCandidatePipeline {
+                     .expect("Failed to create xDS Redis client for local cache"),
+                 ) as Arc<dyn RedisClient + Send + Sync>
+             },
+-            async {
+-                Arc::new(
+-                    XdsRedisClient::new(XdsRedisConfig {
+-                        eds_resource_name: atla_phoenix_cache_eds.into(),
+-                    })
+-                    .await
+-                    .expect("Failed to create xDS Redis client for atla phoenix cache"),
+-                ) as Arc<dyn RedisClient + Send + Sync>
+-            },
+-            async {
+-                Arc::new(
+-                    XdsRedisClient::new(XdsRedisConfig {
+-                        eds_resource_name: pdxa_phoenix_cache_eds.into(),
+-                    })
+-                    .await
+-                    .expect("Failed to create xDS Redis client for pdxa phoenix cache"),
+-                ) as Arc<dyn RedisClient + Send + Sync>
+-            },
++            super::shared_phoenix_request_cache_redis_clients(),
+             async {
+                 Arc::new(
+                     ProdKafkaPublisherClient::new(PHOENIX_SCORES_TOPIC, KafkaCluster::Aiml).await,
+diff --git a/home-mixer/filters/brazil_2026_election_filter.rs b/home-mixer/filters/brazil_2026_election_filter.rs
+deleted file mode 100644
+index 64455d7..0000000
+--- a/home-mixer/filters/brazil_2026_election_filter.rs
++++ /dev/null
+@@ -1,297 +0,0 @@
+-use rustc_hash::FxHashSet;
+-use std::sync::LazyLock;
+-
+-use crate::models::candidate::PostCandidate;
+-use crate::models::query::ScoredPostsQuery;
+-use xai_candidate_pipeline::filter::{Filter, FilterResult};
+-
+-// Brazil 2026 election filter
+-
+-// Art. 28 § 1º-A of Electoral Resolution No. 23.610: Application providers that use a
+-// recommendation system for users must exclude from the results the channels and
+-// profiles reported to the Electoral Court under the terms of § 1º of this article
+-// and, except in cases of paid boosting, the content posted on them.
+-
+-// https://dadosabertos.tse.jus.br/dataset/candidatos-2026
+-
+-// Following the TSE’s Ofício GAB-PRES No. 4720/2026 and Despacho 3814449 (SEI proceeding No. 2026.00.000013846-8), on Oct 13, 2026 the list was reduced to the candidates in the Oct 25 runoff.
+-
+-// User ids below are obfuscated; usernames are included for transparency.
+-
+-/// User ids reported to the Electoral Court for the Brazil 2026 election.
+-static BRAZIL_2026_ELECTION_USER_IDS: LazyLock<FxHashSet<u64>> = LazyLock::new(|| {
+-    FxHashSet::from_iter([
+-        // @RicardoFerraco
+-        29434532,
+-        // @caduxavier
+-        35470350,
+-        // @FlavioBolsonaro
+-        40053694,
+-        // @eduardopaes
+-        48298703,
+-        // @celinaleao
+-        51935259,
+-        // @ale_campelo
+-        61325857,
+-        // @leandrograss
+-        63507573,
+-        // @geraldoalckmin
+-        74215006,
+-        // @profdorinha
+-        79174387,
+-        // @HermanoMorais
+-        80995814,
+-        // @vicentinhojr
+-        149013361,
+-        // @MariaSeffair
+-        199526953,
+-        // @AllysonBezerra_
+-        444925483,
+-        // @OmarAzizAm_
+-        2445921702,
+-        // @LulaOficial
+-        2670726740,
+-        // @comitespop
+-        1069664248471662593,
+-        // @FernandaLoubac2
+-        1125416190199967744,
+-        // @Alfredogaspar_
+-        1228008951813492739,
+-        // @lulaverso
+-        1491197288496218120,
+-        // @LulaEvangelicos
+-        1555738640818798592,
+-        // @DouglasRuas_RJ
+-        1663563614954086401,
+-        // @ameliocayresdep
+-        1887508211445702656,
+-        // @pode_espalhar
+-        1935058406412353536,
+-        // @PL22Al
+-        2057808888297062400,
+-        // @obrasilcomlula
+-        2058595300873289728,
+-    ])
+-});
+-
+-pub struct Brazil2026ElectionFilter;
+-
+-impl Brazil2026ElectionFilter {
+-    fn is_excluded_author(user_id: u64, followed_user_ids: &FxHashSet<u64>) -> bool {
+-        BRAZIL_2026_ELECTION_USER_IDS.contains(&user_id) && !followed_user_ids.contains(&user_id)
+-    }
+-
+-    fn should_remove(candidate: &PostCandidate, followed_user_ids: &FxHashSet<u64>) -> bool {
+-        let is_excluded = |user_id: u64| Self::is_excluded_author(user_id, followed_user_ids);
+-        if is_excluded(candidate.author_id) {
+-            return true;
+-        }
+-        if candidate.retweeted_user_id.is_some_and(is_excluded) {
+-            return true;
+-        }
+-        if candidate.quoted_user_id.is_some_and(is_excluded) {
+-            return true;
+-        }
+-        // Drop replies whose conversation context would surface listed authors
+-        // (ancestors are returned on the scored post for For You thread UI).
+-        candidate.ancestor_users.iter().copied().any(is_excluded)
+-    }
+-}
+-
+-impl Filter<ScoredPostsQuery, PostCandidate> for Brazil2026ElectionFilter {
+-    fn filter(
+-        &self,
+-        query: &ScoredPostsQuery,
+-        candidates: Vec<PostCandidate>,
+-    ) -> FilterResult<PostCandidate> {
+-        let followed_user_ids: FxHashSet<u64> = query
+-            .user_features
+-            .followed_user_ids
+-            .iter()
+-            .map(|&id| id as u64)
+-            .collect();
+-
+-        let (removed, kept): (Vec<_>, Vec<_>) = candidates
+-            .into_iter()
+-            .partition(|candidate| Self::should_remove(candidate, &followed_user_ids));
+-
+-        FilterResult { kept, removed }
+-    }
+-}
+-
+-#[cfg(test)]
+-mod tests {
+-    use super::*;
+-
+-    /// Stable sample ids from the set (sorted source list order).
+-    const SAMPLE_LISTED: [u64; 4] = [29434532, 40053694, 74215006, 2670726740];
+-
+-    fn make_candidate(tweet_id: u64, author_id: u64) -> PostCandidate {
+-        PostCandidate {
+-            tweet_id,
+-            author_id,
+-            ..Default::default()
+-        }
+-    }
+-
+-    #[test]
+-    fn keeps_candidates_from_non_listed_authors() {
+-        let filter = Brazil2026ElectionFilter;
+-        let candidates = vec![
+-            make_candidate(1, 1),
+-            make_candidate(2, 2),
+-            make_candidate(3, 3),
+-        ];
+-
+-        let result = filter.filter(&ScoredPostsQuery::default(), candidates);
+-
+-        assert_eq!(result.kept.len(), 3);
+-        assert_eq!(result.removed.len(), 0);
+-    }
+-
+-    #[test]
+-    fn removes_candidates_from_listed_authors() {
+-        let filter = Brazil2026ElectionFilter;
+-        let listed = SAMPLE_LISTED[0];
+-        let candidates = vec![
+-            make_candidate(1, 1),
+-            make_candidate(2, listed),
+-            make_candidate(3, 3),
+-        ];
+-
+-        let result = filter.filter(&ScoredPostsQuery::default(), candidates);
+-
+-        assert_eq!(result.kept.len(), 2);
+-        assert_eq!(result.kept[0].tweet_id, 1);
+-        assert_eq!(result.kept[1].tweet_id, 3);
+-        assert_eq!(result.removed.len(), 1);
+-        assert_eq!(result.removed[0].author_id, listed);
+-    }
+-
+-    #[test]
+-    fn removes_retweets_of_listed_authors() {
+-        let filter = Brazil2026ElectionFilter;
+-        let listed = SAMPLE_LISTED[1];
+-        let mut retweet = make_candidate(10, 999);
+-        retweet.retweeted_user_id = Some(listed);
+-        let candidates = vec![make_candidate(1, 1), retweet];
+-
+-        let result = filter.filter(&ScoredPostsQuery::default(), candidates);
+-
+-        assert_eq!(result.kept.len(), 1);
+-        assert_eq!(result.kept[0].tweet_id, 1);
+-        assert_eq!(result.removed.len(), 1);
+-        assert_eq!(result.removed[0].tweet_id, 10);
+-    }
+-
+-    #[test]
+-    fn removes_quotes_of_listed_authors() {
+-        let filter = Brazil2026ElectionFilter;
+-        let listed = SAMPLE_LISTED[2];
+-        let mut quote = make_candidate(20, 888);
+-        quote.quoted_user_id = Some(listed);
+-        let candidates = vec![make_candidate(1, 1), quote];
+-
+-        let result = filter.filter(&ScoredPostsQuery::default(), candidates);
+-
+-        assert_eq!(result.kept.len(), 1);
+-        assert_eq!(result.kept[0].tweet_id, 1);
+-        assert_eq!(result.removed.len(), 1);
+-        assert_eq!(result.removed[0].tweet_id, 20);
+-    }
+-
+-    #[test]
+-    fn removes_replies_with_listed_ancestor_users() {
+-        let filter = Brazil2026ElectionFilter;
+-        let listed = SAMPLE_LISTED[3];
+-        let mut reply = make_candidate(30, 777);
+-        reply.in_reply_to_tweet_id = Some(29);
+-        reply.ancestors = vec![29, 28];
+-        reply.ancestor_users = vec![listed, 42];
+-        let candidates = vec![make_candidate(1, 1), reply];
+-
+-        let result = filter.filter(&ScoredPostsQuery::default(), candidates);
+-
+-        assert_eq!(result.kept.len(), 1);
+-        assert_eq!(result.kept[0].tweet_id, 1);
+-        assert_eq!(result.removed.len(), 1);
+-        assert_eq!(result.removed[0].tweet_id, 30);
+-    }
+-
+-    #[test]
+-    fn keeps_replies_with_only_non_listed_ancestor_users() {
+-        let filter = Brazil2026ElectionFilter;
+-        let mut reply = make_candidate(40, 777);
+-        reply.in_reply_to_tweet_id = Some(39);
+-        reply.ancestors = vec![39, 38];
+-        reply.ancestor_users = vec![100, 200];
+-        let candidates = vec![make_candidate(1, 1), reply];
+-
+-        let result = filter.filter(&ScoredPostsQuery::default(), candidates);
+-
+-        assert_eq!(result.kept.len(), 2);
+-        assert_eq!(result.removed.len(), 0);
+-    }
+-
+-    #[test]
+-    fn empty_candidates_list() {
+-        let filter = Brazil2026ElectionFilter;
+-        let result = filter.filter(&ScoredPostsQuery::default(), vec![]);
+-
+-        assert!(result.kept.is_empty());
+-        assert!(result.removed.is_empty());
+-    }
+-
+-    #[test]
+-    fn all_candidates_listed() {
+-        let filter = Brazil2026ElectionFilter;
+-        let listed_a = SAMPLE_LISTED[0];
+-        let listed_b = SAMPLE_LISTED[1];
+-        let candidates = vec![make_candidate(1, listed_a), make_candidate(2, listed_b)];
+-
+-        let result = filter.filter(&ScoredPostsQuery::default(), candidates);
+-
+-        assert!(result.kept.is_empty());
+-        assert_eq!(result.removed.len(), 2);
+-    }
+-
+-    #[test]
+-    fn hardcoded_list_is_non_empty() {
+-        assert!(!BRAZIL_2026_ELECTION_USER_IDS.is_empty());
+-        assert_eq!(BRAZIL_2026_ELECTION_USER_IDS.len(), 25);
+-    }
+-
+-    #[test]
+-    fn contains_known_listed_ids() {
+-        let no_follows = FxHashSet::default();
+-        for id in SAMPLE_LISTED {
+-            assert!(Brazil2026ElectionFilter::is_excluded_author(
+-                id,
+-                &no_follows
+-            ));
+-        }
+-        assert!(Brazil2026ElectionFilter::is_excluded_author(
+-            2058595300873289728,
+-            &no_follows
+-        ));
+-        assert!(!Brazil2026ElectionFilter::is_excluded_author(
+-            0,
+-            &no_follows
+-        ));
+-        assert!(!Brazil2026ElectionFilter::is_excluded_author(
+-            1,
+-            &no_follows
+-        ));
+-    }
+-
+-    #[test]
+-    fn first_round_only_accounts_are_no_longer_listed() {
+-        let no_follows = FxHashSet::default();
+-        for id in [9179462, 21069302, 68712576, 1355216660068761606] {
+-            assert!(!Brazil2026ElectionFilter::is_excluded_author(
+-                id,
+-                &no_follows
+-            ));
+-        }
+-    }
+-}
+diff --git a/home-mixer/filters/new_user_soft_nsfw_filter.rs b/home-mixer/filters/new_user_soft_nsfw_filter.rs
+index d2a71a4..dd37dc3 100644
+--- a/home-mixer/filters/new_user_soft_nsfw_filter.rs
++++ b/home-mixer/filters/new_user_soft_nsfw_filter.rs
+@@ -1,6 +1,9 @@
+ use crate::models::candidate::PostCandidate;
+ use crate::models::query::{RequestType, ScoredPostsQuery};
+-use crate::params::{EnableNewUserSoftNsfwFilter, NewUserSoftNsfwFilterMaxAccountAgeSecs};
++use crate::params::{
++    EnableNewUserSoftNsfwFilter, NewUserSoftNsfwFilterMaxAccountAgeSecs,
++    NewUserSoftNsfwFilterMaxScoringSeqLength,
++};
+ use std::time::Duration;
+ use xai_candidate_pipeline::component_library::utils::duration_since_creation_opt;
+ use xai_candidate_pipeline::filter::{Filter, FilterResult};
+@@ -15,6 +18,21 @@ pub(crate) fn new_user_soft_nsfw_filter_enabled(query: &ScoredPostsQuery) -> boo
+     }
+     let max_age = Duration::from_secs(query.params.get(NewUserSoftNsfwFilterMaxAccountAgeSecs));
+     duration_since_creation_opt(query.user_id).is_some_and(|age| age < max_age)
++        && below_max_scoring_seq_length(query)
++}
++
++fn below_max_scoring_seq_length(query: &ScoredPostsQuery) -> bool {
++    let max_length = query.params.get(NewUserSoftNsfwFilterMaxScoringSeqLength);
++    max_length == 0 || scoring_sequence_length(query).is_none_or(|length| length < max_length)
++}
++
++fn scoring_sequence_length(query: &ScoredPostsQuery) -> Option<u64> {
++    query
++        .scoring_sequence
++        .as_ref()?
++        .metadata
++        .as_ref()
++        .map(|metadata| metadata.length)
+ }
+ 
+ fn is_labeled_soft_nsfw_out_of_network(candidate: &PostCandidate) -> bool {
+diff --git a/home-mixer/filters/video_carousel_filter.rs b/home-mixer/filters/video_carousel_filter.rs
+index b2fb802..7bb5c6f 100644
+--- a/home-mixer/filters/video_carousel_filter.rs
++++ b/home-mixer/filters/video_carousel_filter.rs
+@@ -1,11 +1,12 @@
++use crate::models::brand_safety::BrandSafetyVerdict;
+ use crate::models::candidate::PostCandidate;
+ use crate::models::query::ScoredPostsQuery;
+ use crate::params::{
+     EnableVideoCarouselAuthorDedupe, EnableVideoCarouselEmbeddingDedupe,
+-    VideoCarouselEmbeddingDedupeThreshold, VideoCarouselImmersiveVqvWeight,
+-    VideoCarouselSemanticIdDedupeLevels, VideoCarouselVideoOpenWeight, RESULT_SIZE,
++    EnableVideoCarouselHighRiskFilter, EnableVideoCarouselMediumRiskFilter,
++    VideoCarouselEmbeddingDedupeThreshold, VideoCarouselSemanticIdDedupeLevels, RESULT_SIZE,
+ };
+-use crate::util::video_carousel;
++use crate::util::video_carousel::{self, CarouselScoring};
+ use xai_candidate_pipeline::filter::{Filter, FilterResult};
+ 
+ pub struct VideoCarouselFilter;
+@@ -24,11 +25,20 @@ impl Filter<ScoredPostsQuery, PostCandidate> for VideoCarouselFilter {
+             .into_iter()
+             .partition(|candidate| candidate.video_carousel_extra);
+         let main_feed = &kept[..RESULT_SIZE.min(kept.len())];
++        let drop_high_risk = query.params.get(EnableVideoCarouselHighRiskFilter);
++        let drop_medium_risk = query.params.get(EnableVideoCarouselMediumRiskFilter);
+         let _ = query.video_carousel.set(video_carousel::select_videos(
+-            kept.iter().skip(RESULT_SIZE).chain(&removed),
++            kept.iter()
++                .skip(RESULT_SIZE)
++                .chain(&removed)
++                .filter(|candidate| match candidate.brand_safety_verdict {
++                    Some(BrandSafetyVerdict::HighRisk) => !drop_high_risk,
++                    Some(BrandSafetyVerdict::MediumRisk) => !drop_medium_risk,
++                    Some(_) => true,
++                    None => !drop_high_risk && !drop_medium_risk,
++                }),
+             main_feed,
+-            query.params.get(VideoCarouselVideoOpenWeight),
+-            query.params.get(VideoCarouselImmersiveVqvWeight),
++            &CarouselScoring::from_query(query),
+             query.params.get(EnableVideoCarouselAuthorDedupe),
+             query.params.get(VideoCarouselSemanticIdDedupeLevels) as usize,
+             query
+diff --git a/home-mixer/params/param.rs b/home-mixer/params/param.rs
+index e683ac0..e59d16a 100644
+--- a/home-mixer/params/param.rs
++++ b/home-mixer/params/param.rs
+@@ -1,4 +1,4 @@
+-// mirrored from config feature-switch defaults; last sync 2026-10-26T16:00:39Z
++// mirrored from config feature-switch defaults; last sync 2026-11-02T16:00:39Z
+ use xai_feature_switches::param;
+ 
+ param!(
+@@ -32,12 +32,6 @@ param!(
+     "rust_home_mixer_thunder_algorithm",
+     "default"
+ );
+-param!(
+-    ThunderClusterId,
+-    String,
+-    "rust_home_mixer_thunder_cluster_id",
+-    "amp"
+-);
+ param!(
+     TweetMixerMaxResults,
+     u32,
+@@ -315,6 +309,66 @@ param!(
+     "rust_home_mixer_enable_home_excursion_scores",
+     false
+ );
++param!(
++    EnablePageLogging,
++    bool,
++    "rust_home_mixer_enable_page_logging",
++    true
++);
++param!(
++    PageLogTtlSeconds,
++    u64,
++    "rust_home_mixer_page_log_ttl_seconds",
++    3600
++);
++param!(
++    EnablePageDecodeRerank,
++    bool,
++    "rust_home_mixer_enable_page_decode_rerank",
++    false
++);
++param!(
++    PageDecodePoolN,
++    u32,
++    "rust_home_mixer_page_decode_pool_n",
++    200
++);
++param!(
++    PageDecodeSteps,
++    u32,
++    "rust_home_mixer_page_decode_steps",
++    64
++);
++param!(
++    PageDecodeTemperature,
++    f64,
++    "rust_home_mixer_page_decode_temperature",
++    0.0
++);
++param!(
++    PageDecodeRewardHead,
++    u32,
++    "rust_home_mixer_page_decode_reward_head",
++    0
++);
++param!(
++    EnablePageRlExploration,
++    bool,
++    "rust_home_mixer_enable_page_rl_exploration",
++    false
++);
++param!(
++    PageRlExplorationTemperature,
++    f64,
++    "rust_home_mixer_page_rl_exploration_temperature",
++    0.2
++);
++param!(
++    PageRlExplorationTopK,
++    usize,
++    "rust_home_mixer_page_rl_exploration_top_k",
++    64
++);
+ 
+ // These weights reflect a combination of how much an action is
+ // valued in ranking and typical propensities of these actions
+@@ -421,9 +475,9 @@ param!(
+     0.015
+ );
+ param!(
+-    ReactWithVideoWeight,
++    PostVideoWeight,
+     f64,
+-    "rust_home_mixer_react_with_video_weight",
++    "rust_home_mixer_post_video_weight",
+     0.0
+ );
+ param!(
+@@ -821,7 +875,13 @@ param!(
+     NewUserSoftNsfwFilterMaxAccountAgeSecs,
+     u64,
+     "rust_home_mixer_new_user_soft_nsfw_filter_max_account_age_secs",
+-    86400
++    604800
++);
++param!(
++    NewUserSoftNsfwFilterMaxScoringSeqLength,
++    u64,
++    "rust_home_mixer_new_user_soft_nsfw_filter_max_scoring_seq_length",
++    100
+ );
+ param!(
+     NewUserMinEngagementFilterMaxResurrectionAgeSecs,
+@@ -885,7 +945,7 @@ param!(
+     EnableAdsBrandSafetyVerdictV2,
+     bool,
+     "rust_home_mixer_ads_bs_v2_exp_enabled",
+-    true
++    false
+ );
+ 
+ param!(
+@@ -1176,6 +1236,24 @@ param!(
+     "rust_home_mixer_video_carousel_embedding_dedupe_threshold",
+     0.72
+ );
++param!(
++    VideoCarouselEmbeddingVersion,
++    String,
++    "rust_home_mixer_video_carousel_embedding_version",
++    "v8_search_1"
++);
++param!(
++    EnableVideoCarouselHighRiskFilter,
++    bool,
++    "rust_home_mixer_enable_video_carousel_high_risk_filter",
++    true
++);
++param!(
++    EnableVideoCarouselMediumRiskFilter,
++    bool,
++    "rust_home_mixer_enable_video_carousel_medium_risk_filter",
++    false
++);
+ param!(
+     EnableVideoCarouselCandidatesLogging,
+     bool,
+@@ -1194,6 +1272,18 @@ param!(
+     "rust_home_mixer_video_carousel_immersive_vqv_weight",
+     0.0
+ );
++param!(
++    VideoCarouselOpenTimesImmersiveDwellWeight,
++    f64,
++    "rust_home_mixer_video_carousel_open_times_immersive_dwell_weight",
++    0.0
++);
++param!(
++    VideoCarouselWeightedScoreWeight,
++    f64,
++    "rust_home_mixer_video_carousel_weighted_score_weight",
++    0.0
++);
+ param!(
+     VideoCarouselImmersiveClusterId,
+     String,
+@@ -1206,6 +1296,12 @@ param!(
+     "rust_home_mixer_video_carousel_immersive_aggregation_type",
+     "IMMERSIVE_LONG_DWELL"
+ );
++param!(
++    VideoCarouselExtraCandidates,
++    usize,
++    "rust_home_mixer_video_carousel_extra_candidates",
++    30
++);
+ 
+ param!(
+     EnableXaiVfClient,
+diff --git a/home-mixer/scorers/page_decode_rerank_scorer.rs b/home-mixer/scorers/page_decode_rerank_scorer.rs
+new file mode 100644
+index 0000000..4aa01d8
+--- /dev/null
++++ b/home-mixer/scorers/page_decode_rerank_scorer.rs
+@@ -0,0 +1,291 @@
++use crate::models::candidate::PostCandidate;
++use crate::models::query::ScoredPostsQuery;
++use crate::params::{
++    ClickWeight, ContDwellTimeWeight, EnablePageDecodeRerank, FavoriteWeight, MinVideoDurationMs,
++    NotDwelledWeight, NotInterestedWeight, PageDecodePoolN, PageDecodeRewardHead, PageDecodeSteps,
++    PageDecodeTemperature, ProfileClickWeight, QuoteWeight, ReplyWeight, ReportWeight,
++    RetweetWeight, ShareWeight, VqvWeight,
++};
++use std::cmp::Ordering;
++use tonic::async_trait;
++use xai_candidate_pipeline::scorer::Scorer;
++use xai_recsys_proto::{PageDecodeParams, RankingScoreWeights};
++use xai_stats_receiver::global_stats_receiver;
++
++const REQUESTS_SENT_METRIC: &str = "PageDecodeRerank.requests_sent";
++const PICKS_RETURNED_METRIC: &str = "PageDecodeRerank.picks_returned";
++const PICKS_APPLIED_METRIC: &str = "PageDecodeRerank.picks_applied";
++const FAIL_OPEN_METRIC: &str = "PageDecodeRerank.fail_open";
++
++pub struct PageDecodeRerankScorer;
++
++pub(crate) fn page_decode_params(query: &ScoredPostsQuery) -> PageDecodeParams {
++    PageDecodeParams {
++        pool_n: query.params.get(PageDecodePoolN),
++        steps: query.params.get(PageDecodeSteps),
++        temperature: query.params.get(PageDecodeTemperature) as f32,
++        ranking_score_weights: Some(ranking_score_weights(query)),
++        diversity_weight: None,
++        reward_head: Some(query.params.get(PageDecodeRewardHead)),
++    }
++}
++
++fn ranking_score_weights(query: &ScoredPostsQuery) -> RankingScoreWeights {
++    let params = &query.params;
++    RankingScoreWeights {
++        favorite_weight: params.get(FavoriteWeight) as f32,
++        reply_weight: params.get(ReplyWeight) as f32,
++        retweet_weight: params.get(RetweetWeight) as f32,
++        click_weight: params.get(ClickWeight) as f32,
++        profile_click_weight: params.get(ProfileClickWeight) as f32,
++        vqv_weight: params.get(VqvWeight) as f32,
++        share_weight: params.get(ShareWeight) as f32,
++        quote_weight: params.get(QuoteWeight) as f32,
++        cont_dwell_time_weight: params.get(ContDwellTimeWeight) as f32,
++        not_interested_weight: params.get(NotInterestedWeight) as f32,
++        report_weight: params.get(ReportWeight) as f32,
++        not_dwelled_weight: params.get(NotDwelledWeight) as f32,
++        min_video_duration_ms: params.get(MinVideoDurationMs) as f32,
++    }
++}
++
++pub(crate) fn record_decode_request_sent() {
++    if let Some(receiver) = global_stats_receiver() {
++        receiver.incr(REQUESTS_SENT_METRIC, &[], 1);
++    }
++}
++
++pub(crate) fn record_decode_picks_returned(pick_count: usize) {
++    if let Some(receiver) = global_stats_receiver() {
++        receiver.incr(PICKS_RETURNED_METRIC, &[], pick_count as u64);
++    }
++}
++
++fn record_rerank(metric: &str, query: &ScoredPostsQuery, value: u64) {
++    if let Some(receiver) = global_stats_receiver() {
++        let request = if query.has_cached_posts {
++            "cached"
++        } else {
++            "fresh"
++        };
++        receiver.incr(metric, &[("request", request)], value);
++    }
++}
++
++fn by_score_desc(a: Option<f64>, b: Option<f64>) -> Ordering {
++    let a = a.unwrap_or(f64::NEG_INFINITY);
++    let b = b.unwrap_or(f64::NEG_INFINITY);
++    b.partial_cmp(&a).unwrap_or(Ordering::Equal)
++}
++
++pub(crate) fn decoded_on_top(
++    scores: &[Option<f64>],
++    slots: &[Option<u32>],
++) -> Option<Vec<Option<f64>>> {
++    let mut picks: Vec<(u32, usize)> = slots
++        .iter()
++        .enumerate()
++        .filter_map(|(index, slot)| slot.map(|slot| (slot, index)))
++        .collect();
++    if picks.is_empty() {
++        return None;
++    }
++    picks.sort_unstable();
++
++    let mut by_score: Vec<usize> = (0..scores.len()).collect();
++    by_score.sort_unstable_by(|&a, &b| by_score_desc(scores[a], scores[b]).then(a.cmp(&b)));
++
++    let mut is_picked = vec![false; scores.len()];
++    for &(_, index) in &picks {
++        is_picked[index] = true;
++    }
++    let order = picks
++        .iter()
++        .map(|&(_, index)| index)
++        .chain(by_score.iter().copied().filter(|&index| !is_picked[index]));
++    let mut reranked = vec![None; scores.len()];
++    for (rank, index) in order.enumerate() {
++        reranked[index] = scores[by_score[rank]];
++    }
++    Some(reranked)
++}
++
++#[async_trait]
++impl Scorer<ScoredPostsQuery, PostCandidate> for PageDecodeRerankScorer {
++    fn enable(&self, query: &ScoredPostsQuery) -> bool {
++        query.params.get(EnablePageDecodeRerank)
++    }
++
++    async fn score(
++        &self,
++        query: &ScoredPostsQuery,
++        candidates: &[PostCandidate],
++    ) -> Vec<Result<PostCandidate, String>> {
++        let scores: Vec<Option<f64>> = candidates.iter().map(|c| c.score).collect();
++        let slots: Vec<Option<u32>> = candidates.iter().map(|c| c.page_decode_slot).collect();
++        let reranked = match decoded_on_top(&scores, &slots) {
++            Some(reranked) => {
++                record_rerank(
++                    PICKS_APPLIED_METRIC,
++                    query,
++                    slots.iter().flatten().count() as u64,
++                );
++                reranked
++            }
++            None => {
++                record_rerank(FAIL_OPEN_METRIC, query, 1);
++                scores
++            }
++        };
++        reranked
++            .into_iter()
++            .map(|score| {
++                Ok(PostCandidate {
++                    score,
++                    ..Default::default()
++                })
++            })
++            .collect()
++    }
++
++    fn update(&self, candidate: &mut PostCandidate, scored: PostCandidate) {
++        candidate.score = scored.score;
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn query_with(overrides: &[(&str, &str)]) -> ScoredPostsQuery {
++        let fs = xai_feature_switches::FeatureSwitches::new(vec![]).unwrap();
++        let mut results =
++            fs.match_recipient(&xai_feature_switches::RecipientBuilder::new().build());
++        for (key, value) in overrides {
++            results.override_fs(key.to_string(), value);
++        }
++        ScoredPostsQuery {
++            params: results.into(),
++            ..Default::default()
++        }
++    }
++
++    fn candidate(tweet_id: u64, score: f64, slot: Option<u32>) -> PostCandidate {
++        PostCandidate {
++            tweet_id,
++            score: Some(score),
++            page_decode_slot: slot,
++            page_decode_prob: slot.map(|_| 0.5),
++            ..Default::default()
++        }
++    }
++
++    fn sorted(scores: impl IntoIterator<Item = Option<f64>>) -> Vec<f64> {
++        let mut scores: Vec<f64> = scores.into_iter().map(|s| s.unwrap()).collect();
++        scores.sort_by(|a, b| b.partial_cmp(a).unwrap());
++        scores
++    }
++
++    async fn rerank(query: &ScoredPostsQuery, candidates: &[PostCandidate]) -> Vec<Option<f64>> {
++        PageDecodeRerankScorer
++            .score(query, candidates)
++            .await
++            .into_iter()
++            .map(|r| r.unwrap().score)
++            .collect()
++    }
++
++    #[tokio::test]
++    async fn fresh_decode_takes_the_top_scores_in_slot_order() {
++        let query = query_with(&[("rust_home_mixer_enable_page_decode_rerank", "true")]);
++        let candidates = vec![
++            candidate(1, 9.0, Some(2)),
++            candidate(2, 8.0, None),
++            candidate(3, 7.0, Some(0)),
++            candidate(4, 6.0, None),
++            candidate(5, 5.0, Some(1)),
++            candidate(6, 4.0, None),
++        ];
++
++        let reranked = rerank(&query, &candidates).await;
++
++        assert_eq!(
++            reranked,
++            vec![
++                Some(7.0),
++                Some(6.0),
++                Some(9.0),
++                Some(5.0),
++                Some(8.0),
++                Some(4.0)
++            ]
++        );
++        assert_eq!(sorted(reranked), sorted(candidates.iter().map(|c| c.score)));
++    }
++
++    #[tokio::test]
++    async fn cached_decode_keeps_surviving_picks_on_top_after_filtering() {
++        let mut query = query_with(&[("rust_home_mixer_enable_page_decode_rerank", "true")]);
++        query.has_cached_posts = true;
++        let survivors = vec![
++            candidate(10, 3.0, None),
++            candidate(11, 2.5, Some(5)),
++            candidate(12, 9.5, None),
++            candidate(13, 1.0, Some(2)),
++            candidate(14, 4.0, None),
++            candidate(15, 0.5, Some(7)),
++        ];
++
++        let reranked = rerank(&query, &survivors).await;
++
++        let at = |tweet_id: u64| {
++            reranked[survivors
++                .iter()
++                .position(|c| c.tweet_id == tweet_id)
++                .unwrap()]
++        };
++        assert_eq!([13, 11, 15].map(at), [Some(9.5), Some(4.0), Some(3.0)]);
++        assert_eq!([12, 14, 10].map(at), [Some(2.5), Some(1.0), Some(0.5)]);
++        assert_eq!(sorted(reranked), sorted(survivors.iter().map(|c| c.score)));
++    }
++
++    #[tokio::test]
++    async fn no_decoded_candidates_leaves_scores_untouched() {
++        let query = query_with(&[("rust_home_mixer_enable_page_decode_rerank", "true")]);
++        let candidates = vec![
++            candidate(1, 1.0, None),
++            candidate(2, 3.0, None),
++            candidate(3, 2.0, None),
++        ];
++
++        let reranked = rerank(&query, &candidates).await;
++
++        assert_eq!(reranked, vec![Some(1.0), Some(3.0), Some(2.0)]);
++        assert_eq!(decoded_on_top(&[Some(1.0), Some(3.0)], &[None, None]), None);
++    }
++
++    #[test]
++    fn decode_params_carry_the_current_value_model_weights() {
++        let query = query_with(&[
++            ("rust_home_mixer_page_decode_pool_n", "180"),
++            ("rust_home_mixer_page_decode_steps", "64"),
++            ("rust_home_mixer_page_decode_temperature", "0.3"),
++            ("rust_home_mixer_favorite_weight", "0.7"),
++            ("rust_home_mixer_reply_weight", "4.0"),
++            ("rust_home_mixer_report_weight", "-200.0"),
++            ("rust_home_mixer_not_dwelled_weight", "-1.5"),
++            ("rust_home_mixer_min_video_duration_ms", "8000"),
++        ]);
++
++        let params = page_decode_params(&query);
++
++        assert_eq!((params.pool_n, params.steps), (180, 64));
++        assert!((params.temperature - 0.3).abs() < 1e-6);
++        let weights = params.ranking_score_weights.expect("weights");
++        assert!((weights.favorite_weight - 0.7).abs() < 1e-6);
++        assert_eq!(weights.reply_weight, 4.0);
++        assert_eq!(weights.report_weight, -200.0);
++        assert_eq!(weights.not_dwelled_weight, -1.5);
++        assert_eq!(weights.min_video_duration_ms, 8000.0);
++    }
++}

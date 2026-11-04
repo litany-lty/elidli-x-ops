@@ -64,7 +64,7 @@ node scripts/x-ops.mjs <command> \
 | `data-import` | 预览并提交 V2 Analytics、宿主观测或历史帖子材料 |
 | `coach-step` | 准备证据、接收内容分析与建议、绑定语义复核并交付报告 |
 | `state-migrate` | 预览、备份并原子迁移旧状态至 state 5，或恢复回读验证 |
-| `knowledge-step` | 内置规则、实际上游检查、保存候选影响和审核后更新 |
+| `knowledge-step` | 三类最新研究、内置规则、全仓上游检查、保存候选影响和审核后更新 |
 | `personal-step` | 查看个人模型，记录反馈，审核、激活或撤销有限经验 |
 | `inspiration-step` | 历史驱动的查询计划、五类灵感和共享新闻预算 |
 | `collection-step` | 已登录Chrome采集的材料、范围、导入、封存和只读恢复 |

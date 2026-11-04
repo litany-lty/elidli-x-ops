@@ -1,0 +1,54 @@
+pub(super) const NSFW_AVATAR_IMAGE_USER_LABEL_DROP_UNSPECIFIED: UserRule = Rule {
+    id: RuleId::NsfwAvatarImageUserLabel,
+    audience: NonAuthors,
+    when: all![AuthorHasLabel(AuthorLabel::NsfwAvatarImage)],
+    action: drop_post(DropAs::UnspecifiedReason),
+};
+
+pub(super) const NSFW_BANNER_IMAGE_USER_LABEL_DROP_UNSPECIFIED: UserRule = Rule {
+    id: RuleId::NsfwBannerImageUserLabel,
+    audience: NonAuthors,
+    when: all![AuthorHasLabel(AuthorLabel::NsfwBannerImage)],
+    action: drop_post(DropAs::UnspecifiedReason),
+};
+
+pub(super) const NSFW_NEAR_PERFECT_USER_LABEL_DROP_UNSPECIFIED: UserRule = Rule {
+    id: RuleId::NsfwNearPerfectUserLabel,
+    audience: NonAuthors,
+    when: all![AuthorHasLabel(AuthorLabel::NsfwNearPerfect)],
+    action: drop_post(DropAs::UnspecifiedReason),
+};
+
+pub(super) const SPAM_HIGH_RECALL_USER_LABEL_DROP_UNSPECIFIED: UserRule = Rule {
+    id: RuleId::SpamHighRecallUserLabel,
+    audience: NonAuthors,
+    when: all![AuthorHasLabel(AuthorLabel::SpamHighRecall)],
+    action: drop_post(DropAs::UnspecifiedReason),
+};
+
+pub(super) const COMPROMISED_USER_LABEL_DROP_UNSPECIFIED: UserRule = Rule {
+    id: RuleId::CompromisedUserLabel,
+    audience: NonAuthors,
+    when: all![AuthorHasLabel(AuthorLabel::Compromised)],
+    action: drop_post(DropAs::UnspecifiedReason),
+};
+
+pub(super) const READ_ONLY_USER_LABEL_DROP_UNSPECIFIED: UserRule = Rule {
+    id: RuleId::ReadOnlyUserLabel,
+    audience: NonAuthors,
+    when: all![AuthorHasLabel(AuthorLabel::ReadOnly)],
+    action: drop_post(DropAs::UnspecifiedReason),
+};
+
+pub(super) const IMPERSONATION_HIGH_PRECISION_USER_LABEL_DROP_UNSPECIFIED: UserRule = Rule {
+    id: RuleId::ImpersonationHighPrecisionUserLabel,
+    audience: NonAuthors,
+    when: all![AuthorHasLabel(AuthorLabel::ImpersonationHighPrecision)],
+    action: drop_post(DropAs::UnspecifiedReason),
+};
+
+pub(super) const ABUSIVE_HIGH_RECALL_USER_LABEL_DROP_UNSPECIFIED: UserRule = Rule {
+    id: RuleId::AbusiveHighRecallUserLabel,
+    audience: NonFollowers,
+    when: all![AuthorHasLabel(AuthorLabel::AbusiveHighRecall)],
+    action: drop_post(DropAs::UnspecifiedReason),

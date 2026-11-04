@@ -1,0 +1,41 @@
+    pub(crate) fn apply_with_decisions(
+        &self,
+        query: &ScoredPostsQuery,
+        candidates: &[PostCandidate],
+        scores: &[f64],
+    ) -> ColdStartOutcome {
+        if query.is_topic_request() {
+            return ColdStartOutcome::unchanged(scores);
+        }
+        let outcome = self.decide(query, candidates, scores);
+        record_cold_start_slot(query, outcome.lift.is_some());
+        outcome
+    }
+
+    fn decide(
+        &self,
+        query: &ScoredPostsQuery,
+        candidates: &[PostCandidate],
+        scores: &[f64],
+    ) -> ColdStartOutcome {
+        let params = ColdStartParams::read(query);
+        record_tracked_ids(candidates, &params.tracked_ids);
+        let corpus = match params.arm {
+            ViewerArm::Holdout => vec![AuthorCorpus::NotBucketed; candidates.len()],
+            ViewerArm::Control | ViewerArm::Treatment => {
+                author_corpus(&self.author_rules, candidates)
+            }
+        };
+
+        if !params.enabled {
+            return ColdStartOutcome::unchanged(scores);
+        }
+
+        match cold_start_target(&params, scores) {
+            Some((rank, target)) => {
+                let (lifted, index) =
+                    apply_cold_start(&params, candidates, scores, &corpus, target);
+                ColdStartOutcome {
+                    scores: lifted,
+                    lift: index.map(|index| ColdStartLift { index, rank }),
+                }

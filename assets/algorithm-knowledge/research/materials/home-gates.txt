@@ -1,0 +1,71 @@
+    0
+);
+
+param!(EnableRanking, bool, "rust_home_mixer_enable_ranking", true);
+param!(
+    LogSlateContext,
+    bool,
+    "rust_home_mixer_log_slate_context",
+    false
+);
+param!(RerankerHeadTag, i64, "rust_home_mixer_reranker_head_tag", 0);
+param!(
+    EnableHomeExcursionScores,
+    bool,
+    "rust_home_mixer_enable_home_excursion_scores",
+    false
+);
+param!(
+    EnablePageLogging,
+    bool,
+    "rust_home_mixer_enable_page_logging",
+    true
+);
+param!(
+    PageLogTtlSeconds,
+    u64,
+    "rust_home_mixer_page_log_ttl_seconds",
+    3600
+);
+param!(
+    EnablePageDecodeRerank,
+    bool,
+    "rust_home_mixer_enable_page_decode_rerank",
+    false
+);
+param!(
+    PageDecodePoolN,
+    u32,
+    "rust_home_mixer_page_decode_pool_n",
+    200
+);
+param!(
+    PageDecodeSteps,
+    u32,
+    "rust_home_mixer_page_decode_steps",
+    64
+);
+param!(
+    PageDecodeTemperature,
+    f64,
+    "rust_home_mixer_page_decode_temperature",
+    0.0
+);
+param!(
+    PageDecodeRewardHead,
+    u32,
+    "rust_home_mixer_page_decode_reward_head",
+    0
+);
+param!(
+    EnablePageRlExploration,
+    bool,
+    "rust_home_mixer_enable_page_rl_exploration",
+    false
+);
+param!(
+    PageRlExplorationTemperature,
+    f64,
+    "rust_home_mixer_page_rl_exploration_temperature",
+    0.2
+);

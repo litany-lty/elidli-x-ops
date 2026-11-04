@@ -1,0 +1,58 @@
+pub(crate) fn decoded_on_top(
+    scores: &[Option<f64>],
+    slots: &[Option<u32>],
+) -> Option<Vec<Option<f64>>> {
+    let mut picks: Vec<(u32, usize)> = slots
+        .iter()
+        .enumerate()
+        .filter_map(|(index, slot)| slot.map(|slot| (slot, index)))
+        .collect();
+    if picks.is_empty() {
+        return None;
+    }
+    picks.sort_unstable();
+
+    let mut by_score: Vec<usize> = (0..scores.len()).collect();
+    by_score.sort_unstable_by(|&a, &b| by_score_desc(scores[a], scores[b]).then(a.cmp(&b)));
+
+    let mut is_picked = vec![false; scores.len()];
+    for &(_, index) in &picks {
+        is_picked[index] = true;
+    }
+    let order = picks
+        .iter()
+        .map(|&(_, index)| index)
+        .chain(by_score.iter().copied().filter(|&index| !is_picked[index]));
+    let mut reranked = vec![None; scores.len()];
+    for (rank, index) in order.enumerate() {
+        reranked[index] = scores[by_score[rank]];
+    }
+    Some(reranked)
+}
+
+#[async_trait]
+impl Scorer<ScoredPostsQuery, PostCandidate> for PageDecodeRerankScorer {
+    fn enable(&self, query: &ScoredPostsQuery) -> bool {
+        query.params.get(EnablePageDecodeRerank)
+    }
+
+    async fn score(
+        &self,
+        query: &ScoredPostsQuery,
+        candidates: &[PostCandidate],
+    ) -> Vec<Result<PostCandidate, String>> {
+        let scores: Vec<Option<f64>> = candidates.iter().map(|c| c.score).collect();
+        let slots: Vec<Option<u32>> = candidates.iter().map(|c| c.page_decode_slot).collect();
+        let reranked = match decoded_on_top(&scores, &slots) {
+            Some(reranked) => {
+                record_rerank(
+                    PICKS_APPLIED_METRIC,
+                    query,
+                    slots.iter().flatten().count() as u64,
+                );
+                reranked
+            }
+            None => {
+                record_rerank(FAIL_OPEN_METRIC, query, 1);
+                scores
+            }

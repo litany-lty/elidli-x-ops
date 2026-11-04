@@ -2,7 +2,9 @@ import { canonicalHash, ContractError, validate } from './contracts.mjs';
 import { commitState, putImmutable } from './state.mjs';
 import { seedKnowledgeState } from './knowledge-state.mjs';
 import { knowledgeBundleFromState, loadKnowledgeCatalog, validateKnowledgeBundleIntegrity } from './knowledge.mjs';
-import { activateKnowledgeUpdateV5, inspectKnowledgeCheckoutV5, knowledgeReplayResultHashV5, proposeKnowledgeUpdateV5, verifyKnowledgeSourceMaterialsV5 } from './knowledge-updates.mjs';
+import { activateKnowledgeUpdateV5, inspectKnowledgeCheckoutV5, knowledgeDependencyPathsV5, knowledgeReplayResultHashV5, proposeKnowledgeUpdateV5, verifyKnowledgeSourceMaterialsV5 } from './knowledge-updates.mjs';
+
+import { loadAlgorithmResearch } from './knowledge-research.mjs';
 
 const fail = (code, path, message) => { throw new ContractError(code, path, message, false); };
 
@@ -38,11 +40,15 @@ function lastSuccessfulCheck(state) {
 export async function dispatchKnowledgeV5(request, dir, state) {
   const payload = validate('KnowledgeStepPayloadV5', request.payload);
   if (!state || state.schema_version !== 5) fail('MIGRATION_REQUIRED', '/state/schema_version', 'Knowledge V5 requires state 5');
+  if (payload.operation === 'research') {
+    const current = knowledgeBundleFromState(state), research = loadAlgorithmResearch();
+    return { state, data: { research, operational_catalog_ref: current.catalog.catalog_id, operational_commit: current.catalog.upstream.commit, alignment: current.catalog.upstream.commit === research.upstream.commit ? 'same_commit' : 'research_newer_than_operational_catalog' } };
+  }
   let result;
   const next = await commitState(dir, request.expected_revision, async working => {
     const current = knowledgeBundleFromState(working);
     if (payload.operation === 'check') {
-      result = validate('KnowledgeCheckV5', inspectKnowledgeCheckoutV5({ checkout_dir: payload.checkout_dir, repo: current.catalog.upstream.repo, prior_head: current.catalog.upstream.commit, paths: payload.paths, clock: new Date() }));
+      result = validate('KnowledgeCheckV5', inspectKnowledgeCheckoutV5({ checkout_dir: payload.checkout_dir, repo: current.catalog.upstream.repo, prior_head: current.catalog.upstream.commit, paths: [...new Set([...payload.paths, ...current.dependencies.filter(dep => dep.source_visibility !== 'external_unpublished').flatMap(knowledgeDependencyPathsV5)])], clock: new Date() }));
       putImmutable(working.knowledge_events, result.check_id, result);
       return working;
     }

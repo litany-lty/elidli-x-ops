@@ -17,7 +17,7 @@
 | inspiration-step | contract5 prepare/plan/assess/finalize/resume/reserve-news | 复用已有news source/event/claim/card |
 | content-step | contract5 媒体操作；原contract3组装、审核、修改和恢复 | 复用MediaAsset/ContentPack V3，当前交付门仍适用 |
 | draft-check | contract5 编辑处方与形式理由 | 原稿良好可保持；仅建议不代写；Article/平台长帖无独立能力验证时unsupported |
-| knowledge-step | contract5 check/propose-update/activate-update | 旧实际规则解释保留；更新不能仅替换SHA |
+| knowledge-step | contract5 research/check/propose-update/activate-update | research 只读返回三类研究及操作目录差异；全仓增量和未审路径纳入更新检查，不能仅替换SHA |
 | config | 当前ConfigV5与ConfigPatchV5，持久更新和反馈同commit | 用户本次覆盖不污染长期配置 |
 
 Chrome 宿主从 assets/host-binding.codex-desktop-v4.json 读取当前模板，填入实际观察到的 browser/session/tool 映射；模板没有宣称任何能力已验证。搜索/读取默认请求紧凑返回；宿主必须先持久化实际完整工具返回，再向上下文输出摘要。若捕获失败，不造回执，不退款或重置票据预算。旧 assets/host-binding.codex-desktop.json 保留供历史新闻接口兼容，不替代当前 Chrome 绑定。知识远端检查需要本机 Git 与实际官方 checkout；doctor 报告可用性，缺 Git 不影响普通改稿。

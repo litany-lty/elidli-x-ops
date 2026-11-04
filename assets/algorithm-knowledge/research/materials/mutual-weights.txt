@@ -1,0 +1,17 @@
+    pub fn reply_weight_for(&self, candidate: &CandidateScoringInputs) -> f64 {
+        if self.bidirectional_follow_reply_weight_boost != 0.0
+            && candidate.bidirectional_boost_eligible()
+        {
+            return self.reply + self.bidirectional_follow_reply_weight_boost;
+        }
+        self.reply
+    }
+
+    pub fn dwell_weight_for(&self, candidate: &CandidateScoringInputs) -> f64 {
+        if self.bidirectional_follow_dwell_weight_boost != 0.0
+            && candidate.bidirectional_boost_eligible()
+        {
+            return self.dwell + self.bidirectional_follow_dwell_weight_boost;
+        }
+        self.dwell
+    }
