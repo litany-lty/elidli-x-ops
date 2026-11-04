@@ -538,6 +538,49 @@
           "items": {
             "$ref": "#/definitions/KnowledgeDependencyV4"
           }
+        },
+        "change_review": {
+          "type": "object",
+          "required": [
+            "version",
+            "scope",
+            "base_commit",
+            "target_commit",
+            "entries",
+            "limitations",
+            "content_hash"
+          ],
+          "properties": {
+            "version": {
+              "const": 1
+            },
+            "scope": {
+              "const": "public_changed_paths"
+            },
+            "base_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "target_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "entries": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "content_hash": {
+              "$ref": "#/definitions/V4Hash"
+            }
+          }
         }
       }
     },

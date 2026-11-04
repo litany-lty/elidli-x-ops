@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { canonicalHash, ContractError } from './contracts.mjs';
+import { validateKnowledgeChangeReview } from './knowledge-change-review.mjs';
 export { buildSignalSetV5, SIGNAL_DEFINITIONS_V5 } from './signals.mjs';
 export { inspectKnowledgeCheckoutV5, dependencyDiffV5, computeKnowledgeImpactV5, proposeKnowledgeUpdateV5, knowledgeReplayResultHashV5, activateKnowledgeUpdateV5 } from './knowledge-updates.mjs';
 
@@ -65,10 +66,12 @@ export function catalogContentHash(catalog, dependencies = catalog.dependencies)
     coverage: catalog.coverage
   };
   if (catalog.content_hash_policy) content.content_hash_policy = catalog.content_hash_policy;
+  if (catalog.change_review) content.change_review = catalog.change_review;
   return canonicalHash(content);
 }
 
 export function validateKnowledgeBundleIntegrity({ catalog, dependencies = catalog.dependencies, artifacts, facts, rules }) {
+  validateKnowledgeChangeReview(catalog.change_review, { target: catalog.upstream?.commit });
   const dependencyIds = new Set(dependencies.map(dependency => dependency.dependency_id));
   if (dependencyIds.size !== dependencies.length) fail('/catalog/dependencies', 'Knowledge catalog contains duplicate dependency IDs', 'RECEIPT_CONFLICT');
   for (const ref of catalog.artifact_refs) if (!artifacts[ref]) fail('/catalog/artifact_refs', `Knowledge artifact is missing: ${ref}`, 'MISSING_EVIDENCE');

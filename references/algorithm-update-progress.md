@@ -34,3 +34,10 @@
 - 新研究可经 `knowledge-step` 的 contract5 `research` 操作读取，但没有激活替换旧操作目录。完整新版未逐文件审完，也没有生产开关或特定账号命中证据。
 - 默认关闭的新观看者soft NSFW保护、页面解码重排、视频轮播等不能描述为全站已启用。Home与VM默认值分别记录；删除巴西2026名单过滤不等于取消巴西法律标签过滤。
 - main未修改；线上发布、main合并和全量回归不在本次执行中。
+
+## 2026-11-04 continuation: exact changed-path review
+
+- Resumed from `ebc6844` on `feat/x-algorithm-20261104`; main remains unchanged.
+- Reviewing all 248 add/modify/delete paths (242 rename-aware changes), including the 234 previously open paths, with before/after/diff hashes and concrete semantic impact.
+- Added immutable public-diff review support. Deleted files and changed callers/configuration can be closed only by exact semantic records. Missing production inputs remain unknown, and explicit semantic blockers remain activation gaps.
+- Focused validation: `node --test test/knowledge-change-review.test.mjs test/knowledge-repository-impact.test.mjs test/next23-knowledge-updates.test.mjs`: **8 passed**. No full regression, upstream execution, deployment or activation performed at this checkpoint.

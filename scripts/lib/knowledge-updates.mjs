@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { canonicalHash, ContractError } from './contracts.mjs';
 import { validateKnowledgeBundleIntegrity } from './knowledge.mjs';
+import { reviewedChangedPaths, validateKnowledgeChangeReview } from './knowledge-change-review.mjs';
 
 const fail = (path, message, code = 'INVALID_INPUT') => { throw new ContractError(code, path, message); };
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -84,13 +85,14 @@ function checkedDependencyImpactV5(currentBundle, candidateBundle, check) {
   const priorDeps = byId(currentBundle.dependencies, 'dependency_id'), checked = new Map((check?.files ?? []).map(file => [file.path, file]));
   const modified = [], potentially_modified = [], limitations = [];
   if (check?.status !== 'changed' || check.observed_head === currentBundle.catalog?.upstream?.commit) return { modified, potentially_modified, limitations };
+  const reviewed = candidateBundle.catalog?.change_review ? reviewedChangedPaths(candidateBundle, check) : new Set();
   const historicalHeadMatches = Boolean(currentBundle.catalog?.upstream?.commit) && check.prior_head === currentBundle.catalog.upstream.commit;
   for (const dep of candidateBundle.dependencies) {
     const prior = priorDeps.get(dep.dependency_id);
     if (dep.source_visibility === 'external_unpublished') continue;
     for (const path of [...new Set([...callerPaths(prior), ...callerPaths(dep)])].filter(path => path !== dep.path)) {
       const changed = check.repository_diff?.some(item => item.path === path);
-      if (changed || checked.get(path)?.status !== 'present' || check.inventory_scope !== 'full_repository' || !historicalHeadMatches) {
+      if ((changed && !reviewed.has(path)) || checked.get(path)?.status !== 'present' || check.inventory_scope !== 'full_repository' || !historicalHeadMatches) {
         potentially_modified.push(dep.dependency_id);
         limitations.push({ dependency_id: dep.dependency_id, path, reason: changed ? 'caller_or_config_changed' : 'caller_or_config_unverified' });
       }
@@ -138,6 +140,7 @@ export function computeKnowledgeImpactV5(currentBundle, candidateBundle, check =
     && dep.source_visibility === 'public'
     && check?.files?.some(file => file.path === dep.path && file.status === 'present' && file.sha256 === dep.material_hash)
   ).map(dep => dep.path));
+  if (candidateBundle.catalog?.change_review) for (const path of reviewedChangedPaths(candidateBundle, check)) reviewedPaths.add(path);
   const unreviewed_paths = (repository_diff ?? []).map(item => item.path).filter(path => !reviewedPaths.has(path)).sort();
   return Object.freeze({ dependency_diff, affected_rule_version_refs: affected.sort(), impact_limitations: sourceImpact.limitations, repository_diff, unreviewed_paths, inventory_scope });
 }
@@ -179,6 +182,18 @@ export function verifyKnowledgeSourceMaterialsV5(currentBundle, candidateBundle,
   knowledgeSourceBindingsV5(currentBundle, candidateBundle, check);
   if (check.source_binding_version !== 'git-source-v1' || !check.checkout_dir) fail('/check_ref', 'A fresh committed-source check is required', 'MISSING_EVIDENCE');
   const checked = new Map(check.files.map(file => [file.path, file]));
+  const review = validateKnowledgeChangeReview(candidateBundle.catalog.change_review, { base: currentBundle.catalog.upstream.commit, target: check.observed_head, check });
+  if (review) {
+    for (const entry of review.entries) {
+      const before = entry.change === 'A' ? null : execFileSync('git', ['show', `${review.base_commit}:${entry.path}`], { cwd: check.checkout_dir, maxBuffer: 32 * 1024 * 1024 });
+      const patch = execFileSync('git', ['diff', '--no-ext-diff', '--no-renames', review.base_commit, review.target_commit, '--', entry.path], { cwd: check.checkout_dir, maxBuffer: 32 * 1024 * 1024 });
+      if ((before && sha256(before)) !== entry.before_sha256 || sha256(patch) !== entry.patch_sha256) fail('/change_review', `Changed-path review differs from the actual diff: ${entry.path}`, 'RECEIPT_CONFLICT');
+      for (const ref of entry.evidence) {
+        const source = execFileSync('git', ['show', `${ref.commit}:${ref.path}`], { cwd: check.checkout_dir, maxBuffer: 32 * 1024 * 1024 }).toString('utf8');
+        if (ref.line_end > source.split(/\n/u).length - Number(source.endsWith('\n'))) fail('/change_review', `Review locator exceeds source: ${ref.path}`, 'MISSING_EVIDENCE');
+      }
+    }
+  }
   const sourceBytes = path => {
     const file = checked.get(path);
     if (!file || file.status !== 'present' || file.commit !== check.observed_head) fail('/source_material', `Source was not actually checked: ${path}`, 'MISSING_EVIDENCE');
