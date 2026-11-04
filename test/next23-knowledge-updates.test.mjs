@@ -43,6 +43,12 @@ test('candidate impact includes add, modify, delete and move and activation reco
   const activated = activateKnowledgeUpdateV5(current, candidate, proposal, { check, review_receipt: { receipt_id: 'review', purpose: 'review_knowledge', subject_hash: proposal.proposal_hash, actual_result_hash: proposal.proposal_hash, decision: 'approved' }, replay_results, activated_at: T });
   assert.doesNotThrow(() => validate('KnowledgeEventV5', activated.event));
   assert.deepEqual(activated.event.affected_rule_version_refs, ['r1', 'r2', 'r3']);
+  // Only an independently reviewed editorial release may isolate unresolved mechanics.
+  const scoped = structuredClone(candidate); scoped.catalog.execution_scope = 'editorial_only';
+  const scopedProposal = proposeKnowledgeUpdateV5(current, scoped, check);
+  for (const identity of [{reviewer:'same',generator_ref:'same'}, {reviewer:' same ',generator_ref:'same'}, {reviewer:'',generator_ref:'writer'}, {reviewer:'reviewer',generator_ref:''}]) {
+    assert.throws(() => activateKnowledgeUpdateV5(current, scoped, scopedProposal, { check, review_receipt: { receipt_id:'review', purpose:'review_knowledge', subject_hash:scopedProposal.proposal_hash, actual_result_hash:scopedProposal.proposal_hash, decision:'approved', ...identity }, replay_results:[], activated_at:T }), /self-review/);
+  }
   const tampered = structuredClone(candidate); tampered.dependencies.find(item => item.dependency_id === 'modified').value = 3;
   assert.throws(() => activateKnowledgeUpdateV5(current, tampered, proposal, { check, review_receipt: { receipt_id: 'review', purpose: 'review_knowledge', subject_hash: proposal.proposal_hash, actual_result_hash: proposal.proposal_hash, decision: 'approved' }, replay_results, activated_at: T }), /immutable saved candidate/);
   const pending=structuredClone(candidate);pending.rules.r1.review_status='pending';assert.throws(()=>activateKnowledgeUpdateV5(current,pending,proposal,{check,review_receipt:{receipt_id:'review',purpose:'review_knowledge',subject_hash:proposal.proposal_hash,actual_result_hash:proposal.proposal_hash,decision:'approved'},replay_results,activated_at:T}),/without approved status/);

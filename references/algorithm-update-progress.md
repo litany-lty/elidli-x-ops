@@ -64,3 +64,10 @@
 - Added four missing OP07/OP10 semantic signals; 11 targeted extractor/context tests passed. No keyword-based or fabricated personal-experience inference.
 - Added exact-reviewed, append-only rollback snapshots with non-widening scope. Seven targeted rollback cases passed across focused runs.
 - Three targeted scope checks passed. End-to-end delivery tests are prepared and await the independently reviewed release; the installed catalog has not yet switched at this checkpoint.
+
+### Scope review hardening checkpoint
+
+- Independent review identified per-rule rollback scope preservation and self-review rejection. Both are now enforced; proposal/replay activation receipts must identify distinct reviewer and generator for editorial releases.
+- Application recording now checks the current catalog and recomputes the selected context before accepting actions. Final delivery retains its independent revalidation.
+- Rollback focused suite: 10 passed, including current/target rule-level scope and six invalid reviewer identity cases. Changed activation identity test: 1 passed.
+- Fresh upstream check again verified 331 source paths and the fixed 248-path diff. A 10-rule editorial-only package has been prepared with all 109 dependencies unchanged (94 public, 10 partially public, 5 external unpublished). It remains pending independent approval and is not installed at this checkpoint.

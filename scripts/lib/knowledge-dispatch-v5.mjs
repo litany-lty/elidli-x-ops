@@ -82,6 +82,12 @@ export async function dispatchKnowledgeV5(request, dir, state) {
     const reviewRefs = [payload.review_receipt_ref, ...replayResults.map(item => item.review_ref)];
     const { verifyHostReviewReceiptV5, loadActualReviewReceiptsV5 } = await import('./host-review-v5.mjs');
     const receipts = await loadActualReviewReceiptsV5(working, reviewRefs), clock = new Date();
+    if (saved.catalog.execution_scope === 'editorial_only') {
+      for (const ref of reviewRefs) {
+        const review = actualReceipt(receipts, ref);
+        if (!review?.reviewer?.trim() || !review?.generator_ref?.trim() || review.reviewer.trim() === review.generator_ref.trim()) fail('MISSING_EVIDENCE', '/review_receipt_ref', 'Editorial activation requires independent proposal and replay reviews');
+      }
+    }
     const proposalReview = actualReceipt(receipts, payload.review_receipt_ref);
     await verifyHostReviewReceiptV5(proposalReview, { clock: () => clock, expectedPurpose: 'review_knowledge', expectedSubjectRef: proposal.proposal_id, expectedSubjectContentHash: proposal.proposal_hash });
     if (proposalReview?.purpose !== 'review_knowledge' || proposalReview.subject_ref !== proposal.proposal_id || proposalReview.subject_hash !== proposal.proposal_hash || proposalReview.actual_result_hash !== proposal.proposal_hash || proposalReview.decision !== 'approved') fail('MISSING_EVIDENCE', '/review_receipt_ref', 'Exact approved knowledge proposal review is required');

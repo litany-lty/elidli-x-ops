@@ -24,7 +24,8 @@ function rollbackInputs(state, targetRef, clock) {
 
 function restoredCatalog(current, target) {
   const catalog = structuredClone(target.catalog);
-  if ([current.catalog.execution_scope, target.catalog.execution_scope].includes('editorial_only')) catalog.execution_scope = 'editorial_only';
+  const scopes = [current.catalog.execution_scope, target.catalog.execution_scope, ...Object.values(current.rules).map(rule => rule.execution_scope), ...Object.values(target.rules).map(rule => rule.execution_scope)];
+  if (scopes.includes('editorial_only')) catalog.execution_scope = 'editorial_only';
   catalog.catalog_content_hash = catalogContentHash(catalog);
   return catalog;
 }
@@ -54,6 +55,8 @@ export async function rollbackKnowledgeV5(state, { target_catalog_ref, review_re
     expectedSubjectContentHash: preview.subject_hash
   });
   const review = receipts[review_receipt_ref];
+  if (typeof review.reviewer !== 'string' || !review.reviewer.trim() || typeof review.generator_ref !== 'string' || !review.generator_ref.trim() || review.reviewer.trim() === review.generator_ref.trim())
+    fail('MISSING_EVIDENCE', '/review_receipt_ref', 'Rollback requires distinct nonempty reviewer and generator identities');
   if (review.decision !== 'approved' || review.subject_hash !== preview.subject_hash || review.actual_result_hash !== preview.subject_hash)
     fail('MISSING_EVIDENCE', '/review_receipt_ref', 'Rollback requires actual independent approval of this exact transition');
   if (!Number.isFinite(Date.parse(review.reviewed_at)) || Date.parse(review.reviewed_at) > clock.getTime())
